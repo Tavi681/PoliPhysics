@@ -1,0 +1,52 @@
+environment: {"git_commit": "", "cpu_model": "Apple M4 Pro", "cpu_count_logical": 14, "cpu_performance_cores": 10, "cpu_efficiency_cores": 4, "gpu": "Apple M4 Pro", "gpu_used": false, "os": "macOS-26.6.2-arm64-arm-64bit-Mach-O", "python": "3.14.6", "numpy": "2.5.3", "scipy": "1.18.1", "h5py": "3.16.0"}
+workers: 10
+conv N_t=25 vbar_t=2.119584 R/L=1.428741e-01 cpu=5.62 s status=steady
+conv N_t=50 vbar_t=2.098620 R/L=1.424817e-01 cpu=11.48 s status=steady
+conv N_t=100 vbar_t=2.088284 R/L=1.422899e-01 cpu=25.73 s status=steady
+conv N_t=200 vbar_t=2.083152 R/L=1.421950e-01 cpu=51.64 s status=steady
+done collapse_N8_F1.2: status=steady t_exit=4.9511 s runtime=262.3 s
+done collapse_N8_F1.5: status=steady t_exit=4.4911 s runtime=257.0 s
+done collapse_N8_F2.0: status=steady t_exit=4.0911 s runtime=252.4 s
+done collapse_N8_F3.0: status=steady t_exit=3.4111 s runtime=233.9 s
+done collapse_N8_F5.0: status=steady t_exit=2.3011 s runtime=195.6 s
+done collapse_N4_F1.2: status=steady t_exit=2.7311 s runtime=82.3 s
+done collapse_N4_F1.5: status=steady t_exit=2.5011 s runtime=80.8 s
+done collapse_N4_F2.0: status=steady t_exit=2.3011 s runtime=79.2 s
+done collapse_N4_F3.0: status=steady t_exit=1.9311 s runtime=75.2 s
+done collapse_N4_F5.0: status=steady t_exit=1.2411 s runtime=58.1 s
+done collapse_N2_F1.2: status=steady t_exit=1.6711 s runtime=28.8 s
+done collapse_N2_F1.5: status=steady t_exit=1.5811 s runtime=28.7 s
+done collapse_N2_F2.0: status=steady t_exit=1.5511 s runtime=29.1 s
+done collapse_N2_F3.0: status=steady t_exit=1.4711 s runtime=30.4 s
+done collapse_N2_F5.0: status=steady t_exit=1.2511 s runtime=29.9 s
+done collapse_N1_F1.2: status=steady t_exit=2.5410 s runtime=10.5 s
+done collapse_N1_F1.5: status=steady t_exit=2.5410 s runtime=10.6 s
+done collapse_N1_F2.0: status=steady t_exit=2.5410 s runtime=10.6 s
+done collapse_N1_F3.0: status=steady t_exit=2.5410 s runtime=10.5 s
+done collapse_N1_F5.0: status=steady t_exit=2.5410 s runtime=10.5 s
+done invariance_w0.5: status=steady t_exit=2.1511 s runtime=77.4 s
+done vt_L0.1: status=steady t_exit=7.5110 s runtime=30.3 s
+done vt_L0.5: status=steady t_exit=2.5410 s runtime=10.6 s
+done vt_L1.0: status=steady t_exit=1.5210 s runtime=6.7 s
+done test4a: status=steady t_exit=1.8120 s runtime=70.1 s
+done test4b: status=steady t_exit=1.8391 s runtime=73.1 s
+done test3_Qs0: status=steady t_exit=2.5410 s runtime=10.7 s
+done test3_Qs3pC: status=steady t_exit=2.5410 s runtime=10.7 s
+pool wall-clock 262.9 s
+wrote tab_vt.csv (3 rows)
+wrote fig_test1.csv (3653 rows)
+test4a q=1.2433e-09 C V=0.085016 m/s t95=0.6040 s 3t_s=0.5973 s
+test4b q=1.2433e-09 C V=0.085158 m/s t95=0.0010 s 3t_s=0.5973 s
+test4b vz0 peak=1.208349 m/s, settles within 5% at t=1.1371 s
+wrote tab_valid.csv (7 rows)
+wrote tab_conv.csv (4 rows)
+wrote fig_collapse.csv (20 rows)
+wrote tab_steady.csv (3 rows)
+wrote fig_shapes.csv (1414 rows)
+wrote fig_invariant.csv (100 rows)
+fig_invariant: spread over interior edges 0.019 %
+wrote fig_invariance.csv (808 rows)
+wrote fig_invariance_t.csv (447 rows)
+invariance: V(w=0.5)-V(w=0) = 0.500008054 m/s, max shape deviation / L = 7.568e-06
+wrote meta.json
+total wall-clock 357.6 s
