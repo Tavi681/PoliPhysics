@@ -13,7 +13,7 @@ from .params import Params
 from .geometry import Topology
 from .integrator import simulate
 from . import observables
-from .fields import ChamberField
+from .fields import ChamberField, KinematicSimulation, von_karman_E
 
 
 def analytic_terminal_velocity(P: Params, E: float) -> float:
@@ -586,3 +586,297 @@ def _finalize_invariance_equal_t(by_label: dict, dt: float,
         "t_compare": comoving["t_compare"],
         "per_t_dev_over_L": comoving["per_t_dev_over_L"],
     }
+
+
+# ---------------------------------------------------------------------------
+# Stage A -- Kinematic Simulation validation (fig_ksvalid, fig_ksvalid_pdf)
+# ---------------------------------------------------------------------------
+KSVALID_SIGMA = 0.25
+KSVALID_ELL = 1.0
+KSVALID_SEEDS = 50
+KSVALID_NPTS = 4096
+KSVALID_SPAN_ELL = 20.0
+KSVALID_NBINS = 60
+
+
+def _longitudinal_target(k1: float) -> float:
+    """One-sided longitudinal spectrum E_11(k1) implied by E(k) for isotropic turb.
+
+    E_11(k1) = int_{k1}^inf (E(k)/k)(1 - (k1/k)^2) dk (Pope, Turbulent Flows);
+    with this convention int_0^inf E_11 dk1 = sigma^2.
+    """
+    from scipy import integrate
+    if k1 <= 0.0:
+        k1 = 1e-12
+    val, _ = integrate.quad(
+        lambda k: von_karman_E(k, KSVALID_SIGMA, KSVALID_ELL) / k
+        * (1.0 - (k1 / k) ** 2),
+        k1, np.inf, limit=200)
+    return float(val)
+
+
+def ks_validation_spectrum(N_k: int) -> dict:
+    """Measured vs target 1-D longitudinal spectrum of w, averaged over seeds.
+
+    A line of ``KSVALID_NPTS`` points spanning ``KSVALID_SPAN_ELL * ell`` along z;
+    w = u_z (longitudinal). One-sided periodogram averaged over ``KSVALID_SEEDS``
+    seeds, then log-binned. Returns arrays k, E_target, E_measured.
+    """
+    span = KSVALID_SPAN_ELL * KSVALID_ELL
+    N = KSVALID_NPTS
+    dz = span / N
+    z = np.linspace(0.0, span, N, endpoint=False)
+    acc = np.zeros(N // 2 + 1)
+    for s in range(KSVALID_SEEDS):
+        ks = KinematicSimulation(sigma=KSVALID_SIGMA, ell=KSVALID_ELL, U_h=0.0,
+                                 N_k=N_k, seed=s, L=0.5, N_t=100)
+        line = np.zeros((N, 3))
+        line[:, 2] = z
+        w = ks.u(line, 0.0)[:, 2]
+        W = np.fft.rfft(w)
+        psd = (np.abs(W) ** 2) * dz / N
+        psd[1:-1] *= 2.0  # one-sided
+        acc += psd
+    acc /= KSVALID_SEEDS
+    k1 = 2.0 * np.pi * np.fft.rfftfreq(N, d=dz)
+    measured = acc / (2.0 * np.pi)  # int_0^inf measured dk1 = variance
+
+    # log-bin over the resolved band (skip k1=0 DC bin)
+    lo = k1[1]
+    hi = k1[-1]
+    edges = np.geomspace(lo, hi, KSVALID_NBINS + 1)
+    centers = np.sqrt(edges[:-1] * edges[1:])
+    E_meas = np.full(KSVALID_NBINS, np.nan)
+    for b in range(KSVALID_NBINS):
+        m = (k1 >= edges[b]) & (k1 < edges[b + 1])
+        if np.any(m):
+            E_meas[b] = float(np.mean(measured[m]))
+    keep = ~np.isnan(E_meas)
+    centers = centers[keep]
+    E_meas = E_meas[keep]
+    E_tgt = np.array([_longitudinal_target(k) for k in centers])
+    return {"N_k": N_k, "k": centers, "E_target": E_tgt, "E_measured": E_meas}
+
+
+def ks_validation_pdf(N_k: int, n_bins: int = 61) -> dict:
+    """PDF of w (=u_z) over all seeds/points vs a Gaussian with std sigma."""
+    span = KSVALID_SPAN_ELL * KSVALID_ELL
+    N = KSVALID_NPTS
+    z = np.linspace(0.0, span, N, endpoint=False)
+    samples = []
+    for s in range(KSVALID_SEEDS):
+        ks = KinematicSimulation(sigma=KSVALID_SIGMA, ell=KSVALID_ELL, U_h=0.0,
+                                 N_k=N_k, seed=s, L=0.5, N_t=100)
+        line = np.zeros((N, 3))
+        line[:, 2] = z
+        samples.append(ks.u(line, 0.0)[:, 2])
+    w = np.concatenate(samples)
+    lim = 4.0 * KSVALID_SIGMA
+    edges = np.linspace(-lim, lim, n_bins + 1)
+    pdf, _ = np.histogram(w, bins=edges, density=True)
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    gauss = (np.exp(-centers ** 2 / (2.0 * KSVALID_SIGMA ** 2))
+             / (KSVALID_SIGMA * np.sqrt(2.0 * np.pi)))
+    return {"N_k": N_k, "w_bin_center": centers, "pdf": pdf, "gaussian": gauss}
+
+
+def run_ks_validation(N_k_values=(100, 200)) -> dict:
+    """Full KS validation for the requested N_k values (fig_ksvalid / _pdf)."""
+    spectra = [ks_validation_spectrum(nk) for nk in N_k_values]
+    pdfs = [ks_validation_pdf(nk) for nk in N_k_values]
+    energy_fraction = {}
+    for nk in N_k_values:
+        ks = KinematicSimulation(sigma=KSVALID_SIGMA, ell=KSVALID_ELL, U_h=0.0,
+                                 N_k=nk, seed=0, L=0.5, N_t=100)
+        energy_fraction[nk] = ks.energy_fraction
+    return {"spectra": spectra, "pdfs": pdfs, "energy_fraction": energy_fraction,
+            "sigma": KSVALID_SIGMA, "ell": KSVALID_ELL}
+
+
+# ---------------------------------------------------------------------------
+# Stage A -- Table w_c (tab:wc)  ->  results/tab_wc.csv
+# ---------------------------------------------------------------------------
+WC_E = 7.41e3
+WC_N = (1, 2, 4, 8)
+WC_M_MG = (0.1, 1.0, 10.0)
+WC_Q_NC = (0.0, 0.6)
+
+
+def wc_params(N: int, m_mg: float, q_nC: float, N_t: int = 100) -> Params:
+    """Tip charge, constant E, still air, Q_s=0; q per thread set directly."""
+    P = Params(
+        N=N, N_t=N_t, L=0.5, m=m_mg * 1e-6, Q_s=0.0, charge_model="tip",
+        field_model="constant", E_constant=WC_E,
+        **_steady(t_end=8.0, t_w=0.1),
+    )
+    P.Q_t = q_nC * 1e-9
+    return P
+
+
+def wc_analytic(P: Params) -> float:
+    """w_c = w_s (1 - Fbar_l), w_s = m g/(N eta_par L + zeta_s), Fbar_l = N q E/(m g)."""
+    w_s = P.m * P.g / (P.N * P.eta_par * P.L + P.zeta_s)
+    fbar_l = P.N * P.Q_t * P.E_constant / (P.m * P.g)
+    return w_s * (1.0 - fbar_l)
+
+
+def _threads_fold_below_spider(topo: Topology, X: np.ndarray) -> bool:
+    """True if any thread node ends up below the spider node (z < z_spider)."""
+    z0 = X[0, 2]
+    return bool(np.any(X[1:, 2] < z0 - 1e-9))
+
+
+def run_wc_job(spec: tuple) -> dict:
+    """Pickable worker for one (N, m_mg, q_nC) tab_wc entry."""
+    N, m_mg, q_nC = spec
+    P = wc_params(N, m_mg, q_nC)
+    t0 = time.perf_counter()
+    traj = simulate(P)
+    runtime = time.perf_counter() - t0
+    topo = Topology(P)
+    V = observables.spider_vertical_velocity(traj.v[-1])
+    wc_num = -V
+    wc_ana = wc_analytic(P)
+    denom = abs(wc_ana) if abs(wc_ana) > 1e-30 else 1.0
+    fold = _threads_fold_below_spider(topo, traj.x[-1])
+    return {
+        "N": N, "m_mg": m_mg, "q_nC": q_nC,
+        "wc_numeric": wc_num, "wc_analytic": wc_ana,
+        "rel_err_pct": 100.0 * abs(wc_num - wc_ana) / denom,
+        "fold_below_spider": fold,
+        "status": traj.outcome["status"],
+        "t_exit": float(traj.t[-1]),
+        "runtime_s": runtime,
+    }
+
+
+def wc_specs() -> list:
+    return [(N, m, q) for N in WC_N for m in WC_M_MG for q in WC_Q_NC]
+
+
+# ---------------------------------------------------------------------------
+# Stage A -- Lateral relaxation from results/equal_t_cache  ->  results/relax.csv
+# ---------------------------------------------------------------------------
+def _exp_decay_time(t: np.ndarray, y: np.ndarray, t_min: float = 0.5) -> float:
+    """Fit y ~ A exp(-t/tau) for t >= t_min via least squares on log(y)."""
+    m = (t >= t_min) & (y > 0.0)
+    if np.count_nonzero(m) < 2:
+        return float("nan")
+    slope, _ = np.polyfit(t[m], np.log(y[m]), 1)
+    if slope >= 0.0:
+        return float("inf")
+    return float(-1.0 / slope)
+
+
+def run_lateral_relaxation(cache_dir: str, dt: float) -> dict:
+    """R(t) and shape relaxation from the transient (v0=0) equal-t cache runs.
+
+    Uses w0.npz (w=0) and w_transient.npz (w=0.5, v0=0). Reports dR/L, dshape/L
+    per compared time and exponential decay times for t >= 0.5 s.
+    """
+    from pathlib import Path
+    cdir = Path(cache_dir)
+    P = invariance_equal_t_params(0.0, dt)
+    topo = Topology(P)
+    d0 = np.load(cdir / "w0.npz", allow_pickle=False)
+    dw = np.load(cdir / "w_transient.npz", allow_pickle=False)
+    t0, x0 = d0["t"], d0["x"]
+    tw, xw = dw["t"], dw["x"]
+    output_dt = float(d0["output_dt"]) if "output_dt" in d0.files else INVARIANCE_EQUAL_T_OUTPUT
+    t_end = float(d0["t_end"]) if "t_end" in d0.files else INVARIANCE_EQUAL_T_END
+    t_compare = _equal_t_compare_grid(output_dt, t_end)
+    t_tol = 0.5 * output_dt
+
+    t_used, dR_over_L, dshape_over_L = [], [], []
+    for tc in t_compare:
+        i0 = int(np.argmin(np.abs(t0 - tc)))
+        iw = int(np.argmin(np.abs(tw - tc)))
+        if abs(t0[i0] - tc) > t_tol or abs(tw[iw] - tc) > t_tol:
+            raise RuntimeError(f"relax: missing matched output at t={tc}")
+        R0 = observables.tip_radius(topo, x0[i0])
+        Rw = observables.tip_radius(topo, xw[iw])
+        dR_over_L.append(abs(Rw - R0) / P.L)
+        dshape = np.max(np.abs((x0[i0] - x0[i0][0]) - (xw[iw] - xw[iw][0])))
+        dshape_over_L.append(dshape / P.L)
+        t_used.append(0.5 * (float(t0[i0]) + float(tw[iw])))
+    t_used = np.array(t_used)
+    dR_over_L = np.array(dR_over_L)
+    dshape_over_L = np.array(dshape_over_L)
+    return {
+        "t": t_used,
+        "dR_over_L": dR_over_L,
+        "dshape_over_L": dshape_over_L,
+        "tau_R_s": _exp_decay_time(t_used, dR_over_L, 0.5),
+        "tau_shape_s": _exp_decay_time(t_used, dshape_over_L, 0.5),
+        "t_s": stokes_time(P),
+        "fit_t_min_s": 0.5,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Stage A -- Pilot cost (alg:sweep)  ->  results/pilot.csv  (NOT production)
+# ---------------------------------------------------------------------------
+PILOT_N = (1, 2, 4, 8)
+PILOT_SEEDS = (0, 1, 2)
+PILOT_FBAR = 1.0
+PILOT_SIGMA_W = 0.25
+PILOT_ELL = 1.0
+PILOT_U_H = 1.0
+PILOT_N_K = 100
+PILOT_Z0 = 0.5
+PILOT_H = 2.0
+PILOT_T_END = 60.0
+
+
+def pilot_params(N: int, seed: int, N_t: int = 100,
+                 release_mode: str = "clamped", t_end: float = PILOT_T_END) -> Params:
+    """Pilot config: Fbar_l=1, kinematic turbulence, clamped release, Alg.2 stop."""
+    P = Params(
+        N=N, N_t=N_t, L=0.5, m=1e-6, Q_s=0.0, charge_model="tip",
+        field_model="constant", E_constant=WC_E,
+        flow_model="kinematic", sigma_w=PILOT_SIGMA_W, ell=PILOT_ELL,
+        U_h=PILOT_U_H, turb_N_k=PILOT_N_K, turb_seed=seed,
+        z0=PILOT_Z0, h=PILOT_H, t_end=t_end,
+        release_mode=release_mode,
+        use_alg2_stopping=True, stop_on_steady=False,
+        adaptive_dt=True, dt0=1e-4, dt_max=1e-2, output_dt=1e-2,
+        delta=1e-6, t_w=0.05,
+    )
+    P.Q_t = charge_for_lift_ratio(P, WC_E, PILOT_FBAR)
+    return P
+
+
+def run_pilot_job(spec: tuple) -> dict:
+    """Pickable worker for one pilot run; reports cost + outcome.
+
+    spec = (N, seed) or (N, seed, t_end, N_t). ``t_end``/``N_t`` allow a cheap
+    smoke run without touching the production defaults.
+    """
+    if len(spec) == 2:
+        N, seed = spec
+        t_end, N_t = PILOT_T_END, 100
+    else:
+        N, seed, t_end, N_t = spec
+    P = pilot_params(N, seed, N_t=N_t, t_end=t_end)
+    t0 = time.perf_counter()
+    traj = simulate(P)
+    wall = time.perf_counter() - t0
+    diag = traj.outcome.get("diag", {})
+    sim_time = float(traj.t[-1])
+    return {
+        "N": N, "seed": seed,
+        "outcome": traj.outcome.get("status", "timeout"),
+        "exit_time": float(traj.outcome.get("exit_time") or sim_time),
+        "simulated_time": sim_time,
+        "wall_time_s": wall,
+        "wall_over_sim": wall / sim_time if sim_time > 0 else float("nan"),
+        "mean_dt": float(diag.get("mean_dt", float("nan"))),
+        "min_dt": float(diag.get("min_dt", float("nan"))),
+        "newton_failures": int(diag.get("newton_failures", 0)),
+        "max_abs_u": float(diag.get("max_abs_u", float("nan"))),
+        "n_steps": int(diag.get("n_steps", 0)),
+    }
+
+
+def pilot_specs(t_end: float = PILOT_T_END, N_t: int = 100) -> list:
+    return [(N, s, t_end, N_t) for N in PILOT_N for s in PILOT_SEEDS]

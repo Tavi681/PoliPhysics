@@ -17,3 +17,8 @@ Tema 1/results/equal_t_cache_smoke/
 Tema 1/results/equal_t_run.log
 Tema 1/results/meta_smoke.json
 Tema 1/results/meta_smoke_from_cache.json
+
+# Regenerable / local Stage A artifacts
+Tema 1/results/ml_samples/
+Tema 1/results/tab_wc_run.log
+Tema 1/results/log.txt

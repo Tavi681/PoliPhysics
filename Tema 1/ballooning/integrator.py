@@ -87,8 +87,10 @@ def _residual_and_jacobian(P, topo, frames_state, M_diag, xi, xi_n, xi_dot_n,
 
     C = forces.resistance_matrix(P, topo, xi)                 # d F_v/d xi = -C/dt
     Jext = forces.external_position_jacobian(P, topo, xi, field, q)  # d(F_l+F_r)/d xi
+    # d F_v/d xi from the spatial dependence of u (zero for Zero/Uniform flow).
+    Jflow = forces.viscous_flow_jacobian(P, topo, xi, flow, t)
     M_over_dt2 = sp.diags(M_diag / dt ** 2)
-    J = M_over_dt2 + H_el + C / dt - Jext                     # Eq. (eq:jacobian)
+    J = M_over_dt2 + H_el + C / dt - Jext - Jflow             # Eq. (eq:jacobian)
     return F, J.tocsr()
 
 
@@ -99,10 +101,35 @@ def _solve(J, F, dense: bool):
     return spla.spsolve(J.tocsc(), F)
 
 
+def _apply_dirichlet(F, J, fixed_dofs):
+    """Impose dxi = 0 on ``fixed_dofs`` (Dirichlet) via row replacement.
+
+    Sets F[d] = 0 and J row d to the unit row e_d, so the Newton solve returns
+    dxi[d] = 0 and those DOFs stay at their initial (clamped) value.
+    """
+    if not fixed_dofs:
+        return F, J
+    F = F.copy()
+    F[fixed_dofs] = 0.0
+    J = J.tolil()
+    for d in fixed_dofs:
+        J.rows[d] = [d]
+        J.data[d] = [1.0]
+    return F, J.tocsr()
+
+
 def simulate(P: Params, field=None, flow=None, xi0=None, xi_dot0=None,
-             progress: bool = False) -> Trajectory:
-    """Run Algorithm 1 and return the recorded trajectory."""
+             progress: bool = False, fixed_dofs=None) -> Trajectory:
+    """Run Algorithm 1 and return the recorded trajectory.
+
+    ``fixed_dofs`` (optional): DOF indices held fixed (Dirichlet) throughout the
+    run -- used by the clamped-release mode to pin the spider node.
+    """
     P.validate()
+    # Clamped release (Alg.2 line 4): only when nothing is overridden by the caller.
+    if (P.release_mode == "clamped" and flow is None and xi0 is None
+            and fixed_dofs is None):
+        return _simulate_clamped_release(P, field=field, progress=progress)
     if field is None:
         field = make_field(P)
     if flow is None:
@@ -138,11 +165,19 @@ def simulate(P: Params, field=None, flow=None, xi0=None, xi_dot0=None,
     out_v: list[np.ndarray] = []
     out_theta: list[np.ndarray] = []
 
+    # diagnostics (used by the Stage A pilot cost report)
+    diag = {"newton_failures": 0, "max_abs_u": 0.0}
+    accepted_dts: list[float] = []
+
     def record(t_val, xi_val, xidot_val):
         out_t.append(t_val)
-        out_x.append(topo.positions(xi_val).copy())
+        X_rec = topo.positions(xi_val)
+        out_x.append(X_rec.copy())
         out_v.append(topo.positions(xidot_val).copy())
         out_theta.append(topo.thetas(xi_val).copy())
+        u_rec = flow.u(X_rec, t_val)
+        if u_rec.size:
+            diag["max_abs_u"] = max(diag["max_abs_u"], float(np.max(np.abs(u_rec))))
 
     record(t, xi_n, xi_dot_n)
     next_output = P.output_dt
@@ -164,6 +199,7 @@ def simulate(P: Params, field=None, flow=None, xi0=None, xi_dot0=None,
         while True:
             F, J = _residual_and_jacobian(P, topo, frames_state, M_diag, xi_k,
                                           xi_n, xi_dot_n, dt, field, flow, q, t + dt)
+            F, J = _apply_dirichlet(F, J, fixed_dofs)
             # Alg.1 line 10: solve J dxi = F; xi^(k+1) <- xi^(k) - dxi; k <- k+1
             dxi = _solve(J, F, dense_solve)
             xi_k = xi_k - dxi
@@ -175,6 +211,7 @@ def simulate(P: Params, field=None, flow=None, xi0=None, xi_dot0=None,
 
         # Alg.1 line 12: if ||F||_1 >= eps then  (Newton failed)
         if Fnorm >= P.eps:
+            diag["newton_failures"] += 1
             if not P.adaptive_dt:
                 raise RuntimeError(
                     f"Newton failed at t={t:.6e} with fixed dt={dt:.3e} "
@@ -196,6 +233,7 @@ def simulate(P: Params, field=None, flow=None, xi0=None, xi_dot0=None,
             xi_np1 = xi_k
             xi_dot_np1 = (xi_np1 - xi_n) / dt
             frames_state.commit(topo.positions(xi_np1), topo.thetas(xi_np1))
+            accepted_dts.append(dt)
             t = t + dt
             n = n + 1
 
@@ -260,6 +298,15 @@ def simulate(P: Params, field=None, flow=None, xi0=None, xi_dot0=None,
     # entanglement flag: threads in contact, d_min < entangle_contact_factor * r
     outcome["entangled"] = _entangled(P, topo, xi_n)
 
+    if accepted_dts:
+        diag["mean_dt"] = float(np.mean(accepted_dts))
+        diag["min_dt"] = float(np.min(accepted_dts))
+    else:
+        diag["mean_dt"] = float("nan")
+        diag["min_dt"] = float("nan")
+    diag["n_steps"] = len(accepted_dts)
+    outcome["diag"] = diag
+
     traj = Trajectory(
         t=np.array(out_t),
         x=np.stack(out_x),
@@ -271,6 +318,44 @@ def simulate(P: Params, field=None, flow=None, xi0=None, xi_dot0=None,
         outcome=outcome,
     )
     return traj
+
+
+def _simulate_clamped_release(P: Params, field=None, progress: bool = False) -> Trajectory:
+    """Clamped release (Alg.2 line 4): hold node 0 fixed at z0 in still air until
+    steady, then release at t=0 into the configured flow.
+
+    Phase 1 pins the spider's 3 position DOFs (Dirichlet) with ZeroFlow and runs to
+    the steady-state test. Phase 2 restarts from that clamped steady shape (at rest),
+    releases node 0, switches on the configured flow, and applies the run's stopping
+    rules with t reset to 0.
+    """
+    from dataclasses import replace
+    from .fields import ZeroFlow
+
+    if field is None:
+        field = make_field(P)
+
+    # --- Phase 1: clamped, still air, run to steady ---
+    P1 = replace(P, flow_model="zero", release_mode="free",
+                 use_alg2_stopping=False, stop_on_steady=True)
+    xi0, xi_dot0, topo = initial_state(P1)
+    traj1 = simulate(P1, field=field, flow=ZeroFlow(), xi0=xi0,
+                     xi_dot0=xi_dot0, fixed_dofs=[0, 1, 2], progress=progress)
+
+    # clamped steady shape -> full DOF vector, released from rest
+    X_rel = traj1.x[-1]
+    theta_rel = traj1.theta[-1]
+    xi_release = np.concatenate([X_rel.reshape(-1), theta_rel])
+    xi_dot_release = np.zeros(P.n_dof)
+
+    # --- Phase 2: released, configured flow, run's stopping rules, t reset ---
+    P2 = replace(P, release_mode="free")
+    traj2 = simulate(P2, field=field, flow=None, xi0=xi_release,
+                     xi_dot0=xi_dot_release, progress=progress)
+    traj2.outcome["clamped_release"] = True
+    traj2.outcome["phase1_steady"] = bool(traj1.outcome.get("steady_state", False))
+    traj2.outcome["phase1_t_exit"] = float(traj1.t[-1])
+    return traj2
 
 
 def _entangled(P: Params, topo: Topology, xi: np.ndarray) -> bool:

@@ -1981,5 +1981,32 @@
   },
   "pool_wall_clock_s": 257.31044608308,
   "total_wall_clock_s": 352.7499647918157,
-  "note": "run_time_s is the sum of per-run wall-clock times; the pool runs execute concurrently"
+  "note": "run_time_s is the sum of per-run wall-clock times; the pool runs execute concurrently",
+  "stage_a": {
+    "git_commit": "4ae88b14145f028fcd4edd5c7bbba6c0c7311f5a",
+    "ks_validation": {
+      "sigma": 0.25,
+      "ell": 1.0,
+      "n_seeds": 50,
+      "line_points": 4096,
+      "span_ell": 20.0,
+      "energy_fraction": {
+        "100": 0.9637704750192234,
+        "200": 0.963582772596165
+      },
+      "energy_fraction_note": "fraction of (3/2)sigma^2 captured by the discrete modes; the deficit is the sub-mesh high-k tail beyond k_max=2pi/(5 dl) (dl=L/N_t), which k_min cannot recover for ell=1, N_t=100 -> ~0.964"
+    },
+    "relaxation": {
+      "tau_R_s": 0.2381543291863967,
+      "tau_shape_s": 0.23627145405662006,
+      "t_s": 0.05867771170804064,
+      "fit_t_min_s": 0.5,
+      "source": "results/equal_t_cache transient (v0=0) runs"
+    },
+    "tab_wc": {
+      "wall_time_s": 336.98534558317624,
+      "max_rel_err_pct": 12.4159517706716,
+      "fold_below_spider_cases": []
+    }
+  }
 }

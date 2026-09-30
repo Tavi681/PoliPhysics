@@ -43,13 +43,21 @@ _PARAM_ATTRS = [
     "mu", "g", "k_e", "Q_t", "charge_model", "field_model", "flow_model",
     "E_constant", "dt0", "dt_max", "dt_min", "eps", "K", "t_end", "output_dt",
     "adaptive_dt", "delta", "t_w", "stop_on_steady", "use_alg2_stopping", "h",
+    "release_mode",
+    "sigma_w", "ell", "U_h", "turb_N_k", "turb_seed", "turb_lambda",
     "lag_tangent",
     "coulomb_include_spider", "entangle_contact_factor",
 ]
 
 
-def write_trajectory(path: str, P: Params, traj: Trajectory) -> None:
-    """Write a full run to a single HDF5 file."""
+def write_trajectory(path: str, P: Params, traj: Trajectory,
+                     float32: bool = False) -> None:
+    """Write a full run to a single HDF5 file.
+
+    ``float32=True`` stores the large trajectory arrays (t, x, v, theta) in single
+    precision for compact ML datasets; metadata and outcome are unchanged.
+    """
+    fdtype = np.float32 if float32 else np.float64
     topo = Topology(P)
     with h5py.File(path, "w") as f:
         # /params
@@ -60,18 +68,18 @@ def write_trajectory(path: str, P: Params, traj: Trajectory) -> None:
         gp.attrs["first_integral_beta"] = P.beta_first_integral
         gp.attrs["git_commit"] = git_commit_hash()
 
-        # /turb (reserved)
+        # /turb (populated for the kinematic flow model: sigma_w, ell, U_h,
+        # lambda, seed, N_k, k_min_used, k_max, energy_fraction, k_n, a_n,
+        # b_n, omega_n).
         gturb = f.create_group("turb")
-        for key in ("sigma_w", "ell", "U_h", "lambda", "seed",
-                    "k_n", "a_n", "b_n", "omega_n"):
-            if key in P.turb:
-                gturb.attrs[key] = P.turb[key]
+        for key, val in P.turb.items():
+            gturb.attrs[key] = val
 
         # datasets
-        f.create_dataset("t", data=traj.t)
-        f.create_dataset("x", data=traj.x)
-        f.create_dataset("v", data=traj.v)
-        f.create_dataset("theta", data=traj.theta)
+        f.create_dataset("t", data=traj.t.astype(fdtype))
+        f.create_dataset("x", data=traj.x.astype(fdtype))
+        f.create_dataset("v", data=traj.v.astype(fdtype))
+        f.create_dataset("theta", data=traj.theta.astype(fdtype))
         f.create_dataset("edges", data=traj.edges)
         f.create_dataset("thread_id", data=traj.thread_id)
         f.create_dataset("q_node", data=traj.q_node)
@@ -89,3 +97,7 @@ def write_trajectory(path: str, P: Params, traj: Trajectory) -> None:
         go.attrs["V"] = obs["V"]
         go.attrs["R"] = obs["R"]
         go.attrs["theta_L"] = obs["theta_L"]
+        diag = traj.outcome.get("diag", {})
+        for key in ("newton_failures", "max_abs_u", "mean_dt", "min_dt", "n_steps"):
+            if key in diag:
+                go.attrs[key] = diag[key]

@@ -87,6 +87,48 @@ selection, co-moving IC, parallel pipeline, cache, meta write, `--from-cache`.
 python scripts/smoke_invariance_equal_t.py
 ```
 
+### `scripts/stage_a.py` — turbulence generator, cheap studies, pilot
+
+Stage A adds a synthetic-turbulence flow model (`flow_model="kinematic"`,
+Kinematic Simulation, Eq. `eq:ks` with the von Kármán spectrum `eq:vk`) and its
+studies. This script is **additive**: it never deletes the baseline
+`results/*.csv`; it only writes the Stage A files and merges a `stage_a` section
+into `results/meta.json`.
+
+```bash
+python scripts/stage_a.py --ksvalid --tab-wc --relax   # cheap studies
+python scripts/stage_a.py --pilot --pilot-smoke        # short pilot pipeline check
+python scripts/stage_a.py --pilot                      # full pilot (hours; see below)
+python scripts/stage_a.py --all
+```
+
+Outputs:
+
+| File | Study |
+|---|---|
+| `fig_ksvalid.csv` | measured vs target 1-D longitudinal spectrum of `w` (`N_k`, `k`, `E_target`, `E_measured`) |
+| `fig_ksvalid_pdf.csv` | one-point PDF of `w` vs a Gaussian(σ) |
+| `tab_wc.csv` | steady fall speed `w_c` vs analytic `w_s(1-Fbar_l)` over N, m, q (table `tab:wc`) |
+| `relax.csv` | lateral relaxation `dR/L`, `dshape/L` from the equal-t transient cache (+ decay times in `meta.json`) |
+| `pilot.csv` | Algorithm `alg:sweep` pilot cost per run (outcome, wall/sim, dt stats, Newton failures, max\|u\|) |
+| `ml_samples/pilot_N*.h5` | float32 HDF5 samples; bytes / simulated second reported in `meta.json` |
+
+The **pilot** (`--pilot`) runs `N∈{1,2,4,8} × 3 seeds` for `t_end=60 s` with
+clamped release into turbulence, in parallel. Cost scales steeply with `N`
+(wall/sim ≈ 10 at N=1, ≈ 150 at N=8), so a full pilot is a multi-hour run. Use
+`--pilot-tend`/`--pilot-nt` to shrink it, or `--pilot-smoke` to validate the
+pipeline (`t_end=0.5`, `N_t=40`). It does **not** start the production sweep.
+
+`release_mode="clamped"` (Alg.2 line 4) holds node 0 fixed at `z0` in still air
+until steady, then releases at `t=0` into the configured flow.
+
+### `scripts/check_regression.py`
+
+Compares `results/*.csv` with `results/pre_stageA/*.csv` (max relative difference
+`< 1e-12`, timing columns excluded) and writes the verdict to
+`results/regression.txt`. Run `scripts/produce_results.py` first to regenerate
+the baseline CSVs with the current code, then this.
+
 ### `plot_results.py`
 
 Reads `results/*.csv` and writes PDFs to `results/figs/`:
@@ -134,5 +176,5 @@ and optional `results/figs/*.pdf`.
 ## Equation labels
 
 Code comments use the paper’s LaTeX labels (`eq:residual`, `eq:Es`, `eq:Eb`,
-`eq:Et`, `eq:fext`, `eq:Fvk`, `eq:coulomb`, `eq:jacobian`). See
-`docs/algorithm_mapping.md`.
+`eq:Et`, `eq:fext`, `eq:Fvk`, `eq:coulomb`, `eq:jacobian`, and the Stage A
+labels `eq:ks`, `eq:vk`, `alg:sweep`). See `docs/algorithm_mapping.md`.

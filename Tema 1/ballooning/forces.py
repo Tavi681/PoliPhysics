@@ -175,6 +175,51 @@ def resistance_matrix(P: Params, topo: Topology, x: np.ndarray) -> sp.csr_matrix
     return sp.coo_matrix((vals, (rows, cols)), shape=(topo.n_dof, topo.n_dof)).tocsr()
 
 
+def viscous_flow_jacobian(P: Params, topo: Topology, x: np.ndarray,
+                          flow, t: float):
+    """Return d F_v / d xi from the spatial dependence of u(x, t).
+
+    ``F_{v,k} = -D_k (v_k - u(x_k, t))`` with ``D_k`` the RFT/Stokes resistance
+    tensor (times ``dl_k`` on the threads, ``zeta_s I`` on the spider). The tangent
+    inside ``D_k`` stays *lagged* (as in :func:`resistance_matrix`), so the only
+    position dependence differentiated here is ``u`` itself:
+
+        d F_{v,k} / d x_k = -D_k * d(v_k - u)/d x_k = + D_k grad_u(x_k, t).
+
+    For ``ZeroFlow`` and ``UniformFlow`` ``grad_u == 0``, so the computation is
+    skipped and an all-zero matrix is returned (no change to existing behaviour).
+    """
+    from .fields import ZeroFlow, UniformFlow
+
+    if isinstance(flow, (ZeroFlow, UniformFlow)):
+        return sp.csr_matrix((topo.n_dof, topo.n_dof))
+
+    dl = topo.node_voronoi_lengths()
+    X = x[: 3 * topo.n_nodes].reshape(topo.n_nodes, 3)
+    tang = node_tangents(topo, X)
+    G = flow.grad_u(X, t)  # (n_nodes, 3, 3)
+    Id3 = np.eye(3)
+    rows: list[int] = []
+    cols: list[int] = []
+    vals: list[float] = []
+    for node in range(topo.n_nodes):
+        if node == 0:
+            D = P.zeta_s * Id3
+        else:
+            tk = tang[node]
+            proj = np.outer(tk, tk)
+            D = dl[node] * (P.eta_par * proj + P.eta_perp * (Id3 - proj))
+        block = D @ G[node]  # + D_k grad_u
+        base = 3 * node
+        for a in range(3):
+            for b in range(3):
+                rows.append(base + a)
+                cols.append(base + b)
+                vals.append(block[a, b])
+    return sp.coo_matrix((vals, (rows, cols)),
+                         shape=(topo.n_dof, topo.n_dof)).tocsr()
+
+
 def external_position_jacobian(P: Params, topo: Topology, x: np.ndarray,
                                field, q: np.ndarray):
     """Return d(F_l + F_r)/d xi as a sparse matrix (n_dof x n_dof).

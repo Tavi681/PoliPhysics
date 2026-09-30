@@ -49,7 +49,12 @@ starting with a comment `# Alg.1 line <k>: <text>`.
 | Frames (parallel transport, reference twist, material frame) | `frames.py` | Bergou 2008/2010 conventions |
 | Fields E(z): gorham/chamber/constant | `fields.py:GorhamField/ChamberField/ConstantField` | analytic dE/dz for Eq. (eq:jacobian) |
 | Entanglement | `integrator.py:_entangled` | `d_min < entangle_contact_factor * r`, default factor 2 (threads in contact) |
-| Air velocity u(x,t): ZeroFlow/UniformFlow | `fields.py` | `KinematicSimulation` reserved (stub) |
+| Air velocity u(x,t): ZeroFlow/UniformFlow | `fields.py` | batch-aware `u` and analytic `grad_u` (both zero) |
+| Eq. (eq:ks) Kinematic Simulation u(x,t) | `fields.py:KinematicSimulation` | `u = U_h x_hat + sum_n [a_n cos(k_n·x'+w_n t)+b_n sin(...)]`, `x'=x-U_h t x_hat`; vectorized `u`/`grad_u`; div-free (`a_n,b_n ⟂ k_n`) |
+| Eq. (eq:vk) von Kármán spectrum E(k) | `fields.py:von_karman_E` | `C sigma^2 ell (k ell)^4/(1+(k ell)^2)^(17/6)`, `C` from `∫E dk=(3/2)sigma^2` |
+| d F_v/d xi from u(x,t) | `forces.py:viscous_flow_jacobian`, `integrator.py:_residual_and_jacobian` | `+ D_k grad_u(x_k,t)` added to `d f_ext/d xi`; **exactly zero (skipped) for ZeroFlow/UniformFlow**; D_k tangent stays lagged |
+| Alg.2 line 4 clamped release | `integrator.py:_simulate_clamped_release` | opt-in `release_mode="clamped"`: pin node 0 in still air to steady, then release at t=0 into the flow |
+| Algorithm `alg:sweep` pilot | `studies.py:run_pilot_job`, `scripts/stage_a.py:do_pilot` | parallel cost sweep, Alg.2 stopping (rise/fall/timeout); not the production sweep |
 
 ## Observables
 
@@ -77,3 +82,16 @@ and `results/log.txt`.
 | `tab_vt` | N=1, tip, constant E=7.41 kV/m, Q_s=0, `Fbar_l=2`, L=0.1/0.5/1 | report |
 | `fig_collapse`, `tab_steady`, `fig_shapes`, `fig_invariant` | N=1,2,4,8, tip, constant E=7.41 kV/m, m=1 mg, L=0.5, Q_s=0, `q=Fbar_l m g/(N E)` | report |
 | `fig_invariance` | N=4, `Fbar_l=2`, uniform flow w=0 and 0.5 m/s; CSVs from adaptive runs; `max_shape_dev_equal_t` from fixed `dt=1e-3` (`adaptive_dt=False`, `stop_on_steady=False`, `eps=1e-6`) comparing spider-frame shapes at t=0.1…2.0 s | report |
+
+## Stage A studies (`scripts/stage_a.py`)
+
+Additive: written alongside the baseline CSVs; a `stage_a` section is merged into
+`results/meta.json`. `results/pre_stageA/` holds the pre-Stage-A CSVs for the
+`scripts/check_regression.py` gate (max rel diff `< 1e-12`, timing excluded).
+
+| Study | Setup | Output |
+|---|---|---|
+| KS validation (`eq:ks`/`eq:vk`) | σ=0.25, ℓ=1, U_h=0, N_k∈{100,200}, 50 seeds, 4096-pt line over 20 ℓ | `fig_ksvalid.csv` (spectrum), `fig_ksvalid_pdf.csv` (Gaussian PDF); captured-energy fraction in `meta.json` |
+| Table `tab:wc` | N∈{1,2,4,8}, m∈{0.1,1,10} mg, q∈{0,0.6} nC, tip, E=7.41 kV/m, still air, Q_s=0 | `tab_wc.csv` `w_c` numeric vs `w_s(1-Fbar_l)`; fold-below-spider flagged |
+| Lateral relaxation | equal-t transient (v0=0) cache runs | `relax.csv` (`dR/L`, `dshape/L`); decay times τ_R, τ_shape and `t_s` in `meta.json` |
+| Pilot (`alg:sweep`) | N∈{1,2,4,8}×3 seeds, Fbar_l=1, σ_w=0.25, ℓ=1, U_h=1, N_k=100, z0=0.5, h=2, t_end=60, clamped release | `pilot.csv` (cost/outcome); float32 `ml_samples/pilot_N*.h5`, bytes/sim-second in `meta.json` |

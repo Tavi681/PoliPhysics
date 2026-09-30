@@ -46,9 +46,18 @@ class Params:
 
     # --- Field / flow model selection -----------------------------------
     field_model: str = "chamber"  # "gorham" | "chamber" | "constant"
-    flow_model: str = "zero"  # "zero" | "uniform"
+    flow_model: str = "zero"  # "zero" | "uniform" | "kinematic"
     E_constant: float = 1.2e5  # E for the "constant" field model [V/m]  # TODO: config
     flow_velocity: tuple[float, float, float] = (0.0, 0.0, 0.0)  # UniformFlow vector [m/s]
+
+    # --- Kinematic Simulation turbulence (flow_model == "kinematic") -----
+    # These are ignored unless flow_model == "kinematic"; defaults are inert.
+    sigma_w: float = 0.25  # rms velocity per component [m/s]
+    ell: float = 1.0  # integral length scale [m]
+    U_h: float = 0.0  # mean horizontal advection along x_hat [m/s]
+    turb_N_k: int = 100  # number of wavenumber shells  # TODO: config
+    turb_seed: int = 0  # RNG seed for the mode draws  # TODO: config
+    turb_lambda: float = 0.5  # unsteadiness factor omega_n = lambda sqrt(k^3 E)  # TODO: config
 
     # --- Time stepping (Algorithm 1) ------------------------------------
     dt0: float = 1e-4  # initial time step [s]
@@ -70,6 +79,9 @@ class Params:
     # --- Algorithm 2 stopping rules (off by default) --------------------
     use_alg2_stopping: bool = False
     h: float = 10.0  # "rise" altitude threshold [m]
+    # Release mode: "free" (default) or "clamped" (hold node 0 fixed at z0 in
+    # still air until steady, then release at t=0 into the configured flow).
+    release_mode: str = "free"  # Alg.2 line 4 (opt-in)
 
     # --- Numerical options ----------------------------------------------
     lag_tangent: bool = True  # lag RFT node tangent in the Jacobian (documented default)
@@ -158,7 +170,9 @@ class Params:
             raise ValueError(f"charge_model must be 'tip' or 'uniform', got {self.charge_model!r}")
         if self.field_model not in ("gorham", "chamber", "constant"):
             raise ValueError(f"unknown field_model {self.field_model!r}")
-        if self.flow_model not in ("zero", "uniform"):
+        if self.flow_model not in ("zero", "uniform", "kinematic"):
             raise ValueError(f"unknown flow_model {self.flow_model!r}")
+        if self.release_mode not in ("free", "clamped"):
+            raise ValueError(f"unknown release_mode {self.release_mode!r}")
         if self.N < 1 or self.N_t < 1:
             raise ValueError("N and N_t must be >= 1")
