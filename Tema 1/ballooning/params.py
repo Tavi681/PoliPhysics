@@ -58,10 +58,14 @@ class Params:
     K: int = 20  # max Newton iterations
     t_end: float = 1.0  # final time [s]
     output_dt: float = 1e-3  # output interval [s]
+    # If False, keep dt = dt0 for the whole run (no /10 on failure, no *10 growth).
+    adaptive_dt: bool = True  # TODO: config (Alg.1 uses adaptive dt by default)
 
     # --- Steady-state detection (Alg.1 line 18) -------------------------
     delta: float = 1e-6  # relative velocity change threshold
     t_w: float = 0.05  # steady-state window [s]
+    # If False, integrate through to t_end even after a steady window (equal-time studies).
+    stop_on_steady: bool = True  # TODO: config
 
     # --- Algorithm 2 stopping rules (off by default) --------------------
     use_alg2_stopping: bool = False

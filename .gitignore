@@ -9,4 +9,11 @@ dist/
 build/
 *.h5
 *.hdf5
-!Tema 1/results/**
+*.zip
+
+# Regenerable / local equal-t artifacts
+Tema 1/results/equal_t_cache/
+Tema 1/results/equal_t_cache_smoke/
+Tema 1/results/equal_t_run.log
+Tema 1/results/meta_smoke.json
+Tema 1/results/meta_smoke_from_cache.json

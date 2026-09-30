@@ -1,0 +1,138 @@
+# Tema 1 — Charged ballooning spider (DER, Algorithm 1)
+
+Implicit Discrete Elastic Rods time stepping for a multi-thread charged
+ballooning spider (Habchi & Jawed / Bergou DER), matching
+[`tema1_objective.md`](tema1_objective.md).
+
+## Setup
+
+From this directory (`Tema 1/`):
+
+```bash
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -e ".[test]"
+pip install pandas matplotlib      # only needed for plot_results.py
+```
+
+Python ≥ 3.11. Core deps: NumPy, SciPy, h5py (see `pyproject.toml`).
+
+## Package layout
+
+| Path | Role |
+|---|---|
+| `ballooning/` | Simulator: geometry, frames, elastic energy, forces, integrator (Alg. 1), observables, HDF5 I/O, CLI |
+| `ballooning/studies.py` | Named validation / production studies shared by tests and scripts |
+| `tests/` | Pytest suite (fast FD checks + `@pytest.mark.slow` physics runs) |
+| `scripts/` | Production and invariance pipelines |
+| `examples/` | Small demos |
+| `docs/algorithm_mapping.md` | Traceability: Alg. 1 lines ↔ code, equation labels |
+| `results/` | CSV tables/figures data, `meta.json`, optional PDFs under `results/figs/` |
+| `plot_results.py` | Build paper-style PDFs from `results/*.csv` |
+
+## Scripts
+
+All commands below are run **from `Tema 1/`** with the venv active.
+
+### `scripts/produce_results.py`
+
+Runs the production studies (terminal velocity, chamber 4a/4b, convergence,
+collapse / steady / shapes / invariant / flow invariance) and writes
+
+`results/tab_*.csv`, `results/fig_*.csv`, `results/meta.json`, `results/log.txt`.
+
+```bash
+python scripts/produce_results.py
+python scripts/produce_results.py --workers 8   # optional process-pool size
+```
+
+Convergence cases run sequentially (clean `cpu_s`); other jobs run in parallel.
+Wall time is on the order of several minutes on Apple M-series (N≤8, N_t=100).
+
+### `scripts/run_invariance_equal_t.py`
+
+Fixed-`dt` equal-time Galilean / uniform-flow invariance check (writes into
+`results/meta.json` under `studies.fig_invariance.equal_t`):
+
+- **comoving:** w-run starts with every node velocity = `w ẑ` (at rest relative
+  to the air); w=0 keeps `v0=0`. Expect max spider-frame deviation / L at Newton
+  noise (~1e-11–1e-12 with `dt=3e-5`, `eps=1e-10`).
+- **transient:** both runs use `v0=0` (different relative IC); reports decay time
+  vs Stokes time `t_s`.
+
+```bash
+# Full production check (~3–4 h wall with 3 parallel workers)
+python -u scripts/run_invariance_equal_t.py --dt 3e-5 \
+  --cache-dir results/equal_t_cache --meta-out results/meta.json
+
+# Rebuild meta from cached trajectories (no re-integration)
+python scripts/run_invariance_equal_t.py --from-cache results/equal_t_cache \
+  --dt 3e-5 --meta-out results/meta.json
+
+# Short end-to-end smoke (does not overwrite production meta.json)
+python scripts/run_invariance_equal_t.py --smoke
+```
+
+Useful flags: `--t-end`, `--output-dt`, `--serial`, `--cache-dir`, `--meta-out`.
+
+Default Newton settings are kept (`eps=1e-10`, `K=20`). Fixed `dt=1e-4` and
+`5e-5` fail to converge; `3e-5` is the largest candidate that works.
+
+### `scripts/smoke_invariance_equal_t.py`
+
+Fast checks before a multi-hour equal-t run: float time-matching, `dt`
+selection, co-moving IC, parallel pipeline, cache, meta write, `--from-cache`.
+
+```bash
+python scripts/smoke_invariance_equal_t.py
+```
+
+### `plot_results.py`
+
+Reads `results/*.csv` and writes PDFs to `results/figs/`:
+
+`fig_test1.pdf`, `fig_collapse.pdf`, `fig_invariant.pdf`, `fig_shapes.pdf`,
+`fig_invariance.pdf`.
+
+```bash
+python plot_results.py
+```
+
+Requires `pandas` and `matplotlib`.
+
+## Examples
+
+```bash
+python examples/run_single.py          # small N=2 run → run_single.h5 (gitignored)
+python examples/convergence.py         # thin wrapper around the N=2 convergence study
+```
+
+CLI entry point after `pip install -e .`:
+
+```bash
+ballooning --help
+```
+
+## Tests
+
+```bash
+pytest -m "not slow" -q          # FD / unit checks (~1 s)
+pytest -m slow -q                # physics validations (minutes)
+pytest -q                        # everything
+```
+
+## Results
+
+`scripts/produce_results.py` is the source of truth for CSV columns (SI unless
+the header says otherwise). `results/meta.json` records parameters, environment,
+wall-clock times, and the equal-t invariance block.
+
+Large regenerable artifacts are gitignored: `.venv/`, `*.h5`, equal-t trajectory
+caches, smoke metas, and run logs. Keep committed: production CSVs, `meta.json`,
+and optional `results/figs/*.pdf`.
+
+## Equation labels
+
+Code comments use the paper’s LaTeX labels (`eq:residual`, `eq:Es`, `eq:Eb`,
+`eq:Et`, `eq:fext`, `eq:Fvk`, `eq:coulomb`, `eq:jacobian`). See
+`docs/algorithm_mapping.md`.

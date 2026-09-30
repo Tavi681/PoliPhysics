@@ -76,4 +76,4 @@ and `results/log.txt`.
 | Test 5 / paper test 2 (`tab_valid`, `tab_conv`) | N=2, tip, constant E=7.41 kV/m, m=1 mg, Q_s=3 pC, `Fbar_l=2` | `|vbar_t-2|<0.25` |
 | `tab_vt` | N=1, tip, constant E=7.41 kV/m, Q_s=0, `Fbar_l=2`, L=0.1/0.5/1 | report |
 | `fig_collapse`, `tab_steady`, `fig_shapes`, `fig_invariant` | N=1,2,4,8, tip, constant E=7.41 kV/m, m=1 mg, L=0.5, Q_s=0, `q=Fbar_l m g/(N E)` | report |
-| `fig_invariance` | N=4, `Fbar_l=2`, uniform flow w=0 and 0.5 m/s | report |
+| `fig_invariance` | N=4, `Fbar_l=2`, uniform flow w=0 and 0.5 m/s; CSVs from adaptive runs; `max_shape_dev_equal_t` from fixed `dt=1e-3` (`adaptive_dt=False`, `stop_on_steady=False`, `eps=1e-6`) comparing spider-frame shapes at t=0.1…2.0 s | report |

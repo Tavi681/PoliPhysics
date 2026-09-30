@@ -175,6 +175,11 @@ def simulate(P: Params, field=None, flow=None, xi0=None, xi_dot0=None,
 
         # Alg.1 line 12: if ||F||_1 >= eps then  (Newton failed)
         if Fnorm >= P.eps:
+            if not P.adaptive_dt:
+                raise RuntimeError(
+                    f"Newton failed at t={t:.6e} with fixed dt={dt:.3e} "
+                    f"(||F||_1={Fnorm:.3e}, k={k})."
+                )
             # Alg.1 line 13: dt <- dt/10; c <- 0; retry the step
             dt = dt / 10.0
             c = 0
@@ -195,10 +200,11 @@ def simulate(P: Params, field=None, flow=None, xi0=None, xi_dot0=None,
             n = n + 1
 
             # Alg.1 line 16: c <- c+1; if c = 10 then dt <- min(10 dt, dt_max), c <- 0
-            c = c + 1
-            if c == 10:
-                dt = min(10.0 * dt, P.dt_max)
-                c = 0
+            if P.adaptive_dt:
+                c = c + 1
+                if c == 10:
+                    dt = min(10.0 * dt, P.dt_max)
+                    c = 0
 
             # Alg.1 line 17: save (t, xi^n) at fixed output interval (HDF5)
             if t + 1e-12 >= next_output:
@@ -228,7 +234,8 @@ def simulate(P: Params, field=None, flow=None, xi0=None, xi_dot0=None,
                     xi_n, xi_dot_n = xi_np1, xi_dot_np1
                     break
 
-            if steady_since is not None and (t - steady_since) >= P.t_w:
+            if (P.stop_on_steady and steady_since is not None
+                    and (t - steady_since) >= P.t_w):
                 # Alg.1 line 19: return trajectory, steady-state flag = true
                 outcome.update(status="steady", exit_time=t, steady_state=True)
                 xi_n, xi_dot_n = xi_np1, xi_dot_np1

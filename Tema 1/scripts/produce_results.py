@@ -12,7 +12,7 @@ results/tab_valid.csv         test, config, reference, value, rel_err_pct
 results/tab_conv.csv          N_t, vt, dvt_pct, R_over_L, dR_pct, cpu_s
 results/tab_steady.csv        N, q_nC, Lambda, tau, RL_an, RL_num, theta_L, vt, dmin_um
 results/fig_test1.csv         case, t, z0, vz0
-results/fig_collapse.csv      N, Fl_bar, vt_num, vt_an
+results/fig_collapse.csv      N, Fl_bar, vt_num, vt_an, R_over_L, theta_L
 results/fig_invariant.csv     s_over_L, T, theta, invariant, invariant_norm
 results/fig_shapes.csv        N, thread, s, x, y, z
 results/fig_invariance.csv    w, thread, s, x_rel, y_rel, z_rel
@@ -66,6 +66,7 @@ from ballooning.studies import (
     production_params,
     run_chamber_spider,
     run_chamber_tip,
+    run_invariance_equal_t,
     run_normalized,
     run_production,
     run_terminal_velocity,
@@ -377,12 +378,15 @@ def main() -> int:
                 name = f"collapse_N{N}_F{fb}"
                 names.append(name)
                 r = res[name]
-                rows.append([N, fb, r["vbar_t"], r["vbar_t_straight"]])
-        _write_csv(out / "fig_collapse.csv", ["N", "Fl_bar", "vt_num", "vt_an"], rows)
+                rows.append([N, fb, r["vbar_t"], r["vbar_t_straight"],
+                             r["R_over_L"], r["theta_L"]])
+        _write_csv(out / "fig_collapse.csv",
+                   ["N", "Fl_bar", "vt_num", "vt_an", "R_over_L", "theta_L"], rows)
         meta["studies"]["fig_collapse"] = {
             "description": "tip charge, constant E, still air, Q_s=0, m=1 mg, L=0.5; "
                            "vt = vbar_t = U mu N L / (N q E - m g); vt_an = straight "
-                           "vertical threads, mu N L / (N eta_par L + zeta_s)",
+                           "vertical threads, mu N L / (N eta_par L + zeta_s); "
+                           "R_over_L and theta_L [rad] as in tab_steady",
             "q_rule": "q = Fl_bar m g / (N E)",
             "E": PRODUCTION_E,
             "params": {n: _params_dict(production_params(**_collapse_params(N, fb)))
@@ -468,18 +472,61 @@ def main() -> int:
         dX = inv_runs[0.5]["x_final"] - inv_runs[0.5]["x_final"][0] - (
             inv_runs[0.0]["x_final"] - inv_runs[0.0]["x_final"][0])
         dV = inv_runs[0.5]["V"] - inv_runs[0.0]["V"]
-        print(f"invariance: V(w=0.5)-V(w=0) = {dV:.9f} m/s, "
+        print(f"invariance (final / adaptive): V(w=0.5)-V(w=0) = {dV:.9f} m/s, "
               f"max shape deviation / L = {np.max(np.abs(dX)) / 0.5:.3e}")
+
+        # Fixed-dt equal-time spider-frame comparison (t = 0.1, 0.2, ..., 2.0 s)
+        eq = run_invariance_equal_t()
+        print(f"invariance equal-t (comoving): max = {eq['comoving']['max_shape_dev_equal_t']:.6e}")
+        print(f"invariance equal-t (transient): max = {eq['transient']['max_shape_dev_equal_t']:.6e}, "
+              f"decay_time = {eq['transient']['decay_time_s']:.3f} s, "
+              f"t_s = {eq['transient']['t_s']:.3f} s")
+
+        def _eq_branch(branch: dict) -> dict:
+            out = {
+                "label": branch["label"],
+                "per_t_dev_over_L": list(branch["per_t_dev_over_L"]),
+                "max_shape_dev_equal_t": branch["max_shape_dev_equal_t"],
+                "dV_m_per_s": branch["dV_m_per_s"],
+                "status": {str(k): v for k, v in branch["status"].items()},
+                "runtime_s": {str(k): v for k, v in branch["runtime_s"].items()},
+                "t_exit_s": {str(k): v for k, v in branch["t_exit_s"].items()},
+            }
+            for key in ("t_s", "decay_time_s", "decay_definition"):
+                if key in branch:
+                    out[key] = branch[key]
+            return out
+
         meta["studies"]["fig_invariance"] = {
-            "description": "N=4, Fbar_l=2, uniform vertical flow w [m/s]; final shapes "
-                           "in the spider frame; w=0 reuses the collapse run",
+            "description": "N=4, Fbar_l=2, uniform vertical flow w [m/s]; CSV shapes from "
+                           "adaptive production runs. equal_t.comoving: fixed dt, default "
+                           "eps/K, w-run starts with v0=w z_hat on all nodes; "
+                           "equal_t.transient: both v0=0 (different relative IC), with "
+                           "decay_time vs Stokes t_s.",
             "params": {str(w): _params_dict(production_params(**_invariance_params(w)))
                        for w in INVARIANCE_W},
+            "params_equal_t": {k: _params_dict(eq["params"][k])
+                               for k in ("w0", "w_comoving", "w_transient")},
             "status": {str(w): inv_runs[w]["status"] for w in INVARIANCE_W},
             "t_exit_s": {str(w): inv_runs[w]["t_exit"] for w in INVARIANCE_W},
             "dV_m_per_s": dV,
             "max_shape_dev_over_L": float(np.max(np.abs(dX)) / 0.5),
-            "run_time_s": inv_runs[0.5]["runtime_s"],
+            "max_shape_dev_equal_t": eq["comoving"]["max_shape_dev_equal_t"],
+            "equal_t": {
+                "dt": eq["dt"],
+                "output_dt": eq["output_dt"],
+                "t_end": eq["t_end"],
+                "eps": eq["eps"],
+                "K": eq["K"],
+                "adaptive_dt": eq["adaptive_dt"],
+                "stop_on_steady": eq["stop_on_steady"],
+                "w": eq["w"],
+                "t_compare": list(eq["t_compare"]),
+                "comoving": _eq_branch(eq["comoving"]),
+                "transient": _eq_branch(eq["transient"]),
+            },
+            "run_time_s": (inv_runs[0.5]["runtime_s"]
+                           + sum(eq["runtime_s"].values())),
         }
 
         meta["pool_wall_clock_s"] = pool_wall

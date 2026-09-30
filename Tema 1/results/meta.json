@@ -1,6 +1,6 @@
 {
   "environment": {
-    "git_commit": "88246c2d345748b8b4012c540edfb8b5f517b5fa",
+    "git_commit": "b3d69a7171eb776ad20ccc124353189aece8d1c3",
     "cpu_model": "Apple M4 Pro",
     "cpu_count_logical": 14,
     "cpu_performance_cores": 10,
@@ -161,7 +161,7 @@
         "vt_L0.5": "steady",
         "vt_L1.0": "steady"
       },
-      "run_time_s": 47.579996375134215
+      "run_time_s": 46.32300191675313
     },
     "tab_valid": {
       "description": "velocities in m/s, times in s, vbar_t dimensionless",
@@ -216,7 +216,7 @@
         "U_target": 0.085,
         "t_s": 0.19910353559031932,
         "status": "steady",
-        "run_time_s": 70.07216829201207
+        "run_time_s": 66.852776292013
       },
       "4b": {
         "params": {
@@ -270,7 +270,7 @@
         "v_peak": 1.2083487577239858,
         "t_settle_5pct": 1.1370999999999858,
         "status": "steady",
-        "run_time_s": 73.06936750002205
+        "run_time_s": 69.3236740839202
       },
       "5": {
         "params": {
@@ -413,13 +413,13 @@
           "turb": {}
         },
         "U_rule": "(N q E + Q_s E - m g) / (N eta_par L + zeta_s)",
-        "run_time_s": 21.420065498910844
+        "run_time_s": 20.72969974996522
       }
     },
     "fig_test1": {
       "description": "Test 4a/4b spider trajectories; t [s], z0 [m], vz0 [m/s]",
       "output_dt": 0.001,
-      "run_time_s": 143.14153579203412
+      "run_time_s": 136.1764503759332
     },
     "tab_conv": {
       "description": "N=2, tip, constant E=7.41e3, Fbar_l=2; vt = vbar_t (dimensionless); deviations relative to N_t=200; cpu_s is wall-clock of a single run executed alone",
@@ -611,10 +611,10 @@
         "100": "steady",
         "200": "steady"
       },
-      "wall_clock_s": 94.47997045796365
+      "wall_clock_s": 95.16531320801005
     },
     "fig_collapse": {
-      "description": "tip charge, constant E, still air, Q_s=0, m=1 mg, L=0.5; vt = vbar_t = U mu N L / (N q E - m g); vt_an = straight vertical threads, mu N L / (N eta_par L + zeta_s)",
+      "description": "tip charge, constant E, still air, Q_s=0, m=1 mg, L=0.5; vt = vbar_t = U mu N L / (N q E - m g); vt_an = straight vertical threads, mu N L / (N eta_par L + zeta_s); R_over_L and theta_L [rad] as in tab_steady",
       "q_rule": "q = Fl_bar m g / (N E)",
       "E": 7410.0,
       "params": {
@@ -1541,7 +1541,7 @@
         "collapse_N8_F3.0": "steady",
         "collapse_N8_F5.0": "steady"
       },
-      "run_time_s": 1776.390602706233
+      "run_time_s": 1734.169847080484
     },
     "tab_steady": {
       "description": "tip, still air, constant E=7.41e3, m=1 mg, L=0.5, Fbar_l=2, Q_s=0; q in nC per thread; theta_L in rad (mean tip-edge angle from vertical); vt = vbar_t (dimensionless); d_min in um. Lambda, tau, RL_an left empty (no analytic model here).",
@@ -1572,7 +1572,7 @@
       "interior_spread_pct": 0.019154165985196023
     },
     "fig_invariance": {
-      "description": "N=4, Fbar_l=2, uniform vertical flow w [m/s]; final shapes in the spider frame; w=0 reuses the collapse run",
+      "description": "N=4, Fbar_l=2, uniform vertical flow w [m/s]; final shapes in the spider frame; w=0 reuses the collapse run equal_t.comoving: fixed dt, default eps/K, w-run starts with v0=w z_hat on all nodes; equal_t.transient: both v0=0 (different relative IC), with decay_time vs Stokes t_s.",
       "params": {
         "0.0": {
           "N": 4,
@@ -1675,10 +1675,311 @@
       },
       "dV_m_per_s": 0.5000080537596485,
       "max_shape_dev_over_L": 7.568037632965652e-06,
-      "run_time_s": 77.38408924988471
+      "run_time_s": 73.36255683400668,
+      "max_shape_dev_equal_t": 8.480841029445685e-12,
+      "params_equal_t": {
+        "w0": {
+          "N": 4,
+          "N_t": 100,
+          "L": 0.5,
+          "r": 3e-07,
+          "d0": 0.0001,
+          "z0": 0.0,
+          "m": 1e-06,
+          "r_s": 0.001,
+          "Q_s": 0.0,
+          "rho_t": 1200.0,
+          "Y": 25000000000.0,
+          "nu": 0.5,
+          "mu": 1.837e-05,
+          "g": 9.81,
+          "k_e": 8987551792.3,
+          "Q_t": 6.619433198380566e-10,
+          "charge_model": "tip",
+          "field_model": "constant",
+          "flow_model": "zero",
+          "E_constant": 7410.0,
+          "flow_velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "dt0": 3e-05,
+          "dt_max": 3e-05,
+          "dt_min": 1e-09,
+          "eps": 1e-10,
+          "K": 20,
+          "t_end": 2.0,
+          "output_dt": 0.1,
+          "adaptive_dt": false,
+          "delta": 1e-06,
+          "t_w": 0.1,
+          "stop_on_steady": false,
+          "use_alg2_stopping": false,
+          "h": 10.0,
+          "lag_tangent": true,
+          "fd_eps": 1e-06,
+          "coulomb_softening": 0.0,
+          "coulomb_include_spider": false,
+          "entangle_contact_factor": 2.0,
+          "first_integral_beta": null,
+          "turb": {}
+        },
+        "w_comoving": {
+          "N": 4,
+          "N_t": 100,
+          "L": 0.5,
+          "r": 3e-07,
+          "d0": 0.0001,
+          "z0": 0.0,
+          "m": 1e-06,
+          "r_s": 0.001,
+          "Q_s": 0.0,
+          "rho_t": 1200.0,
+          "Y": 25000000000.0,
+          "nu": 0.5,
+          "mu": 1.837e-05,
+          "g": 9.81,
+          "k_e": 8987551792.3,
+          "Q_t": 6.619433198380566e-10,
+          "charge_model": "tip",
+          "field_model": "constant",
+          "flow_model": "uniform",
+          "E_constant": 7410.0,
+          "flow_velocity": [
+            0.0,
+            0.0,
+            0.5
+          ],
+          "dt0": 3e-05,
+          "dt_max": 3e-05,
+          "dt_min": 1e-09,
+          "eps": 1e-10,
+          "K": 20,
+          "t_end": 2.0,
+          "output_dt": 0.1,
+          "adaptive_dt": false,
+          "delta": 1e-06,
+          "t_w": 0.1,
+          "stop_on_steady": false,
+          "use_alg2_stopping": false,
+          "h": 10.0,
+          "lag_tangent": true,
+          "fd_eps": 1e-06,
+          "coulomb_softening": 0.0,
+          "coulomb_include_spider": false,
+          "entangle_contact_factor": 2.0,
+          "first_integral_beta": null,
+          "turb": {}
+        },
+        "w_transient": {
+          "N": 4,
+          "N_t": 100,
+          "L": 0.5,
+          "r": 3e-07,
+          "d0": 0.0001,
+          "z0": 0.0,
+          "m": 1e-06,
+          "r_s": 0.001,
+          "Q_s": 0.0,
+          "rho_t": 1200.0,
+          "Y": 25000000000.0,
+          "nu": 0.5,
+          "mu": 1.837e-05,
+          "g": 9.81,
+          "k_e": 8987551792.3,
+          "Q_t": 6.619433198380566e-10,
+          "charge_model": "tip",
+          "field_model": "constant",
+          "flow_model": "uniform",
+          "E_constant": 7410.0,
+          "flow_velocity": [
+            0.0,
+            0.0,
+            0.5
+          ],
+          "dt0": 3e-05,
+          "dt_max": 3e-05,
+          "dt_min": 1e-09,
+          "eps": 1e-10,
+          "K": 20,
+          "t_end": 2.0,
+          "output_dt": 0.1,
+          "adaptive_dt": false,
+          "delta": 1e-06,
+          "t_w": 0.1,
+          "stop_on_steady": false,
+          "use_alg2_stopping": false,
+          "h": 10.0,
+          "lag_tangent": true,
+          "fd_eps": 1e-06,
+          "coulomb_softening": 0.0,
+          "coulomb_include_spider": false,
+          "entangle_contact_factor": 2.0,
+          "first_integral_beta": null,
+          "turb": {}
+        }
+      },
+      "equal_t": {
+        "dt": 3e-05,
+        "output_dt": 0.1,
+        "t_end": 2.0,
+        "eps": 1e-10,
+        "K": 20,
+        "adaptive_dt": false,
+        "stop_on_steady": false,
+        "w": 0.5,
+        "t_compare": [
+          0.1,
+          0.2,
+          0.30000000000000004,
+          0.4,
+          0.5,
+          0.6000000000000001,
+          0.7000000000000001,
+          0.8,
+          0.9,
+          1.0,
+          1.1,
+          1.2000000000000002,
+          1.3,
+          1.4000000000000001,
+          1.5,
+          1.6,
+          1.7000000000000002,
+          1.8,
+          1.9000000000000001,
+          2.0
+        ],
+        "comoving": {
+          "label": "co-moving initial velocity: w-run has v0 = w z_hat on all nodes (at rest relative to the air); w=0 has v0=0; positions identical",
+          "per_t_dev_over_L": [
+            7.979727989493313e-15,
+            1.3551659794330817e-13,
+            2.883665528585766e-13,
+            6.028649801592678e-13,
+            2.904759766053644e-13,
+            4.071187831300449e-13,
+            1.62694857586132e-12,
+            3.947245308388858e-12,
+            2.482153371730078e-12,
+            1.2433665208533284e-12,
+            5.91529603077845e-12,
+            8.480841029445685e-12,
+            5.3912985187309914e-12,
+            1.6761314558522145e-12,
+            3.7732317270666726e-13,
+            3.213443400262861e-12,
+            3.9715314370525334e-12,
+            3.119116076533146e-12,
+            2.0725365867946266e-12,
+            1.0493550473000823e-12
+          ],
+          "max_shape_dev_equal_t": 8.480841029445685e-12,
+          "dV_m_per_s": 0.5000000000476845,
+          "status": {
+            "0.0": "timeout",
+            "0.5": "timeout"
+          },
+          "runtime_s": {
+            "0.0": 11817.887398082996,
+            "0.5": 11823.842378374888
+          },
+          "t_exit_s": {
+            "0.0": 2.000009999998528,
+            "0.5": 2.000009999998528
+          },
+          "t_used": [
+            0.1000200000000046,
+            0.2000100000000121,
+            0.29999999999997334,
+            0.4000199999998883,
+            0.5000099999998033,
+            0.5999999999997183,
+            0.7000199999996333,
+            0.8000099999995482,
+            0.8999999999994632,
+            1.0000199999993782,
+            1.1000099999992932,
+            1.1999999999992081,
+            1.300019999999123,
+            1.400009999999038,
+            1.500029999998953,
+            1.600019999998868,
+            1.700009999998783,
+            1.800029999998698,
+            1.900019999998613,
+            2.000009999998528
+          ]
+        },
+        "transient": {
+          "label": "transient, different relative initial state: v0=0 for both runs",
+          "per_t_dev_over_L": [
+            0.00228645278129376,
+            0.0017406603176168683,
+            0.0012347773445014892,
+            0.0008152725578041004,
+            0.0005286919058283962,
+            0.00034265630131433134,
+            0.00022268591916899116,
+            0.00014515204083148658,
+            9.482702886376426e-05,
+            6.203797080822637e-05,
+            4.0637765217926836e-05,
+            2.663809501812775e-05,
+            1.7467137162247015e-05,
+            1.1458490218774209e-05,
+            7.517357298897354e-06,
+            4.933046141852859e-06,
+            3.2374473143415017e-06,
+            2.124515300266916e-06,
+            1.3944008187549706e-06,
+            9.1522024003865e-07
+          ],
+          "max_shape_dev_equal_t": 0.00228645278129376,
+          "dV_m_per_s": 0.5000009738613069,
+          "status": {
+            "0.0": "timeout",
+            "0.5": "timeout"
+          },
+          "runtime_s": {
+            "0.0": 11817.887398082996,
+            "0.5": 11803.084525583079
+          },
+          "t_exit_s": {
+            "0.0": 2.000009999998528,
+            "0.5": 2.000009999998528
+          },
+          "t_s": 0.05867771170804064,
+          "decay_time_s": 0.4,
+          "decay_definition": "first compared t at which per_t_dev_over_L <= max(per_t)/e",
+          "t_used": [
+            0.1000200000000046,
+            0.2000100000000121,
+            0.29999999999997334,
+            0.4000199999998883,
+            0.5000099999998033,
+            0.5999999999997183,
+            0.7000199999996333,
+            0.8000099999995482,
+            0.8999999999994632,
+            1.0000199999993782,
+            1.1000099999992932,
+            1.1999999999992081,
+            1.300019999999123,
+            1.400009999999038,
+            1.500029999998953,
+            1.600019999998868,
+            1.700009999998783,
+            1.800029999998698,
+            1.900019999998613,
+            2.000009999998528
+          ]
+        }
+      }
     }
   },
-  "pool_wall_clock_s": 262.9209016659297,
-  "total_wall_clock_s": 357.61931637488306,
+  "pool_wall_clock_s": 257.31044608308,
+  "total_wall_clock_s": 352.7499647918157,
   "note": "run_time_s is the sum of per-run wall-clock times; the pool runs execute concurrently"
 }

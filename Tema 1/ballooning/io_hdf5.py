@@ -42,7 +42,8 @@ _PARAM_ATTRS = [
     "N", "N_t", "L", "r", "d0", "z0", "m", "r_s", "Q_s", "rho_t", "Y", "nu",
     "mu", "g", "k_e", "Q_t", "charge_model", "field_model", "flow_model",
     "E_constant", "dt0", "dt_max", "dt_min", "eps", "K", "t_end", "output_dt",
-    "delta", "t_w", "use_alg2_stopping", "h", "lag_tangent",
+    "adaptive_dt", "delta", "t_w", "stop_on_steady", "use_alg2_stopping", "h",
+    "lag_tangent",
     "coulomb_include_spider", "entangle_contact_factor",
 ]
 
