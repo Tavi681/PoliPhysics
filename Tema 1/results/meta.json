@@ -1983,7 +1983,7 @@
   "total_wall_clock_s": 352.7499647918157,
   "note": "run_time_s is the sum of per-run wall-clock times; the pool runs execute concurrently",
   "stage_a": {
-    "git_commit": "4ae88b14145f028fcd4edd5c7bbba6c0c7311f5a",
+    "git_commit": "06532b84cc24e7a364095a99336582114d5610da",
     "ks_validation": {
       "sigma": 0.25,
       "ell": 1.0,
@@ -2007,6 +2007,228 @@
       "wall_time_s": 336.98534558317624,
       "max_rel_err_pct": 12.4159517706716,
       "fold_below_spider_cases": []
+    },
+    "pilot": {
+      "wall_time_s": 957.0169186668936,
+      "smoke": false,
+      "t_end": 60.0,
+      "config": {
+        "N": [
+          1,
+          2,
+          4,
+          8
+        ],
+        "seeds": [
+          0,
+          1,
+          2
+        ],
+        "Fbar_l": 1.0,
+        "sigma_w": 0.25,
+        "ell": 1.0,
+        "U_h": 1.0,
+        "N_k": 100,
+        "z0": 0.5,
+        "h": 2.0,
+        "t_end": 60.0,
+        "release_mode": "clamped"
+      },
+      "runs": [
+        {
+          "N": 1,
+          "seed": 0,
+          "outcome": "fall",
+          "exit_time": 7.460999999999885,
+          "simulated_time": 7.460999999999885,
+          "wall_time_s": 118.91226887493394,
+          "wall_over_sim": 15.937845982433425,
+          "mean_dt": 0.009752941176470587,
+          "min_dt": 0.0001,
+          "newton_failures": 0,
+          "max_abs_u": 1.5808919935961965,
+          "n_steps": 765
+        },
+        {
+          "N": 1,
+          "seed": 1,
+          "outcome": "fall",
+          "exit_time": 2.061,
+          "simulated_time": 2.061,
+          "wall_time_s": 39.81051400001161,
+          "wall_over_sim": 19.31611547792897,
+          "mean_dt": 0.00916,
+          "min_dt": 0.0001,
+          "newton_failures": 0,
+          "max_abs_u": 1.468696627050618,
+          "n_steps": 225
+        },
+        {
+          "N": 1,
+          "seed": 2,
+          "outcome": "fall",
+          "exit_time": 1.9810000000000014,
+          "simulated_time": 1.9810000000000014,
+          "wall_time_s": 40.08156645903364,
+          "wall_over_sim": 20.232996698149222,
+          "mean_dt": 0.009129032258064516,
+          "min_dt": 0.0001,
+          "newton_failures": 0,
+          "max_abs_u": 1.4430242576282661,
+          "n_steps": 217
+        },
+        {
+          "N": 2,
+          "seed": 0,
+          "outcome": "rise",
+          "exit_time": 18.061000000000025,
+          "simulated_time": 18.061000000000025,
+          "wall_time_s": 513.5205832920037,
+          "wall_over_sim": 28.432566485355352,
+          "mean_dt": 0.009896438356164383,
+          "min_dt": 0.0001,
+          "newton_failures": 0,
+          "max_abs_u": 1.6610512000735855,
+          "n_steps": 1825
+        },
+        {
+          "N": 2,
+          "seed": 1,
+          "outcome": "fall",
+          "exit_time": 1.7910000000000013,
+          "simulated_time": 1.7910000000000013,
+          "wall_time_s": 87.10939825000241,
+          "wall_over_sim": 48.6372966220002,
+          "mean_dt": 0.009045454545454544,
+          "min_dt": 0.0001,
+          "newton_failures": 0,
+          "max_abs_u": 1.6509151706320393,
+          "n_steps": 198
+        },
+        {
+          "N": 2,
+          "seed": 2,
+          "outcome": "fall",
+          "exit_time": 1.7710000000000012,
+          "simulated_time": 1.7710000000000012,
+          "wall_time_s": 90.25202775001526,
+          "wall_over_sim": 50.96105463016104,
+          "mean_dt": 0.009035714285714286,
+          "min_dt": 0.0001,
+          "newton_failures": 0,
+          "max_abs_u": 1.402439864352035,
+          "n_steps": 196
+        },
+        {
+          "N": 4,
+          "seed": 0,
+          "outcome": "fall",
+          "exit_time": 6.2109999999999115,
+          "simulated_time": 6.2109999999999115,
+          "wall_time_s": 412.44864162500016,
+          "wall_over_sim": 66.4061570801813,
+          "mean_dt": 0.0097046875,
+          "min_dt": 0.0001,
+          "newton_failures": 0,
+          "max_abs_u": 1.3685131911564798,
+          "n_steps": 640
+        },
+        {
+          "N": 4,
+          "seed": 1,
+          "outcome": "fall",
+          "exit_time": 2.610999999999988,
+          "simulated_time": 2.610999999999988,
+          "wall_time_s": 224.43559054099023,
+          "wall_over_sim": 85.9577137269212,
+          "mean_dt": 0.009325,
+          "min_dt": 0.0001,
+          "newton_failures": 0,
+          "max_abs_u": 1.8146383930723422,
+          "n_steps": 280
+        },
+        {
+          "N": 4,
+          "seed": 2,
+          "outcome": "fall",
+          "exit_time": 1.7310000000000012,
+          "simulated_time": 1.7310000000000012,
+          "wall_time_s": 180.36427679099143,
+          "wall_over_sim": 104.19657815770728,
+          "mean_dt": 0.009015625,
+          "min_dt": 0.0001,
+          "newton_failures": 0,
+          "max_abs_u": 1.5926602635846856,
+          "n_steps": 192
+        },
+        {
+          "N": 8,
+          "seed": 0,
+          "outcome": "fall",
+          "exit_time": 7.020999999999894,
+          "simulated_time": 7.020999999999894,
+          "wall_time_s": 956.4908246661071,
+          "wall_over_sim": 136.2328478373624,
+          "mean_dt": 0.009737864077669902,
+          "min_dt": 0.0001,
+          "newton_failures": 0,
+          "max_abs_u": 1.4247231478383275,
+          "n_steps": 721
+        },
+        {
+          "N": 8,
+          "seed": 1,
+          "outcome": "fall",
+          "exit_time": 2.6909999999999865,
+          "simulated_time": 2.6909999999999865,
+          "wall_time_s": 457.9416660419665,
+          "wall_over_sim": 170.17527537791483,
+          "mean_dt": 0.00934375,
+          "min_dt": 0.0001,
+          "newton_failures": 0,
+          "max_abs_u": 1.755875841611068,
+          "n_steps": 288
+        },
+        {
+          "N": 8,
+          "seed": 2,
+          "outcome": "fall",
+          "exit_time": 1.7310000000000012,
+          "simulated_time": 1.7310000000000012,
+          "wall_time_s": 343.5862074168399,
+          "wall_over_sim": 198.49001006172136,
+          "mean_dt": 0.009015625,
+          "min_dt": 0.0001,
+          "newton_failures": 0,
+          "max_abs_u": 1.6212583699494023,
+          "n_steps": 192
+        }
+      ],
+      "hdf5_float32": {
+        "output_dt": 0.05,
+        "sizes": {
+          "1": {
+            "file_bytes": 303208,
+            "simulated_time_s": 5.000999999999937,
+            "bytes_per_sim_second": 60629.474105179725
+          },
+          "2": {
+            "file_bytes": 589160,
+            "simulated_time_s": 5.000999999999937,
+            "bytes_per_sim_second": 117808.43831233901
+          },
+          "4": {
+            "file_bytes": 1162768,
+            "simulated_time_s": 5.000999999999937,
+            "bytes_per_sim_second": 232507.09858028687
+          },
+          "8": {
+            "file_bytes": 2306768,
+            "simulated_time_s": 5.000999999999937,
+            "bytes_per_sim_second": 461261.3477304597
+          }
+        }
+      }
     }
   }
 }
