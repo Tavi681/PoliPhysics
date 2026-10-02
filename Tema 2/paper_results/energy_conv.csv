@@ -1,0 +1,8 @@
+# commit=335a0c6e99642d471e3cc0a2290bd67f80205669 date=2026-10-02T01:41:16 config=reference
+contact,C,dt,energy_error
+gripped,0.5,7.47951e-06,0.000652424
+gripped,0.25,3.73976e-06,0.000650563
+gripped,0.125,1.86988e-06,0.000650106
+frictionless,0.5,7.47951e-06,2.10463e-05
+frictionless,0.25,3.73976e-06,5.84857e-06
+frictionless,0.125,1.86988e-06,1.44605e-06

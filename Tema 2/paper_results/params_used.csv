@@ -1,0 +1,22 @@
+# commit=335a0c6e99642d471e3cc0a2290bd67f80205669 date=2026-10-02T01:41:16 config=default
+symbol,value,unit,comment
+E0_S,2e+09,Pa,material S small-strain modulus
+b_S,2.22e+10,Pa,material S cubic coefficient
+eps_b_S,0.3,-,material S breaking strain
+rho_S,1300,kg/m^3,material S density
+e_mat_S,103812,J/kg,material S specific energy
+E0_D,1.1e+11,Pa,material D small-strain modulus
+b_D,0,Pa,material D cubic coefficient
+eps_b_D,0.032,-,material D breaking strain
+rho_D,975,kg/m^3,material D density
+e_mat_D,57764.1,J/kg,material D specific energy
+r_d,0.15,m,drone radius (working value; '?' in paper)
+k_c,10000000.0,N/m^1.5,absolute penalty stiffness (working value)
+k_c_factor,4.0,-,relative-k_c factor for material D
+R_max,0.5,m,cascade radius (working value)
+k_max,10,-,cascade failure count (working value)
+N,8,-,reference number of radials
+R,1.0,m,frame radius
+eps_p_frac,0.1,-,reference prestress eps_p/eps_b
+n_s,40,-,reference segments per thread
+C,0.5,-,CFL factor

@@ -1,0 +1,43 @@
+# Reference case with material D (star N=8), gripped contact.
+material:
+  name: D
+
+net:
+  kind: star
+  N: 8
+  R: 1.0
+  eps_p: 0.0
+  A_hat: 1.0e-6
+
+drone:
+  M: 1.0
+  r_d: 0.15          # TODO: fix before production runs
+  v0: 15.0
+  p: [0.5, 0.0]
+  gravity: false
+
+contact:
+  mode: gripped
+  # Material D is ~55x stiffer than S; an absolute k_c=1e7 under-resolves the
+  # contact and blows up the energy balance (eerr ~ 2.6). Use the relative mode
+  # so k_c tracks the axial stiffness and the contact stays resolved.
+  k_c_mode: relative
+  k_c_factor: 4.0     # TODO: fix before production runs
+  k_c: 1.0e+7         # TODO: fix before production runs (fallback if absolute)
+  segment_contact: false
+  delta_ref_frac: 0.01
+  penetration_guard: abort
+
+numerics:
+  n_s: 40
+  C: 0.5
+  t_end: 0.2
+  dt_out: 1.0e-4
+  damping: 0.0
+  area_scale: 1.0
+  use_numba: true
+
+output:
+  hdf5: null
+  R_max: 0.5         # TODO: fix before production runs
+  k_max: 10          # TODO: fix before production runs

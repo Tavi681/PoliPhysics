@@ -1,0 +1,39 @@
+# Reference case: star N=8, material S, M=1 kg, v0=15 m/s, off-centre impact
+# at a = R/2, gripped contact. Both contact modes are documented; see
+# reference_star_N8_S_frictionless.yaml for the frictionless variant.
+material:
+  name: S
+
+net:
+  kind: star
+  N: 8
+  R: 1.0
+  eps_p: 0.0
+  A_hat: 1.0e-6      # nominal cross-section [m^2]; rescale via numerics.area_scale
+
+drone:
+  M: 1.0
+  r_d: 0.15          # TODO: fix before production runs
+  v0: 15.0
+  p: [0.5, 0.0]      # off-centre impact at a = R/2 on radial 0 (+x axis)
+  gravity: false
+
+contact:
+  mode: gripped      # frictionless | gripped
+  k_c: 1.0e+7         # TODO: fix before production runs
+  segment_contact: false
+  delta_ref_frac: 0.01
+
+numerics:
+  n_s: 40
+  C: 0.5
+  t_end: 0.2
+  dt_out: 1.0e-4
+  damping: 0.0
+  area_scale: 1.0
+  use_numba: true
+
+output:
+  hdf5: null
+  R_max: 0.5         # TODO: fix before production runs
+  k_max: 10          # TODO: fix before production runs

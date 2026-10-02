@@ -1,0 +1,18 @@
+# commit=335a0c6e99642d471e3cc0a2290bd67f80205669 date=2026-10-02T01:45:39 config=offcentre_ring
+net,material,ep_frac,a_over_R,etaA_num,etaB_num,etaA_ref,etaB_ref,first_failure,q_ratio
+star+ring,S,0.1,0,0.0497286,,,,,0.5
+star+ring,S,0.1,0.1,0.049153,,,,,0.5
+star+ring,S,0.1,0.25,0.0485521,,,,,0.5
+star+ring,S,0.1,0.5,0.0398887,,,,,0.5
+star+ring,S,0.1,0,0.0506306,,,,,1
+star+ring,S,0.1,0.1,0.050115,,,,,1
+star+ring,S,0.1,0.25,0.0499841,,,,,1
+star+ring,S,0.1,0.5,0.0396613,,,,,1
+star+ring,D,0.1,0,0.119864,,,,,0.5
+star+ring,D,0.1,0.1,0.119169,,,,,0.5
+star+ring,D,0.1,0.25,0.0758787,,,,,0.5
+star+ring,D,0.1,0.5,0.0597134,,,,,0.5
+star+ring,D,0.1,0,0.122393,,,,,1
+star+ring,D,0.1,0.1,0.121478,,,,,1
+star+ring,D,0.1,0.25,0.0732356,,,,,1
+star+ring,D,0.1,0.5,0.0773369,,,,,1

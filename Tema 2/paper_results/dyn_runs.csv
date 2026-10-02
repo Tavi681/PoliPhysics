@@ -1,0 +1,6 @@
+# commit=335a0c6e99642d471e3cc0a2290bd67f80205669 date=2026-10-02T01:47:43 config=dyn
+material,net,M,v0,a_over_R,s,m_net,PiE_M_over_m,arrested,wmax_over_R,eta,n_failed,R_d,cascade,energy_error
+S,star+ring,1,15,0,1,0.0207219,0.0522971,True,0.418203,0.0519886,0,0,False,0.000332116
+S,star+ring,1,15,0.5,1,0.0207219,0.0522971,True,0.405441,0.0428968,0,0,False,0.000129664
+D,star+ring,1,15,0,1,0.016019,0.121579,True,0.161216,0.121324,0,0,False,0.000268324
+D,star+ring,1,15,0.5,1,0.016019,0.121579,False,0.915841,0.0335904,8,0.770337,True,0.0914056

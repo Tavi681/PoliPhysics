@@ -1,0 +1,4 @@
+# commit=335a0c6e99642d471e3cc0a2290bd67f80205669 date=2026-10-02T01:47:43 config=mmin
+material,M,v0,Ekin,m_lower_g,mA_min_g,mB_min_g,ratio,n_broken_B,worst_p_x,worst_p_y
+S,2,20,400,3.85314,57.797,57.797,1,0,0.5,0
+D,2,20,400,6.92472,72.7095,72.7095,1,0,0.5,0

@@ -1,0 +1,5 @@
+# commit=335a0c6e99642d471e3cc0a2290bd67f80205669 date=2026-10-02T01:41:16 config=test1_smith
+n_seg,eps_err_pct,cL_err_pct,cT_err_pct
+200,0.3048,2.202,0.4349
+400,0.3559,2.29,0.2701
+800,0.3259,2.355,0.2095
