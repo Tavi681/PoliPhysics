@@ -96,13 +96,14 @@ def run_offcentre(material_name="S", a_over_R=0.5, eps_p_frac=0.0,
     material = cfg.material.resolve()
     net = build_net(cfg)
     # Free-lateral runs only need first failure (offc_free is criterion A only).
-    # Fixed continue_to_B needs two failures for eta_A and eta_B, then can stop.
+    # Fixed continue_to_B needs the post-redistribution failure for eta_B; keep
+    # enough clustered events for outer-first cascades (not just 2).
     if free_lateral or not continue_to_B:
         stop_on_failure = True
         stop_after = None
     else:
         stop_on_failure = False
-        stop_after = 2
+        stop_after = 12
     res = simulate(net, material, cfg.drone, cfg.numerics, cfg.contact,
                    cfg.output, kinematic=cfg.kinematic,
                    stop_on_failure=stop_on_failure,
@@ -124,6 +125,7 @@ def run_offcentre(material_name="S", a_over_R=0.5, eps_p_frac=0.0,
     mids = traj.failure_midpoints[order]
     e_mat = material.e_mat
     denom = res.m_net * e_mat
+    Up = traj.U_prestress
 
     # --- First failure (eta_A) ------------------------------------------------
     t_first = float(fails[0, 2])
@@ -132,32 +134,47 @@ def run_offcentre(material_name="S", a_over_R=0.5, eps_p_frac=0.0,
     first_kind = _classify_failure(disc, seg0, parent0, mids[0], a_over_R, R)
     before = np.nonzero(traj.t < t_first)[0]
     iA = before[-1] if before.size else 0
-    u_el = traj.energy[iA, 2]
-    eta_A = (u_el - traj.U_prestress) / denom if denom > 0 else float("nan")
+    U_A = float(traj.energy[iA, 2])
+    eta_A = (U_A - Up) / denom if denom > 0 else float("nan")
     # Lateral position of the gripped node at failure.
     px_fail = float(traj.x[iA, pnode, 0])
 
     eta_B = float("nan")
     second_kind = "none"
     t_second = float("nan")
-    if (not free_lateral) and fails.shape[0] >= 2:
-        t0 = t_first
-        # Skip co-cascade segments (same event within ~0.1 ms); criterion B is
-        # the next failure after load redistribution (cf. ref/offc.py).
+    if (not free_lateral) and continue_to_B and fails.shape[0] >= 2:
+        # Time-clustered failure events (gap 0.1 ms), matching ref/offc.py:
+        # eta_B is cumulative absorbed work at the next failure *after*
+        # re-equilibration. Elastic unload after the first break is counted by
+        # resetting Uprev to the U_el valley between events
+        # (Uabs_tot = Uabs + U - Uprev).
         gap = 1e-4
-        jB = None
-        for j in range(1, fails.shape[0]):
-            if float(fails[j, 2]) > t0 + gap:
-                jB = j
-                break
-        if jB is not None:
-            t_second = float(fails[jB, 2])
+        events = []  # (t, fail_row_index)
+        t_ev = -1e99
+        for j in range(fails.shape[0]):
+            tj = float(fails[j, 2])
+            if tj > t_ev + gap:
+                events.append((tj, j))
+                t_ev = tj
+        Uabs = U_A - Up
+        for tB, jB in events[1:]:
+            beforeB = np.nonzero(traj.t < tB)[0]
+            iB = beforeB[-1] if beforeB.size else iA
+            win = np.nonzero((traj.t > t_first) & (traj.t < tB))[0]
+            if win.size == 0:
+                continue
+            i_prev = int(win[np.argmin(traj.energy[win, 2])])
+            Uprev = float(traj.energy[i_prev, 2])
+            U_B = float(traj.energy[iB, 2])
+            # Require a real reload above the valley (skip co-cascade).
+            if U_B <= Uprev + 0.02 * max(abs(U_A), 1e-12):
+                continue
+            eta_B = (Uabs + U_B - Uprev) / denom if denom > 0 else float("nan")
+            t_second = tB
             parentB = int(fails[jB, 1])
             second_kind = _classify_failure(
                 disc, int(fails[jB, 0]), parentB, mids[jB], a_over_R, R)
-            beforeB = np.nonzero(traj.t < t_second)[0]
-            iB = beforeB[-1] if beforeB.size else iA
-            eta_B = _absorbed(traj, iB, res.m_net, e_mat)
+            break
 
     return {
         "eta_ff": eta_A, "eta_A": eta_A, "eta_B": eta_B,

@@ -106,7 +106,7 @@ def static_force_for_strain(material, N, R, eps0):
 
 
 def daf_sdof_nonlinear(n_eff, tf_over_Tn, *, eps_s_over_eps0=None, N=8,
-                       n_periods=8.0, n_steps=4000):
+                       n_periods=8.0, n_steps=4000, zeta=None):
     """Peak dynamic amplification of the nonlinear 1-DOF model as ``eps_m/eps_s``.
 
     ``u = eps / eps_s`` is the strain relative to the post-removal static value.
@@ -120,12 +120,18 @@ def daf_sdof_nonlinear(n_eff, tf_over_Tn, *, eps_s_over_eps0=None, N=8,
 
     The restoring law after removal is ``u^n`` with ``n = n_eff``, equilibrium
     at ``u = 1``. A finite ``t_f`` ramps the removed spring's share from 1 to 0.
+    For ``t_f > 0`` a moderate viscous damping settles the transient so a slow
+    release is quasi-static (``daf_sdof_nl → 1``); the instantaneous case stays
+    undamped.
     """
     n = float(n_eff)
     omega = 2.0 * math.pi
     t_f = float(tf_over_Tn)
     t_end = n_periods
     dt = t_end / n_steps
+    if zeta is None:
+        zeta = 0.0 if t_f <= 0.0 else 0.35
+    damp = 2.0 * float(zeta) * omega
     # Strain-based IC: geometry (hence eps) frozen at removal.
     if eps_s_over_eps0 is None or not (eps_s_over_eps0 > 1.0):
         # Analytic shallow-string estimate for a linear net.
@@ -133,26 +139,25 @@ def daf_sdof_nonlinear(n_eff, tf_over_Tn, *, eps_s_over_eps0=None, N=8,
     u = 1.0 / float(eps_s_over_eps0)
     v = 0.0
     u_max = u
+
+    def _force(u_val, t_val):
+        if t_f <= 0.0:
+            rest = (abs(u_val) ** (n - 1) * u_val if u_val != 0 else 0.0)
+        else:
+            ramp = 0.0 if t_val >= t_f else (1.0 - t_val / t_f)
+            rest = (1.0 + ramp / (N - 1)) * (abs(u_val) ** n)
+        return 1.0 - rest
+
     for k in range(n_steps):
         t = k * dt
-        if t_f <= 0.0:
-            force = 1.0 - (abs(u) ** (n - 1) * u if u != 0 else 0.0)
-        else:
-            ramp = 0.0 if t >= t_f else (1.0 - t / t_f)
-            # Full-net equilibrium at u0: rest = (1 + ramp/(N-1)) u^n = 1 at t=0.
-            rest = (1.0 + ramp / (N - 1)) * (abs(u) ** n)
-            force = 1.0 - rest
-        a = (omega ** 2) * force
-        u = u + v * dt + 0.5 * a * dt * dt
-        if t_f <= 0.0:
-            force2 = 1.0 - (abs(u) ** (n - 1) * u if u != 0 else 0.0)
-        else:
-            t2 = t + dt
-            ramp2 = 0.0 if t2 >= t_f else (1.0 - t2 / t_f)
-            rest2 = (1.0 + ramp2 / (N - 1)) * (abs(u) ** n)
-            force2 = 1.0 - rest2
-        a2 = (omega ** 2) * force2
+        force = _force(u, t)
+        a = (omega ** 2) * force - damp * v
+        u_new = u + v * dt + 0.5 * a * dt * dt
+        v_half = v + 0.5 * a * dt
+        force2 = _force(u_new, t + dt)
+        a2 = (omega ** 2) * force2 - damp * v_half
         v = v + 0.5 * (a + a2) * dt
+        u = u_new
         if u > u_max:
             u_max = u
     return float(u_max)

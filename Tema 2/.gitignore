@@ -4,6 +4,7 @@ __pycache__/
 *.h5
 *.egg-info/
 .pytest_cache/
+.cache/
 validation/output/
 
 # Local agent prompts — not part of the delivered code

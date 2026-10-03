@@ -102,6 +102,20 @@ def test_a_implies_b_any():
     assert ok_a and ok_b
 
 
+def test_criterion_nesting_assertion():
+    from netsim.mmin import assert_criterion_nesting
+    info0 = {"arrested": True, "n_failures": 0, "outcome": "arrested",
+             "fail_mids": np.zeros((0, 3)), "fail_drone_xy": np.zeros((0, 2)),
+             "R_d": 0.0}
+    assert_criterion_nesting(info0, 0.5, 10)
+    # B_any with failures far away: B_any passes, A fails — still nested.
+    info_b = {"arrested": True, "n_failures": 2, "outcome": "arrested",
+              "fail_mids": np.array([[0.9, 0.0, 0.0], [0.8, 0.0, 0.0]]),
+              "fail_drone_xy": np.array([[0.0, 0.0], [0.0, 0.0]]),
+              "R_d": 0.9}
+    assert_criterion_nesting(info_b, 0.5, 10)
+
+
 def test_cache_roundtrip(tmp_path):
     pytest.importorskip("h5py")
     info = {"passed": True, "arrested": True, "n_failures": 2,

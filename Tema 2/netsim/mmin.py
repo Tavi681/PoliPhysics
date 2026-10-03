@@ -39,7 +39,7 @@ logger = logging.getLogger("netsim.mmin")
 __all__ = ["MminConfig", "MminResult", "analytical_s0", "evaluate",
            "minimum_mass_point", "minimum_mass", "monotonicity_scan",
            "_criterion_pass", "_write_cache", "_read_cache",
-           "pass_from_info", "R_d_loc"]
+           "pass_from_info", "assert_criterion_nesting", "R_d_loc"]
 
 _VALID_CRITERIA = ("A", "B", "B_any", "B_loc")
 
@@ -147,6 +147,21 @@ def pass_from_info(info, criterion, R_max, k_max) -> Tuple[bool, str]:
     if Rd > R_max:
         return False, f"R_d_loc={Rd:.4g}>{R_max}"
     return True, ""
+
+
+def assert_criterion_nesting(info, R_max, k_max) -> None:
+    """Enforce A ⇒ B_loc ⇒ B_any and (B ∧ n_failed==0) ⇒ A on one run."""
+    ok_a, _ = pass_from_info(info, "A", R_max, k_max)
+    ok_bany, _ = pass_from_info(info, "B_any", R_max, k_max)
+    ok_bloc, _ = pass_from_info(info, "B_loc", R_max, k_max)
+    n_fail = int(info.get("n_failures", 0))
+    if ok_a and not ok_bloc:
+        raise AssertionError("A_pass but not B_loc_pass on the same run")
+    if ok_bloc and not ok_bany:
+        raise AssertionError("B_loc_pass but not B_any_pass on the same run")
+    if ok_bany and n_fail == 0 and not ok_a:
+        raise AssertionError(
+            "B_pass with n_failed==0 but not A_pass on the same run")
 
 
 def _fail_reason(res, p, criterion, R_max, k_max) -> str:
@@ -268,6 +283,7 @@ def evaluate(cfg: SimConfig, s: float, point, mmincfg: MminConfig,
         if cache_dir is not None:
             _write_cache(_cache_path(cache_dir, point_idx, s), raw)
 
+    assert_criterion_nesting(raw, R_max, k_max)
     ok, reason = pass_from_info(raw, mmincfg.criterion, R_max, k_max)
     info = dict(raw)
     info["passed"] = bool(ok)
@@ -387,19 +403,21 @@ def _minimum_mass_point_B(cfg, point, mmincfg, point_idx, s0) -> dict:
     info_pass = infos[i_pass]
     s_fail = float(s_values[i_pass - 1]) if i_pass > 0 else 0.5 * s_pass
 
+    # Prefer the onset of the contiguous all-pass tail when the scan is
+    # non-monotone; always finish with local bisection to ``tol`` (≤ 1%).
+    if (all_pass is not None and first_pass is not None
+            and all_pass > first_pass * (1.0 + mmincfg.tol)):
+        i_all = next(i for i, ok in enumerate(pattern)
+                     if ok and all(pattern[i:]))
+        s_pass = float(s_values[i_all])
+        info_pass = infos[i_all]
+        s_fail = float(s_values[i_all - 1]) if i_all > 0 else 0.5 * s_pass
+
     s_bis, info_bis, n_bis = _bisect_bracket(
         cfg, point, mmincfg, point_idx, s_fail, s_pass, info_pass)
     n_eval += n_bis
 
-    if (all_pass is not None and first_pass is not None
-            and all_pass > first_pass * (1.0 + mmincfg.tol)):
-        s_min = all_pass
-        info_bis = evaluate(cfg, s_min, point, mmincfg, point_idx)
-        n_eval += 1
-    else:
-        s_min = s_bis
-
-    return {"point": tuple(point), "point_idx": point_idx, "s_min": s_min,
+    return {"point": tuple(point), "point_idx": point_idx, "s_min": s_bis,
             "info": info_bis, "evaluations": n_eval,
             "s_min_first_pass": first_pass, "s_min_all_pass": all_pass,
             "scan_pattern": pattern}

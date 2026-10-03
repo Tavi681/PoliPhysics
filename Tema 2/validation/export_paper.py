@@ -22,6 +22,7 @@ import math
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/netsim_mpl")
 
@@ -39,17 +40,45 @@ OUT_DIR = Path(__file__).resolve().parent.parent / "paper_results"
 _ROOT = Path(__file__).resolve().parent.parent
 _COMMIT = git_commit()
 _DATE = datetime.datetime.now().isoformat(timespec="seconds")
+_CODE_DIRTY: Optional[bool] = None  # set once at export start
 
 # Process-pool width for independent export cases (overridden by --jobs).
 _N_JOBS = max(1, os.cpu_count() or 1)
 _ALLOW_DIRTY = False
+_MMIN_CACHE = _ROOT / ".cache" / "mmin"
+
+
+def _repo_root() -> Path:
+    return _ROOT.parent if (_ROOT.parent / ".git").exists() else _ROOT
+
+
+def _code_paths_dirty() -> bool:
+    """True if netsim/validation/tests/configs differ from HEAD (scoped)."""
+    import subprocess
+    try:
+        repo = _repo_root()
+        prefix = "Tema 2/" if repo != _ROOT else ""
+        paths = [f"{prefix}{p}" for p in
+                 ("netsim", "validation", "tests", "configs")]
+        r = subprocess.run(
+            ["git", "diff", "--quiet", "HEAD", "--", *paths],
+            cwd=str(repo), check=False)
+        if r.returncode != 0:
+            return True
+        # Untracked files under those paths also count as dirty.
+        r2 = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard", "--", *paths],
+            cwd=str(repo), capture_output=True, text=True, check=False)
+        return bool(r2.stdout.strip())
+    except Exception:
+        return True
 
 
 def _working_tree_dirty() -> bool:
-    """True if Tema 2 has uncommitted changes (tracked or untracked)."""
+    """Legacy full-tree dirty check (export refuse / --allow-dirty)."""
     import subprocess
     try:
-        repo = _ROOT.parent if (_ROOT.parent / ".git").exists() else _ROOT
+        repo = _repo_root()
         pathspec = "Tema 2" if repo != _ROOT else "."
         r = subprocess.run(
             ["git", "status", "--porcelain", "--untracked-files=normal",
@@ -58,6 +87,12 @@ def _working_tree_dirty() -> bool:
         return bool(r.stdout.strip())
     except Exception:
         return True
+
+
+def _header_dirty_flag() -> str:
+    """``code_dirty`` recorded at export start (scoped paths), not mid-write."""
+    dirty = _CODE_DIRTY if _CODE_DIRTY is not None else _code_paths_dirty()
+    return "true" if dirty else "false"
 
 
 def _parallel_map(fn, jobs, desc=""):
@@ -75,10 +110,9 @@ def _parallel_map(fn, jobs, desc=""):
 def _write(name, fieldnames, rows, config="default"):
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUT_DIR / name
-    dirty = _working_tree_dirty()
     with open(path, "w", newline="") as fh:
         fh.write(f"# commit={_COMMIT} date={_DATE} config={config} "
-                 f"dirty={'true' if dirty else 'false'}\n")
+                 f"code_dirty={_header_dirty_flag()}\n")
         w = csv.DictWriter(fh, fieldnames=fieldnames)
         w.writeheader()
         for r in rows:
@@ -518,24 +552,26 @@ def _mmin_case(job):
     net = build_net(cfg)
     Ekin = 0.5 * M * v0 ** 2
     m_lower = Ekin / m.e_mat
-    tol = 0.08
-    mmA = MminConfig(criterion="A", tol=tol, impact_points=pts, n_procs=1)
+    # A: 8% bisection; B variants: scan then local bisection to 1%.
+    tol_A, tol_B = 0.08, 0.01
+    cache = str(_MMIN_CACHE / f"{net_kind}_{mat}_M{M:g}_v{v0:g}")
+    mmA = MminConfig(criterion="A", tol=tol_A, impact_points=pts, n_procs=1,
+                     cache_dir=cache)
     rA = minimum_mass(cfg, mmA)
     # Same absolute scale for all B variants; cap each at s^A so mB <= mA.
-    mm_any = MminConfig(criterion="B_any", tol=tol, impact_points=pts,
-                        n_procs=1, n_scan=24)
+    # n_broken_* comes from the run at exactly m^X_min (passing bracket end).
+    mm_any = MminConfig(criterion="B_any", tol=tol_B, impact_points=pts,
+                        n_procs=1, n_scan=24, cache_dir=cache)
     r_any = minimum_mass(cfg, mm_any, s_cap=rA.s_min)
     blocs = {}
     n_broken = {"B_any": r_any.n_failures}
-    worst = r_any.worst_point
     for frac in (0.25, 0.5, 0.75):
-        mm = MminConfig(criterion="B_loc", tol=tol, impact_points=pts,
-                        n_procs=1, n_scan=24, R_max=frac * R)
+        mm = MminConfig(criterion="B_loc", tol=tol_B, impact_points=pts,
+                        n_procs=1, n_scan=24, R_max=frac * R,
+                        cache_dir=cache)
         rb = minimum_mass(cfg, mm, s_cap=rA.s_min)
         blocs[frac] = rb
         n_broken[f"B_loc{int(100*frac):03d}"] = rb.n_failures
-        if rb.s_min >= r_any.s_min:
-            worst = rb.worst_point
 
     def g(x):
         return 1e3 * x
@@ -544,6 +580,8 @@ def _mmin_case(job):
         return rA.m_min / mb if mb > 0 else float("nan")
 
     mA = rA.m_min
+    # worst_p is the criterion-A worst impact point (matches mA_min).
+    worst = rA.worst_point
     return {
         "net": net_kind, "material": mat, "M": f"{M:.6g}", "v0": f"{v0:.6g}",
         "Ekin": f"{Ekin:.6g}",
@@ -731,11 +769,10 @@ def export_phase_maps():
                 "drone_x_break": (f"{info[2]:.6g}" if info else ""),
                 "drone_y_break": (f"{info[3]:.6g}" if info else ""),
             })
-        dirty = _working_tree_dirty()
         with open(d / f"segments_{run_name}.csv", "w", newline="") as fh:
             fh.write(f"# commit={_COMMIT} date={_DATE} config=phase "
-                     f"s_Bany={s_map:.6g} dirty="
-                     f"{'true' if dirty else 'false'}\n")
+                     f"s_Bany={s_map:.6g} code_dirty="
+                     f"{_header_dirty_flag()}\n")
             w = csv.DictWriter(
                 fh, fieldnames=["seg", "parent", "x1", "y1", "x2", "y2",
                                 "broken", "t_break", "break_order",
@@ -852,7 +889,7 @@ EXPORTERS = [
 
 
 def main(argv=None):
-    global _N_JOBS, _ALLOW_DIRTY
+    global _N_JOBS, _ALLOW_DIRTY, _COMMIT, _DATE, _CODE_DIRTY
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--full", action="store_true",
                     help="use the full (expensive) grids for mmin/dyn_runs")
@@ -863,20 +900,33 @@ def main(argv=None):
                          "(default: all CPUs)")
     ap.add_argument("--allow-dirty", action="store_true",
                     help="export even with a dirty working tree "
-                         "(header still records dirty=true)")
+                         "(header still records code_dirty from the "
+                         "scoped netsim/validation/tests/configs check)")
     args = ap.parse_args(argv)
 
     _N_JOBS = max(1, args.jobs) if args.jobs > 0 else max(1, os.cpu_count() or 1)
     _ALLOW_DIRTY = bool(args.allow_dirty)
-    dirty = _working_tree_dirty()
-    if dirty and not _ALLOW_DIRTY:
+    # Provenance frozen at start: writing paper_results must not flip the flag.
+    import subprocess
+    try:
+        _COMMIT = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=str(_repo_root()),
+            capture_output=True, text=True, check=True).stdout.strip()
+    except Exception:
+        _COMMIT = git_commit()
+    _DATE = datetime.datetime.now().isoformat(timespec="seconds")
+    _CODE_DIRTY = _code_paths_dirty()
+    dirty_tree = _working_tree_dirty()
+    if dirty_tree and not _ALLOW_DIRTY:
         print("Refusing to export: Tema 2 working tree is dirty. "
               "Commit first, or pass --allow-dirty "
-              "(CSV headers will then include dirty=true).", flush=True)
+              "(CSV headers record code_dirty from the scoped check).",
+              flush=True)
         sys.exit(2)
     only = set(args.only.split(",")) if args.only else None
     print(f"Exporting paper CSVs to {OUT_DIR} (commit {_COMMIT[:8]}, "
-          f"jobs={_N_JOBS}, dirty={'true' if dirty else 'false'})")
+          f"jobs={_N_JOBS}, code_dirty="
+          f"{'true' if _CODE_DIRTY else 'false'})")
     for name, fn in EXPORTERS:
         if only and name not in only:
             continue

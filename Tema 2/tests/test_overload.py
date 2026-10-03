@@ -39,6 +39,17 @@ def test_daf_decreases_with_release_time():
     assert daf_slow == pytest.approx(1.0, abs=0.08)
 
 
+def test_daf_sdof_nl_slow_release_to_one():
+    from netsim.overload import daf_sdof_nonlinear
+    # Instantaneous removal overshoots (~eps_m/eps_s of the z-constrained run).
+    d0 = daf_sdof_nonlinear(3.0, 0.0, eps_s_over_eps0=8 / 7, N=8)
+    assert d0 == pytest.approx(2.0 - 7 / 8, rel=0.05)
+    # Slow release is quasi-static: damped SDOF → 1.
+    d_slow = daf_sdof_nonlinear(3.0, 4.0, eps_s_over_eps0=8 / 7, N=8,
+                                n_periods=12.0)
+    assert d_slow == pytest.approx(1.0, abs=0.02)
+
+
 def test_stiffening_reduces_daf():
     # The cubic-dominated material S overshoots less than the linear material D.
     d = run_overload(8, get_material("D"), eps0=0.01, m_hub=0.01, n_s=2).daf
