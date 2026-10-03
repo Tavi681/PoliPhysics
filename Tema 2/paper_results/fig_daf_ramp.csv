@@ -1,4 +1,4 @@
-# commit=4bdf72e1cd4d154f2ea680f51deaaabe40a0739f date=2026-10-03T11:39:49 config=test_daf dirty=true
+# commit=0e4c75d684d5095d4c5ed5f7818a9188cbe68ecf date=2026-10-03T11:40:25 config=test_daf dirty=true
 N,material,tf_over_Tn,eps_m_over_eps0,daf_an,daf_num,daf_sdof_nl
 8,D,0,1.18888,2,1.08711,1.08104
 8,D,0.1,1.18759,1.98363,1.08594,1.07683

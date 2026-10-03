@@ -1,4 +1,4 @@
-# commit=4bdf72e1cd4d154f2ea680f51deaaabe40a0739f date=2026-10-03T11:39:49 config=test_daf dirty=true
+# commit=0e4c75d684d5095d4c5ed5f7818a9188cbe68ecf date=2026-10-03T11:40:25 config=test_daf dirty=true
 material,N,n_eff_num,eps_s_over_eps0,eps_m_over_eps0,eps_m_over_eps0_an,m_hub
 D,4,2.9704,1.21269,1.43218,,0.01
 D,8,2.9704,1.09361,1.18888,,0.01

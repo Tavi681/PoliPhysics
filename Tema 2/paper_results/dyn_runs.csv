@@ -1,4 +1,4 @@
-# commit=9bf793028e31628fe08736ee0ff4cd3014050c41 date=2026-10-03T02:25:09 config=dyn
+# commit=0e4c75d684d5095d4c5ed5f7818a9188cbe68ecf date=2026-10-03T11:40:25 config=dyn dirty=true
 material,net,M,v0,a_over_R,s,m_net,PiE_M_over_m,arrested,wmax_over_R,eta,n_failed,R_d,cascade,energy_error,drone_x_arrest,drone_y_arrest
 S,star+ring,0.25,10,0,0.5,0.0108009,0.0111482,True,0.25597,0.0109857,0,0,False,1.09811e-05,-6.84581e-16,5.35978e-15
 S,star+ring,0.25,10,0,1,0.0216018,0.00557409,True,0.196375,0.00543248,0,0,False,1.14417e-05,-5.73023e-17,-4.8978e-17

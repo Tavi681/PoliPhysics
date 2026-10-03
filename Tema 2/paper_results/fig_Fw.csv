@@ -1,4 +1,4 @@
-# commit=9bf793028e31628fe08736ee0ff4cd3014050c41 date=2026-10-03T02:25:09 config=overload
+# commit=0e4c75d684d5095d4c5ed5f7818a9188cbe68ecf date=2026-10-03T11:40:25 config=overload dirty=true
 material,w_over_R,F_an,F_num,failed
 S,0.02,9.76185,10.1127,False
 S,0.0614286,31.6897,32.1069,False

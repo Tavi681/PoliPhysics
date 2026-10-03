@@ -1,4 +1,4 @@
-# commit=9bf793028e31628fe08736ee0ff4cd3014050c41 date=2026-10-03T02:25:09 config=offcentre
+# commit=0e4c75d684d5095d4c5ed5f7818a9188cbe68ecf date=2026-10-03T11:40:25 config=offcentre dirty=true
 material,ep_frac,eta_an,eta_num,wb_an,wb_num
 S,0,1,0.998511,0.830662,0.830656
 S,0.1,0.993298,0.991867,0.770057,0.770051

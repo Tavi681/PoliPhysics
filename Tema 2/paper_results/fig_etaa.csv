@@ -1,4 +1,4 @@
-# commit=9bf793028e31628fe08736ee0ff4cd3014050c41 date=2026-10-02T23:41:17 config=offcentre
+# commit=0e4c75d684d5095d4c5ed5f7818a9188cbe68ecf date=2026-10-03T11:40:25 config=offcentre dirty=true
 net,material,ep_frac,a_over_R,etaA_num,etaB_num,etaA_ref,etaB_ref,first_failure,etaA_free_num,etaA_free_ref,px_fail
 star,S,0,0,0.998511,0.5,,,rad,,,
 star,S,0,0.05,0.175612,0.124908,0.175846,0.26125,in,0.181793,0.1821,0.0421005

@@ -1,4 +1,4 @@
-# commit=9bf793028e31628fe08736ee0ff4cd3014050c41 date=2026-10-02T22:17:31 config=test3_junction
+# commit=0e4c75d684d5095d4c5ed5f7818a9188cbe68ecf date=2026-10-03T11:40:25 config=test3_junction dirty=true
 material,N,SN,SN2d,T0_1d,T0_2d,T0_num,dTmax_1d,dTmax_2d,dTmax_num,dTmin_1d,dTmin_2d,dTmin_num
 S,2,1,1,1,1,0.999699,1,1,1.00015,1,1,1.00015
 S,3,0.5,0.757275,0.666667,0.861874,0.874355,0.666667,0.569063,0.577373,0.666667,0.569063,0.577373
