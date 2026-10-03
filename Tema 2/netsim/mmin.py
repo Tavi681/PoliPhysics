@@ -5,21 +5,22 @@ net mass is linear in ``s``: ``m_net(s) = s * m_net(1)``. For a given impact
 point the acceptance criterion is a function of ``s``:
 
 * criterion A: the drone is *arrested* and *no* thread fails;
-* criterion B: the drone is arrested, every failed segment lies within
-  ``R_max`` of the impact point, and fewer than ``k_max`` segments fail.
+* criterion B: the drone is arrested and failures are localized:
+  ``n_failed == 0`` or ``(n_failed < k_max and R_d <= R_max)``.
 
-For each impact point we find the smallest passing ``s`` by first bracketing it
-(doubling ``s`` from the analytical guess ``s0`` with ``m_net = E_kin/e_mat``
-until the criterion passes) and then bisecting to a relative tolerance ``tol``.
-The minimum mass of the whole net is the worst (largest) of the per-point
-minima, and the corresponding impact point is the worst case.
+Any run that passes A therefore passes B (zero failures is trivially localized).
+
+For criterion A (monotone), each impact point is bracketed by doubling from the
+analytical guess ``s0`` and then bisected. For criterion B (not monotone in
+general) Algorithm 2 is a coarse scan over ``s`` (≥ 20 values) followed by a
+local bisection around the smallest passing value; both
+``s_min_all_pass`` (smallest s above which every scanned value passes) and
+``s_min_first_pass`` (smallest scanned passing s) are reported.
 
 Per-point work is parallelised with ``multiprocessing`` and made resumable: each
 single evaluation ``(point, s)`` is cached as a tiny HDF5 file and skipped if it
 already exists.
 
-Important: criterion B is not monotone in ``s`` in general, so
-:func:`monotonicity_scan` should be run first to check the pass/fail pattern.
 No physics or tolerances are tuned here.
 """
 
@@ -39,7 +40,8 @@ from .simulate import build_net, simulate_config
 logger = logging.getLogger("netsim.mmin")
 
 __all__ = ["MminConfig", "MminResult", "analytical_s0", "evaluate",
-           "minimum_mass_point", "minimum_mass", "monotonicity_scan"]
+           "minimum_mass_point", "minimum_mass", "monotonicity_scan",
+           "_criterion_pass", "_write_cache", "_read_cache"]
 
 
 @dataclass
@@ -53,6 +55,8 @@ class MminConfig:
     s0_scale: float = 1.0             # safety factor on the analytical s0
     n_procs: int = 1
     cache_dir: Optional[str] = None   # for resumable per-evaluation HDF5 files
+    # Criterion-B scan: number of s values in [s_lo, s_hi] before local bisection.
+    n_scan: int = 24
 
     def validate(self) -> None:
         if self.criterion not in ("A", "B"):
@@ -61,6 +65,8 @@ class MminConfig:
             raise ValueError("tol must be positive")
         if not self.impact_points:
             raise ValueError("impact_points must be non-empty")
+        if self.n_scan < 5:
+            raise ValueError("n_scan must be >= 5")
 
 
 @dataclass
@@ -75,6 +81,10 @@ class MminResult:
     s0: float
     per_point: dict                   # point -> s_min
     evaluations: int
+    # Criterion B only (optional diagnostics of non-monotonicity).
+    s_min_first_pass: Optional[float] = None
+    s_min_all_pass: Optional[float] = None
+    scan_pattern: Optional[list] = None
 
 
 def analytical_s0(cfg: SimConfig) -> float:
@@ -89,24 +99,42 @@ def analytical_s0(cfg: SimConfig) -> float:
     return (E_kin / e_mat) / m1
 
 
-def _criterion_pass(res, p, criterion, R_max, k_max) -> bool:
+def _fail_reason(res, p, criterion, R_max, k_max) -> str:
+    """Human-readable reason a run fails the criterion (empty if it passes)."""
     if not res.arrested:
-        return False
+        outcome = getattr(res, "outcome", "unknown")
+        return f"not_arrested({outcome})"
     if criterion == "A":
-        return res.n_failures == 0
-    # criterion B
+        if res.n_failures != 0:
+            return f"n_failed={res.n_failures}"
+        return ""
+    # B: arrested and (n_failed == 0 or (n_failed < k_max and R_d <= R_max))
+    if res.n_failures == 0:
+        return ""
     if res.n_failures >= k_max:
-        return False
-    mids = res.trajectory.failure_midpoints
-    if mids.size:
-        d = np.sqrt((mids[:, 0] - p[0]) ** 2 + (mids[:, 1] - p[1]) ** 2)
-        if np.any(d > R_max):
-            return False
-    return True
+        return f"n_failed={res.n_failures}>={k_max}"
+    R_d = getattr(res, "R_d", None)
+    if R_d is None:
+        # Fall back to midpoints (unit tests / older caches).
+        mids = res.trajectory.failure_midpoints
+        if mids.size:
+            d = np.sqrt((mids[:, 0] - p[0]) ** 2 + (mids[:, 1] - p[1]) ** 2)
+            R_d = float(np.max(d))
+        else:
+            R_d = 0.0
+    if R_d > R_max:
+        return f"R_d={R_d:.4g}>{R_max}"
+    return ""
 
 
-def _cache_path(cache_dir, point_idx, s):
-    return os.path.join(cache_dir, f"mmin_p{point_idx}_s{s:.6f}.h5")
+def _criterion_pass(res, p, criterion, R_max, k_max) -> bool:
+    """Acceptance: A = arrested & no failure; B = arrested & localized."""
+    return _fail_reason(res, p, criterion, R_max, k_max) == ""
+
+
+def _cache_path(cache_dir, point_idx, s, criterion="A"):
+    return os.path.join(cache_dir,
+                        f"mmin_p{point_idx}_c{criterion}_s{s:.6f}.h5")
 
 
 def _read_cache(path):
@@ -118,6 +146,12 @@ def _read_cache(path):
                 "passed": bool(a["passed"]),
                 "arrested": bool(a["arrested"]),
                 "n_failures": int(a["n_failures"]),
+                "R_d": float(a["R_d"]) if "R_d" in a else float("nan"),
+                "outcome": str(a["outcome"]) if "outcome" in a else "",
+                "energy_error": (float(a["energy_error"])
+                                 if "energy_error" in a else float("nan")),
+                "fail_reason": (str(a["fail_reason"])
+                                if "fail_reason" in a else ""),
                 "fail_segs": list(np.asarray(h5["fail_segs"])) if "fail_segs"
                 in h5 else [],
                 "fail_mids": np.asarray(h5["fail_mids"]) if "fail_mids" in h5
@@ -136,6 +170,11 @@ def _write_cache(path, info):
             g.attrs["passed"] = bool(info["passed"])
             g.attrs["arrested"] = bool(info["arrested"])
             g.attrs["n_failures"] = int(info["n_failures"])
+            g.attrs["R_d"] = float(info.get("R_d", float("nan")))
+            g.attrs["outcome"] = str(info.get("outcome", ""))
+            g.attrs["energy_error"] = float(info.get("energy_error",
+                                                     float("nan")))
+            g.attrs["fail_reason"] = str(info.get("fail_reason", ""))
             h5.create_dataset("fail_segs",
                               data=np.asarray(info["fail_segs"], dtype=np.int64))
             h5.create_dataset("fail_mids",
@@ -149,7 +188,7 @@ def evaluate(cfg: SimConfig, s: float, point, mmincfg: MminConfig,
     """Evaluate the criterion for one (impact point, scale) pair, with cache."""
     cache_dir = mmincfg.cache_dir
     if cache_dir is not None:
-        path = _cache_path(cache_dir, point_idx, s)
+        path = _cache_path(cache_dir, point_idx, s, mmincfg.criterion)
         if os.path.exists(path):
             cached = _read_cache(path)
             if cached is not None:
@@ -161,27 +200,49 @@ def evaluate(cfg: SimConfig, s: float, point, mmincfg: MminConfig,
     cfg2.output = replace(cfg.output, hdf5=None)
     res = simulate_config(cfg2, write=False)
 
-    passed = _criterion_pass(res, point, mmincfg.criterion,
-                             cfg.output.R_max, cfg.output.k_max)
+    reason = _fail_reason(res, point, mmincfg.criterion,
+                          cfg.output.R_max, cfg.output.k_max)
+    passed = reason == ""
     mids = res.trajectory.failure_midpoints
     segs = list(np.asarray(res.trajectory.failures[:, 0], dtype=np.int64)) \
         if res.trajectory.failures.size else []
-    info = {"passed": bool(passed), "arrested": bool(res.arrested),
-            "n_failures": int(res.n_failures), "fail_segs": segs,
-            "fail_mids": np.asarray(mids, dtype=float)}
+    info = {
+        "passed": bool(passed),
+        "arrested": bool(res.arrested),
+        "n_failures": int(res.n_failures),
+        "R_d": float(res.R_d),
+        "outcome": str(res.outcome),
+        "energy_error": float(res.energy_error),
+        "fail_reason": reason,
+        "fail_segs": segs,
+        "fail_mids": np.asarray(mids, dtype=float),
+    }
 
     if cache_dir is not None:
-        _write_cache(_cache_path(cache_dir, point_idx, s), info)
+        _write_cache(_cache_path(cache_dir, point_idx, s, mmincfg.criterion),
+                     info)
     return info
 
 
-def minimum_mass_point(args) -> dict:
-    """Find the minimum passing scale for a single impact point (top-level so it
-    is picklable for multiprocessing)."""
-    cfg, point, mmincfg, point_idx, s0 = args
+def _bisect_bracket(cfg, point, mmincfg, point_idx, s_lo, s_hi, hi_info):
+    """Bisection on [s_lo (fail), s_hi (pass)]; returns (s_hi, hi_info, n_eval)."""
     n_eval = 0
+    it = 0
+    while (s_hi - s_lo) / s_hi > mmincfg.tol and it < mmincfg.max_bisect:
+        s_mid = 0.5 * (s_lo + s_hi)
+        mid_info = evaluate(cfg, s_mid, point, mmincfg, point_idx)
+        n_eval += 1
+        if mid_info["passed"]:
+            s_hi, hi_info = s_mid, mid_info
+        else:
+            s_lo = s_mid
+        it += 1
+    return s_hi, hi_info, n_eval
 
-    # Bracket: double s from s0 until the criterion passes.
+
+def _minimum_mass_point_A(cfg, point, mmincfg, point_idx, s0) -> dict:
+    """Monotone bisection (criterion A)."""
+    n_eval = 0
     s_hi = s0
     hi_info = evaluate(cfg, s_hi, point, mmincfg, point_idx)
     n_eval += 1
@@ -196,12 +257,10 @@ def minimum_mass_point(args) -> dict:
                            point, mmincfg.max_doublings)
             break
 
-    # Lower bracket: last failing s (half of s_hi), or a small floor.
     s_lo = s_hi / 2.0 if doublings > 0 or s_hi > s0 else s_hi * 1e-3
     lo_info = evaluate(cfg, s_lo, point, mmincfg, point_idx)
     n_eval += 1
     if lo_info["passed"]:
-        # Already passing at the floor; walk down to bracket.
         while lo_info["passed"] and s_lo > 1e-9:
             s_hi = s_lo
             hi_info = lo_info
@@ -209,20 +268,117 @@ def minimum_mass_point(args) -> dict:
             lo_info = evaluate(cfg, s_lo, point, mmincfg, point_idx)
             n_eval += 1
 
-    # Bisection on [s_lo (fail), s_hi (pass)].
-    it = 0
-    while (s_hi - s_lo) / s_hi > mmincfg.tol and it < mmincfg.max_bisect:
-        s_mid = 0.5 * (s_lo + s_hi)
-        mid_info = evaluate(cfg, s_mid, point, mmincfg, point_idx)
-        n_eval += 1
-        if mid_info["passed"]:
-            s_hi, hi_info = s_mid, mid_info
-        else:
-            s_lo = s_mid
-        it += 1
-
+    s_hi, hi_info, n_bis = _bisect_bracket(
+        cfg, point, mmincfg, point_idx, s_lo, s_hi, hi_info)
+    n_eval += n_bis
     return {"point": tuple(point), "point_idx": point_idx, "s_min": s_hi,
-            "info": hi_info, "evaluations": n_eval}
+            "info": hi_info, "evaluations": n_eval,
+            "s_min_first_pass": s_hi, "s_min_all_pass": s_hi,
+            "scan_pattern": None}
+
+
+def _minimum_mass_point_B(cfg, point, mmincfg, point_idx, s0) -> dict:
+    """Non-monotone scan (≥ n_scan values) + local bisection for criterion B.
+
+    Reports:
+    * ``s_min_first_pass``: smallest scanned s that passes;
+    * ``s_min_all_pass``: smallest s above which *all* larger scanned values
+      pass (or None if the scan never settles);
+    * ``s_min``: local bisection around the first-pass bracket (primary report),
+      falling back to ``s_min_all_pass`` when no isolated pass exists.
+    """
+    n_eval = 0
+    # Upper end of the scan: double until A-like arrest with no cascade, or cap.
+    s_hi = max(s0, 1e-6)
+    info_hi = evaluate(cfg, s_hi, point, mmincfg, point_idx)
+    n_eval += 1
+    doublings = 0
+    # Keep doubling while not arrested; once arrested keep going a bit so the
+    # scan covers the stiff-net regime where B may turn False again.
+    while doublings < mmincfg.max_doublings:
+        if info_hi["arrested"] and info_hi["passed"] and doublings >= 2:
+            break
+        if info_hi["arrested"] and doublings >= 4 and info_hi["n_failures"] == 0:
+            break
+        s_hi *= 2.0
+        info_hi = evaluate(cfg, s_hi, point, mmincfg, point_idx)
+        n_eval += 1
+        doublings += 1
+
+    s_lo = 0.25 * s_hi
+    s_values = np.linspace(s_lo, s_hi, mmincfg.n_scan)
+    pattern = []
+    infos = []
+    for s in s_values:
+        info = evaluate(cfg, float(s), point, mmincfg, point_idx)
+        n_eval += 1
+        pattern.append(bool(info["passed"]))
+        infos.append(info)
+        if not info["passed"]:
+            logger.info(
+                "B-scan F at s=%.4g: reason=%s n_failed=%d R_d=%.4g "
+                "outcome=%s energy_error=%.3e",
+                float(s), info["fail_reason"], info["n_failures"],
+                info["R_d"], info["outcome"], info["energy_error"])
+
+    # Smallest scanned passing s.
+    first_pass = None
+    for s, ok in zip(s_values, pattern):
+        if ok:
+            first_pass = float(s)
+            break
+
+    # Smallest s above which all larger scanned values pass.
+    all_pass = None
+    for i in range(len(pattern)):
+        if pattern[i] and all(pattern[i:]):
+            all_pass = float(s_values[i])
+            break
+
+    if first_pass is None and all_pass is None:
+        logger.warning("point %s: criterion B never passed in the scan", point)
+        return {"point": tuple(point), "point_idx": point_idx, "s_min": s_hi,
+                "info": info_hi, "evaluations": n_eval,
+                "s_min_first_pass": None, "s_min_all_pass": None,
+                "scan_pattern": pattern}
+
+    # Local bisection around the first pass: last failing s below it, then
+    # bisect up to the first pass.
+    i_pass = next(i for i, ok in enumerate(pattern) if ok)
+    s_pass = float(s_values[i_pass])
+    info_pass = infos[i_pass]
+    if i_pass > 0:
+        s_fail = float(s_values[i_pass - 1])
+    else:
+        s_fail = 0.5 * s_pass
+
+    s_bis, info_bis, n_bis = _bisect_bracket(
+        cfg, point, mmincfg, point_idx, s_fail, s_pass, info_pass)
+    n_eval += n_bis
+
+    # Primary s_min: report the all-pass threshold when the scan is
+    # non-monotone (honest); otherwise the bisected first-pass value.
+    # Always keep both numbers in the result.
+    if (all_pass is not None and first_pass is not None
+            and all_pass > first_pass * (1.0 + mmincfg.tol)):
+        s_min = all_pass
+        info_bis = evaluate(cfg, s_min, point, mmincfg, point_idx)
+        n_eval += 1
+    else:
+        s_min = s_bis
+
+    return {"point": tuple(point), "point_idx": point_idx, "s_min": s_min,
+            "info": info_bis, "evaluations": n_eval,
+            "s_min_first_pass": first_pass, "s_min_all_pass": all_pass,
+            "scan_pattern": pattern}
+
+
+def minimum_mass_point(args) -> dict:
+    """Find the minimum passing scale for a single impact point (picklable)."""
+    cfg, point, mmincfg, point_idx, s0 = args
+    if mmincfg.criterion == "B":
+        return _minimum_mass_point_B(cfg, point, mmincfg, point_idx, s0)
+    return _minimum_mass_point_A(cfg, point, mmincfg, point_idx, s0)
 
 
 def minimum_mass(cfg: SimConfig, mmincfg: MminConfig) -> MminResult:
@@ -261,6 +417,9 @@ def minimum_mass(cfg: SimConfig, mmincfg: MminConfig) -> MminResult:
         s0=s0,
         per_point=per_point,
         evaluations=evals,
+        s_min_first_pass=worst.get("s_min_first_pass"),
+        s_min_all_pass=worst.get("s_min_all_pass"),
+        scan_pattern=worst.get("scan_pattern"),
     )
 
 
@@ -269,21 +428,43 @@ def monotonicity_scan(cfg: SimConfig, mmincfg: MminConfig, point, *,
     """Coarse scan of the pass/fail pattern over s for one impact point.
 
     Scans ``n`` values in ``[0.25 s_hi, s_hi]`` (``s_hi`` defaults to a bracket
-    found by doubling). Returns the pattern and whether it is monotone (once the
-    criterion passes it stays passing for larger s).
+    found by doubling under criterion A so A and B share the same absolute
+    scale — otherwise relative ``s/s_hi`` patterns are not comparable).
+    Returns the pattern, per-s diagnostics, and whether it is monotone.
     """
     if s_hi is None:
+        # Use criterion-A doubling so the scan covers the stiff-net regime
+        # where zero-failure arrest is expected; B is then evaluated on the
+        # same absolute s grid.
+        cfg_A = replace(mmincfg, criterion="A")
         s0 = analytical_s0(cfg) * mmincfg.s0_scale
-        res = minimum_mass_point((cfg, point, mmincfg, 0, s0))
+        res = _minimum_mass_point_A(cfg, point, cfg_A, 0, s0)
         s_hi = 2.0 * res["s_min"]
 
     s_values = np.linspace(0.25 * s_hi, s_hi, n)
     pattern = []
+    details = []
     for s in s_values:
         info = evaluate(cfg, float(s), point, mmincfg, 0)
         pattern.append(bool(info["passed"]))
+        details.append({
+            "s": float(s),
+            "passed": bool(info["passed"]),
+            "fail_reason": info.get("fail_reason", ""),
+            "n_failures": info["n_failures"],
+            "R_d": info.get("R_d", float("nan")),
+            "outcome": info.get("outcome", ""),
+            "arrested": info["arrested"],
+            "energy_error": info.get("energy_error", float("nan")),
+        })
+        if not info["passed"]:
+            logger.info(
+                "scan F s=%.4g reason=%s n_failed=%d R_d=%.4g outcome=%s "
+                "Eerr=%.3e",
+                float(s), info.get("fail_reason", ""), info["n_failures"],
+                info.get("R_d", float("nan")), info.get("outcome", ""),
+                info.get("energy_error", float("nan")))
 
-    # Monotone if, after the first True, there is no False.
     monotone = True
     seen_true = False
     for ok in pattern:
@@ -294,4 +475,5 @@ def monotonicity_scan(cfg: SimConfig, mmincfg: MminConfig, point, *,
             break
 
     return {"point": tuple(point), "s_values": s_values.tolist(),
-            "pattern": pattern, "monotone": monotone, "s_hi": s_hi}
+            "pattern": pattern, "monotone": monotone, "s_hi": s_hi,
+            "details": details}

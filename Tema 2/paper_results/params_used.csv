@@ -1,4 +1,4 @@
-# commit=335a0c6e99642d471e3cc0a2290bd67f80205669 date=2026-10-02T01:41:16 config=default
+# commit=9bf793028e31628fe08736ee0ff4cd3014050c41 date=2026-10-02T22:17:31 config=default
 symbol,value,unit,comment
 E0_S,2e+09,Pa,material S small-strain modulus
 b_S,2.22e+10,Pa,material S cubic coefficient
@@ -12,7 +12,7 @@ rho_D,975,kg/m^3,material D density
 e_mat_D,57764.1,J/kg,material D specific energy
 r_d,0.15,m,drone radius (working value; '?' in paper)
 k_c,10000000.0,N/m^1.5,absolute penalty stiffness (working value)
-k_c_factor,4.0,-,relative-k_c factor for material D
+k_c_factor,8.0,-,relative-k_c factor for material D (round 4)
 R_max,0.5,m,cascade radius (working value)
 k_max,10,-,cascade failure count (working value)
 N,8,-,reference number of radials

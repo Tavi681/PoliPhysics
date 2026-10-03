@@ -11,9 +11,9 @@ from netsim.fdm import weighted_laplacian
 @pytest.mark.parametrize("q_ratio", [0.5, 1.0, 2.0])
 def test_fdm_equilibrium_residual(q_ratio):
     m = get_material("S")
+    # Free-FDM residual test (fix_radii=False).
     net = star_with_rings(8, 1.0, [1 / 3, 2 / 3, 1.0], 0.05, material=m,
-                          q_ratio=q_ratio)
-    # Unloaded equilibrium: L_q x = 0 at every free node.
+                          q_ratio=q_ratio, fix_radii=False)
     L = weighted_laplacian(net.edges, net.q, net.n_v)
     resid = L @ net.nodes
     free = ~net.anchored
@@ -51,13 +51,24 @@ def test_ring_nodes_on_radial_lines():
 def test_higher_q_ratio_pulls_rings_inward():
     m = get_material("S")
     r_lo = star_with_rings(8, 1.0, [1 / 3, 2 / 3, 1.0], 0.05, material=m,
-                           q_ratio=0.5).nodes
+                           q_ratio=0.5, fix_radii=False).nodes
     r_hi = star_with_rings(8, 1.0, [1 / 3, 2 / 3, 1.0], 0.05, material=m,
-                           q_ratio=2.0).nodes
+                           q_ratio=2.0, fix_radii=False).nodes
     # Inner ring (nodes 1..N) radius shrinks as q_ring/q_radial grows.
     rad_lo = np.hypot(r_lo[1, 0], r_lo[1, 1])
     rad_hi = np.hypot(r_hi[1, 0], r_hi[1, 1])
     assert rad_hi < rad_lo
+
+
+def test_fix_radii_keeps_ring_at_prescribed():
+    m = get_material("S")
+    net = star_with_rings(8, 1.0, [0.5, 1.0], 0.05, material=m,
+                          q_ratio=0.5, fix_radii=True)
+    # Inner ring nodes must sit at r = 0.5 (not pulled inward).
+    inner = net.nodes[1:9]
+    rad = np.hypot(inner[:, 0], inner[:, 1])
+    assert np.allclose(rad, 0.5, atol=1e-9)
+    assert "family_eps" in net.meta
 
 
 def test_outer_ring_anchored_at_R():

@@ -1,4 +1,4 @@
-# commit=335a0c6e99642d471e3cc0a2290bd67f80205669 date=2026-10-02T01:42:49 config=mmin
+# commit=9bf793028e31628fe08736ee0ff4cd3014050c41 date=2026-10-03T02:25:09 config=mmin
 material,criterion,s_over_shi,pass
 S,A,0.25,False
 S,A,0.333333,False
@@ -35,8 +35,8 @@ D,B,0.333333,False
 D,B,0.416667,False
 D,B,0.5,True
 D,B,0.583333,True
-D,B,0.666667,False
-D,B,0.75,False
-D,B,0.833333,False
-D,B,0.916667,False
-D,B,1,False
+D,B,0.666667,True
+D,B,0.75,True
+D,B,0.833333,True
+D,B,0.916667,True
+D,B,1,True

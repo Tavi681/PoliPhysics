@@ -42,23 +42,33 @@ class _FakeTraj:
 
 
 class _FakeRes:
-    def __init__(self, arrested, n_failures, mids=()):
+    def __init__(self, arrested, n_failures, mids=(), R_d=None, outcome="arrested"):
         self.arrested = arrested
         self.n_failures = n_failures
         self.trajectory = _FakeTraj(mids)
+        self.outcome = outcome
+        if R_d is not None:
+            self.R_d = R_d
+        elif len(mids):
+            self.R_d = float(max(np.hypot(m[0], m[1]) for m in mids))
+        else:
+            self.R_d = 0.0
 
 
 def test_criterion_logic():
     # A: arrested and no failures.
     assert _criterion_pass(_FakeRes(True, 0), (0, 0), "A", 0.5, 10)
     assert not _criterion_pass(_FakeRes(True, 1, [(0, 0, 0)]), (0, 0), "A", 0.5, 10)
-    assert not _criterion_pass(_FakeRes(False, 0), (0, 0), "A", 0.5, 10)
-    # B: arrested, < k_max failures, all within R_max of p.
-    assert _criterion_pass(_FakeRes(True, 2, [(0.1, 0, 0), (0.2, 0, 0)]),
+    assert not _criterion_pass(_FakeRes(False, 0, outcome="timeout"), (0, 0),
+                               "A", 0.5, 10)
+    # B: arrested and (n_failed == 0 or (n_failed < k_max and R_d <= R_max)).
+    assert _criterion_pass(_FakeRes(True, 0), (0, 0), "B", 0.5, 10)  # A => B
+    assert _criterion_pass(_FakeRes(True, 2, [(0.1, 0, 0), (0.2, 0, 0)],
+                                    R_d=0.2),
                            (0, 0), "B", 0.5, 10)
-    assert not _criterion_pass(_FakeRes(True, 1, [(0.9, 0, 0)]),
+    assert not _criterion_pass(_FakeRes(True, 1, [(0.9, 0, 0)], R_d=0.9),
                                (0, 0), "B", 0.5, 10)  # outside R_max
-    assert not _criterion_pass(_FakeRes(True, 10, [(0, 0, 0)] * 10),
+    assert not _criterion_pass(_FakeRes(True, 10, [(0, 0, 0)] * 10, R_d=0.0),
                                (0, 0), "B", 0.5, 10)  # >= k_max
 
 

@@ -37,6 +37,10 @@ class Result:
     net: Net
     material: object
     m_net: float
+    drone_x_arrest: float = float("nan")
+    drone_y_arrest: float = float("nan")
+    drone_x_first_fail: float = float("nan")
+    drone_y_first_fail: float = float("nan")
 
     def summary(self) -> dict:
         return {
@@ -48,12 +52,15 @@ class Result:
             "R_d": self.R_d,
             "cascade": self.cascade,
             "energy_error": self.energy_error,
+            "drone_x_arrest": self.drone_x_arrest,
+            "drone_y_arrest": self.drone_y_arrest,
         }
 
 
 def simulate(net, material, drone, numerics, contact, output, kinematic=None, *,
              area_scale: Optional[float] = None,
-             stop_on_failure: bool = False) -> Result:
+             stop_on_failure: bool = False,
+             stop_after_n_failures: Optional[int] = None) -> Result:
     """Run Algorithm 1 for the given configuration objects."""
     if area_scale is None:
         area_scale = numerics.area_scale
@@ -63,7 +70,8 @@ def simulate(net, material, drone, numerics, contact, output, kinematic=None, *,
 
     traj = integrate(disc, material, drone, numerics, contact, output,
                      kinematic=kinematic, net_R=net.R, impact_point=drone.p,
-                     stop_on_failure=stop_on_failure)
+                     stop_on_failure=stop_on_failure,
+                     stop_after_n_failures=stop_after_n_failures)
 
     m_net = net.net_mass(material.rho, area_scale)
     e_mat = material.e_mat
@@ -90,6 +98,10 @@ def simulate(net, material, drone, numerics, contact, output, kinematic=None, *,
         net=net,
         material=material,
         m_net=m_net,
+        drone_x_arrest=traj.drone_x_arrest,
+        drone_y_arrest=traj.drone_y_arrest,
+        drone_x_first_fail=traj.drone_x_first_fail,
+        drone_y_first_fail=traj.drone_y_first_fail,
     )
 
 
@@ -102,7 +114,8 @@ def build_net(cfg) -> Net:
     if nc.kind == "star_with_rings":
         return star_with_rings(nc.N, nc.R, nc.radii, nc.eps_p,
                                material=material, A_hat=nc.A_hat,
-                               q_ratio=nc.q_ratio)
+                               q_ratio=nc.q_ratio,
+                               fix_radii=getattr(nc, "fix_radii", True))
     raise ValueError(f"unknown net kind {nc.kind!r}")
 
 

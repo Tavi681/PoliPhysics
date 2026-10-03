@@ -34,7 +34,7 @@ def run(mat,N,a,ep_frac,dw=None):
     emat_vol=Phi(m['eb'],m)
     alive={'in':True,'out':True}; h=np.array([0.0,0.0]); w=0.0
     dw=dw or (0.002 if mat=='S' else 0.0005)
-    Uabs=0.0; Uprev=0.0; fails=[]
+    Uabs=0.0; Uprev=energy(h,0.0,N,a,ep,alive,m); fails=[]  # subtract prestress energy
     while True:
         w+=dw
         h,U=eq(w,N,a,ep,alive,m,h)

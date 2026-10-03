@@ -62,6 +62,11 @@ class NetConfig:
     A_hat: float = 1e-6
     radii: Optional[list] = None  # for star_with_rings
     q_ratio: float = 1.0  # q_ring / q_radial for star_with_rings (FDM prestress)
+    # If True (default for paper nets), keep ring nodes at the prescribed
+    # radii and set different radial force densities on the inner/outer
+    # segments from ring-node equilibrium. If False, free FDM may pull the
+    # rings inward.
+    fix_radii: bool = True
 
     def validate(self) -> None:
         if self.kind not in ("star", "star_with_rings"):
@@ -156,6 +161,10 @@ class KinematicConfig:
     A single node receives a prescribed velocity ``v(t)`` or displacement
     ``w(t)`` along a fixed direction. For simple cases the velocity is constant;
     arbitrary time laws can be supplied programmatically via ``func``.
+
+    If ``free_lateral`` is True, only the component along ``direction`` is
+    prescribed; the two orthogonal (in-plane / lateral) components remain free
+    and respond to the net forces. This matches ``ref/offc_free.py``.
     """
 
     enabled: bool = False
@@ -164,6 +173,7 @@ class KinematicConfig:
     direction: tuple = (0.0, 0.0, 1.0)
     amplitude: float = 0.0  # constant velocity or displacement magnitude
     func: Optional[Callable[[float], float]] = None  # overrides amplitude
+    free_lateral: bool = False
 
     def value(self, t: float) -> float:
         if self.func is not None:

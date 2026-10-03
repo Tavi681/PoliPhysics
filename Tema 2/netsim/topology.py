@@ -135,23 +135,27 @@ def star(N: int, R: float, eps_p: float, *, material=None,
 
 def star_with_rings(N: int, R: float, radii, eps_p: float, *,
                     material=None, A_hat: float = 1e-6,
-                    q_ratio: float = 1.0) -> Net:
+                    q_ratio: float = 1.0, fix_radii: bool = True) -> Net:
     """Star with ``N`` radials plus concentric circumferential rings.
 
     ``radii`` is a sequence of ring radii in (0, R]; the outermost radius must
     equal ``R`` and its nodes are anchored. Ring nodes are *shared* with the
     radials (one node per radial/ring crossing, no overlapping threads).
 
-    The ring prestress is set by the force-density method (FDM): the radial
-    threads are given a force density ``q_radial`` (chosen so the radials sit at
-    about the prestress strain ``eps_p``) and the rings a force density
-    ``q_ring = q_ratio * q_radial``. The equilibrium geometry is solved from the
-    force densities with the outer ring anchored, and the rest lengths are
-    recovered from the solved geometry (:func:`netsim.fdm.rest_lengths_from_q`).
-    With nonzero ``q_ratio`` the inner ring radii therefore come out of the FDM
-    solve, not from the supplied ``radii`` (which set the number of rings and the
-    initial layout). When ``material`` is ``None`` the net falls back to the
-    uniform geometric prestress (``q = 0``).
+    Prestress is set by the force-density method (FDM):
+
+    * ``fix_radii=True`` (default, paper nets): keep ring nodes at the
+      prescribed radii. Inner and outer radial segments of each ring get
+      different force densities from radial equilibrium at the ring nodes,
+      ``q_inner * r = q_outer * (R_next - r)`` (and analogously for multiple
+      rings), with ``q_ring = q_ratio * q_radial_ref``. Rest lengths are then
+      recovered from ``(q, geometry)``.
+    * ``fix_radii=False``: free FDM solve with uniform ``q_radial`` and
+      ``q_ring = q_ratio * q_radial``. The solved ring radii generally differ
+      from the prescribed ones (rings are pulled inward).
+
+    When ``material`` is ``None`` the net falls back to the uniform geometric
+    prestress (``q = 0``).
     """
     if N < 2:
         raise ValueError("star_with_rings requires N >= 2")
@@ -177,6 +181,9 @@ def star_with_rings(N: int, R: float, radii, eps_p: float, *,
     edges = []
     lengths = []
     is_ring = []
+    # Radial family tags for rest-length / eps reporting:
+    # radial segment of ring-crossing j (0 = hub->first ring, ...).
+    radial_family = []  # parallel to edges; -1 for ring edges, else family id
     # Radial threads (hub outward through successive ring nodes).
     for k in range(N):
         prev = 0
@@ -186,6 +193,7 @@ def star_with_rings(N: int, R: float, radii, eps_p: float, *,
             edges.append((prev, cur))
             lengths.append(radii[j] - prev_r)
             is_ring.append(False)
+            radial_family.append(j)  # family = which radial span
             prev, prev_r = cur, radii[j]
     # Circumferential (ring) threads between neighbouring radials.
     chord = 2.0 * np.sin(np.pi / N)
@@ -194,9 +202,11 @@ def star_with_rings(N: int, R: float, radii, eps_p: float, *,
             edges.append((ring_idx(j, k), ring_idx(j, k + 1)))
             lengths.append(radii[j] * chord)
             is_ring.append(True)
+            radial_family.append(-1)
     edges = np.asarray(edges, dtype=np.int64)
     lengths = np.asarray(lengths, dtype=float)
     is_ring = np.asarray(is_ring, dtype=bool)
+    radial_family = np.asarray(radial_family, dtype=np.int64)
 
     anchored = np.zeros(nodes.shape[0], dtype=bool)
     for k in range(N):
@@ -207,28 +217,83 @@ def star_with_rings(N: int, R: float, radii, eps_p: float, *,
     if material is None:
         q = np.zeros(edges.shape[0])
         rest = lengths / (1.0 + eps_p)
-        meta_q = {"q_ratio": q_ratio}
         return Net(nodes=nodes, edges=edges, anchored=anchored, q=q,
                    A_hat=A_arr, rest_length=rest, R=R,
                    meta={"kind": "star_with_rings", "N": N, "eps_p": eps_p,
-                         "radii": radii.tolist(), **meta_q})
+                         "radii": radii.tolist(), "q_ratio": q_ratio,
+                         "fix_radii": fix_radii,
+                         "is_ring": is_ring.tolist(),
+                         "radial_family": radial_family.tolist()})
 
-    # --- Force-density prestress -----------------------------------------------
     from .fdm import fdm_equilibrium, rest_lengths_from_q
 
     sigma_p = float(material.sigma(eps_p))
     L_rad_mean = float(np.mean(lengths[~is_ring]))
-    q_radial = A_hat * sigma_p / L_rad_mean  # radials ~ eps_p prestress
-    q = np.where(is_ring, q_ratio * q_radial, q_radial)
+    q_ref = A_hat * sigma_p / L_rad_mean  # reference radial prestress ~ eps_p
 
-    nodes_eq = fdm_equilibrium(nodes, edges, q, anchored)
+    if fix_radii:
+        # Prescribed geometry: set radial q from ring-node radial equilibrium.
+        # At a free ring of radius r_j between r_prev and r_next, with uniform
+        # circumferential q (forces cancel by symmetry):
+        #   q_in * (r_j - r_prev) = q_out * (r_next - r_j)
+        # (the FDM force on the node along the radial is q * Delta_r).
+        # We set the outermost radial span (to the anchored ring at R) as the
+        # reference q_ref and propagate inward.
+        r_levels = np.concatenate([[0.0], radii])  # hub, rings...
+        # q_radial[j] = force density on the span between r_levels[j] and
+        # r_levels[j+1], j = 0..n_rings-1.
+        q_rad = np.zeros(n_rings)
+        q_rad[-1] = q_ref
+        for j in range(n_rings - 2, -1, -1):
+            # At free ring j (radius radii[j] = r_levels[j+1]):
+            # q_rad[j] * (r_levels[j+1] - r_levels[j])
+            #   = q_rad[j+1] * (r_levels[j+2] - r_levels[j+1])
+            dr_in = r_levels[j + 1] - r_levels[j]
+            dr_out = r_levels[j + 2] - r_levels[j + 1]
+            if dr_in <= 0:
+                raise ValueError("ring radii must be strictly increasing")
+            q_rad[j] = q_rad[j + 1] * dr_out / dr_in
+
+        q = np.empty(edges.shape[0])
+        for e in range(edges.shape[0]):
+            if is_ring[e]:
+                q[e] = q_ratio * q_ref
+            else:
+                q[e] = q_rad[radial_family[e]]
+        nodes_eq = nodes.copy()  # keep prescribed radii
+    else:
+        q = np.where(is_ring, q_ratio * q_ref, q_ref)
+        nodes_eq = fdm_equilibrium(nodes, edges, q, anchored)
+
     rest = rest_lengths_from_q(nodes_eq, edges, q, A_arr, material)
+
+    # Per-family prestress strain for reporting.
+    d = nodes_eq[edges[:, 1]] - nodes_eq[edges[:, 0]]
+    l_cur = np.linalg.norm(d, axis=1)
+    eps_e = l_cur / rest - 1.0
+    family_eps = {}
+    for j in range(n_rings):
+        mask = (~is_ring) & (radial_family == j)
+        family_eps[f"radial_{j}"] = float(np.mean(eps_e[mask])) if np.any(mask) \
+            else float("nan")
+    for j in range(n_rings - 1):  # free rings only (outer is frame)
+        # ring edges for ring j occupy a contiguous block after all radials
+        pass
+    ring_eps = []
+    n_rad_edges = N * n_rings
+    for j in range(n_rings):
+        sl = slice(n_rad_edges + j * N, n_rad_edges + (j + 1) * N)
+        ring_eps.append(float(np.mean(eps_e[sl])))
+        family_eps[f"ring_{j}"] = ring_eps[-1]
 
     return Net(nodes=nodes_eq, edges=edges, anchored=anchored, q=q,
                A_hat=A_arr, rest_length=rest, R=R,
                meta={"kind": "star_with_rings", "N": N, "eps_p": eps_p,
                      "radii": radii.tolist(), "q_ratio": q_ratio,
-                     "is_ring": is_ring.tolist()})
+                     "fix_radii": fix_radii,
+                     "is_ring": is_ring.tolist(),
+                     "radial_family": radial_family.tolist(),
+                     "family_eps": family_eps})
 
 
 def from_arrays(nodes, edges, anchored, q, A, *, rest_length=None,

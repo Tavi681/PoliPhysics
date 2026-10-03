@@ -47,7 +47,9 @@ def run_case(n_s, mode, v0=15.0, t_end=0.2):
             "n_failures": res.n_failures, "eta": res.eta, "R_d": res.R_d,
             "cascade": res.cascade, "fail_radii": fail_radii,
             "outcome": res.outcome, "cpu": cpu,
-            "energy_error": res.energy_error}
+            "energy_error": res.energy_error,
+            "drone_x_arrest": res.drone_x_arrest,
+            "drone_y_arrest": res.drone_y_arrest}
 
 
 def main():

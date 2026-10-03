@@ -38,11 +38,13 @@ def test_energy_error_decreases_with_C():
 
 
 def test_energy_conservation_gripped_with_capture_column():
-    # With the inelastic-capture column booked, the gripped no-failure run must
-    # also conserve energy to < 1e-3. Without the column the residual equals the
-    # inelastic loss dE_cap = 1/2 (M m)/(M+m) v_rel^2.
+    # With the inelastic-capture column booked *and* the combined velocity set
+    # to the centre-of-mass velocity at grip, the gripped no-failure run must
+    # conserve energy to < 1e-3 and improve when C is refined.
     res = simulate_config(_cfg(0.5, mode="gripped"), write=False)
     assert res.n_failures == 0, "test case should not break threads"
     assert res.energy_error < 1e-3, f"energy_error={res.energy_error:.3e}"
-    # The capture column must be strictly positive after grip (energy dissipated).
     assert float(res.trajectory.energy[-1, 5]) > 0.0
+    e_half = res.energy_error
+    e_quarter = simulate_config(_cfg(0.25, mode="gripped"), write=False).energy_error
+    assert e_quarter < e_half * 1.05, (e_quarter, e_half)

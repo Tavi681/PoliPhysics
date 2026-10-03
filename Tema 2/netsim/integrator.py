@@ -105,6 +105,12 @@ class Trajectory:
     delta_max: float = 0.0
     delta_ref: float = 0.0
     k_c: float = 0.0
+    # Lateral drone position diagnostics (round 4).
+    drone_x_arrest: float = float("nan")
+    drone_y_arrest: float = float("nan")
+    drone_x_first_fail: float = float("nan")
+    drone_y_first_fail: float = float("nan")
+    t_perforate: float = float("nan")
 
 
 def compute_time_step(material, seg_rest, mass, drone, contact, C, *,
@@ -142,7 +148,7 @@ def _contact_energy(x, xd, r_d, k_c, active, seg_edges=None, intact=None,
 
 def integrate(disc, material, drone, numerics, contact, output,
               kinematic=None, *, net_R=1.0, impact_point=None,
-              stop_on_failure=False):
+              stop_on_failure=False, stop_after_n_failures=None):
     """Run Algorithm 1 and return a :class:`Trajectory`.
 
     Parameters
@@ -160,6 +166,9 @@ def integrate(disc, material, drone, numerics, contact, output,
         Frame radius (for the ``perforated`` criterion and R_d).
     impact_point:
         (px, py) in-plane impact point; defaults to ``drone.p``.
+    stop_after_n_failures:
+        If set, stop once this many permanent failures have been recorded
+        (useful for quasi-static criterion-B pulls).
     """
     drone_mode = not (kinematic is not None and kinematic.enabled)
 
@@ -179,12 +188,20 @@ def integrate(disc, material, drone, numerics, contact, output,
     # Base free mask (integrated with Verlet).
     base_free = ~anchored
     forced_node = -1
+    free_lateral = False
+    kdir = np.zeros(3)
+    x_forced0 = None
     if not drone_mode:
         forced_node = kinematic.node
-        base_free[forced_node] = False
         kdir = kinematic.unit_direction()
-        # Initial forced-node reference for displacement mode.
         x_forced0 = x[forced_node].copy()
+        free_lateral = bool(getattr(kinematic, "free_lateral", False))
+        if free_lateral:
+            # Keep the node in the free set; only the kdir component is
+            # overwritten each step (lateral DOFs respond to net forces).
+            pass
+        else:
+            base_free[forced_node] = False
 
     # Drone state.
     if drone_mode:
@@ -212,6 +229,10 @@ def integrate(disc, material, drone, numerics, contact, output,
     dt, dt_cfl, dt_contact = compute_time_step(
         material, seg_rest, mass, drone, contact, numerics.C,
         drone_mode=drone_mode, k_c=k_c)
+    # Base step used when no segment is near breaking. Near-break shrink is
+    # applied per-step only; do not permanently ratchet dt downward or
+    # continue_to_B / long runs become ~4× slower after the first approach.
+    dt_base = dt
 
     seg_contact = contact.segment_contact
     delta_ref = contact.delta_ref_frac * r_d
@@ -249,7 +270,12 @@ def integrate(disc, material, drone, numerics, contact, output,
         a = a + g_vec
         a[anchored] = 0.0
         if not drone_mode:
-            a[forced_node] = 0.0
+            a[forced_node] = 0.0 if not free_lateral else a[forced_node]
+            if free_lateral:
+                # Constraint force cancels acceleration along the prescribed
+                # direction; lateral components remain free.
+                a[forced_node] = (a[forced_node]
+                                  - np.dot(a[forced_node], kdir) * kdir)
         if drone_mode and gripc.active:
             a[gripc.node] = 0.0
         ad = np.zeros(3)
@@ -312,8 +338,21 @@ def integrate(disc, material, drone, numerics, contact, output,
     outcome = "timeout"
     arrested = False
     steps = 0
+    drone_x_arrest = float("nan")
+    drone_y_arrest = float("nan")
+    drone_x_first_fail = float("nan")
+    drone_y_first_fail = float("nan")
+    t_perforate = float("nan")
+    eps_old, _ = segment_strains(x, seg_edges, seg_rest)
 
     while t < numerics.t_end:
+        # Locally reduce dt when any intact segment is approaching breaking.
+        # Restore from dt_base each step so the shrink is temporary.
+        dt = dt_base
+        near = intact & (eps_old > 0.85 * eps_b)
+        if np.any(near):
+            dt = min(dt, 0.25 * dt_cfl)
+
         # --- Alg.1 line 1: position update -----------------------------------
         x_new = x.copy()
         x_new[base_free] = (x[base_free] + v[base_free] * dt
@@ -323,7 +362,19 @@ def integrate(disc, material, drone, numerics, contact, output,
         else:
             xd_new = xd
             # Kinematic forcing of the driven node.
-            if kinematic.mode == "velocity":
+            if free_lateral:
+                # Verlet already advanced the free node; overwrite only the
+                # prescribed component along kdir.
+                lat = (x_new[forced_node]
+                       - np.dot(x_new[forced_node], kdir) * kdir)
+                if kinematic.mode == "velocity":
+                    along = (np.dot(x[forced_node], kdir)
+                             + kinematic.value(t) * dt)
+                else:  # displacement
+                    along = (np.dot(x_forced0, kdir)
+                             + kinematic.value(t + dt))
+                x_new[forced_node] = lat + along * kdir
+            elif kinematic.mode == "velocity":
                 x_new[forced_node] = x[forced_node] + kinematic.value(t) * kdir * dt
             else:  # displacement
                 x_new[forced_node] = x_forced0 + kinematic.value(t + dt) * kdir
@@ -338,13 +389,17 @@ def integrate(disc, material, drone, numerics, contact, output,
                 grip.node = g
                 grip.offset = (x_new[g] - xd_new).copy()
                 grip.mass = float(mass[g])
-                # Energy dissipated in the inelastic capture of the node by the
-                # drone: dE_cap = 1/2 * (M m)/(M+m) * |v_node - v_drone|^2, with
-                # M the drone's effective mass *before* adding the node mass.
+                # Inelastic capture: book dE_cap = 1/2 mu |v_rel|^2 and set the
+                # combined velocity to the centre-of-mass velocity. Leaving vd
+                # unchanged while adding the node mass to M_eff was a bookkeeping
+                # error that left a C-independent energy floor of order dE_cap.
                 v_rel = v[g] - vd
                 mu = M_eff * grip.mass / (M_eff + grip.mass)
                 U_capture = 0.5 * mu * float(np.dot(v_rel, v_rel))
+                v_com = (M_eff * vd + grip.mass * v[g]) / (M_eff + grip.mass)
                 M_eff = M_eff + grip.mass
+                vd = v_com.copy()
+                v[g] = vd.copy()
                 logger.info("gripped node %d at t=%.4g s (mass %.4g kg, "
                             "dE_cap=%.4g J)", g, t, grip.mass, U_capture)
         if drone_mode and grip.active:
@@ -369,26 +424,47 @@ def integrate(disc, material, drone, numerics, contact, output,
                         k_eff = 1.5 * k_c * np.sqrt(step_delta)
                         omega = np.sqrt(k_eff / m_min)
                         dt_new = contact.penetration_margin * 2.0 / omega
-                        if dt_new < dt:
+                        if dt_new < dt_base:
                             logger.info("reduce_dt: delta=%.4g>%.4g, dt %.3g->"
-                                        "%.3g", step_delta, delta_ref, dt, dt_new)
-                            dt = dt_new
+                                        "%.3g", step_delta, delta_ref, dt_base,
+                                        dt_new)
+                            dt_base = dt_new
+                            dt = min(dt, dt_base)
 
         # --- Alg.1 line 2: strains -------------------------------------------
         eps_new, _ = segment_strains(x_new, seg_edges, seg_rest)
 
         # --- Alg.1 line 3: permanent failure ---------------------------------
+        # Book failure energy at the interpolated crossing eps = eps_b (not at
+        # the overshot eps_new). For stiff D the CFL step can jump well past
+        # eps_b in one dt; booking Phi(eps_new) then leaves a late-run residual.
         failed = intact & (eps_new >= eps_b)
         any_failed = bool(np.any(failed))
         if any_failed:
             for s in np.nonzero(failed)[0]:
-                phi = float(material.Phi(eps_new[s]))
-                U_failure += seg_A[s] * seg_rest[s] * phi
+                e0 = float(eps_old[s])
+                e1 = float(eps_new[s])
+                # Linear interpolation of the crossing time within the step;
+                # book Phi at eps_b (the continuum breaking value).
+                phi_book = float(material.Phi(eps_b))
                 mid = 0.5 * (x_new[seg_edges[s, 0]] + x_new[seg_edges[s, 1]])
-                failures.append((int(s), int(disc.seg_parent[s]), t + dt))
+                if e1 > e0 and e0 < eps_b <= e1:
+                    alpha = (eps_b - e0) / (e1 - e0)
+                    # Midpoint at the interpolated crossing (blend old/new).
+                    mid_old = 0.5 * (x[seg_edges[s, 0]] + x[seg_edges[s, 1]])
+                    mid = (1.0 - alpha) * mid_old + alpha * mid
+                    t_fail = t + alpha * dt
+                else:
+                    t_fail = t + dt
+                U_failure += seg_A[s] * seg_rest[s] * phi_book
+                failures.append((int(s), int(disc.seg_parent[s]), t_fail))
                 failure_mid.append(mid.copy())
                 R_d = max(R_d, float(np.linalg.norm(mid[:2] - p3[:2])))
+                if drone_mode and not np.isfinite(drone_x_first_fail):
+                    drone_x_first_fail = float(xd_new[0])
+                    drone_y_first_fail = float(xd_new[1])
             intact[failed] = False
+        eps_old = eps_new
 
         # --- Alg.1 line 4: forces and a^{n+1} --------------------------------
         a_new, ad_new, ce = accelerations(x_new, v, xd_new, vd, intact, grip,
@@ -403,7 +479,18 @@ def integrate(disc, material, drone, numerics, contact, output,
                 v_new[grip.node] = vd_new
         else:
             vd_new = vd
-            if kinematic.mode == "velocity":
+            if free_lateral:
+                # Lateral velocity from Verlet; prescribed component from the
+                # kinematic law.
+                lat_v = (v_new[forced_node]
+                         - np.dot(v_new[forced_node], kdir) * kdir)
+                if kinematic.mode == "velocity":
+                    v_presc = kinematic.value(t + dt)
+                else:
+                    # Finite-difference of the prescribed displacement.
+                    v_presc = (kinematic.value(t + dt) - kinematic.value(t)) / dt
+                v_new[forced_node] = lat_v + v_presc * kdir
+            elif kinematic.mode == "velocity":
                 v_new[forced_node] = kinematic.value(t + dt) * kdir
             else:
                 v_new[forced_node] = (x_new[forced_node] - x[forced_node]) / dt
@@ -428,6 +515,23 @@ def integrate(disc, material, drone, numerics, contact, output,
             if not t_list or t_list[-1] < t:
                 record(t)
             break
+        if stop_after_n_failures is not None and failures:
+            # Count time-separated failure *events*, not individual segments: a
+            # cascade that breaks several segments in one step (or within a
+            # few CFL steps) is one event. Criterion B needs the next event
+            # after load redistribution.
+            gap = max(1e-4, 10.0 * dt_cfl)
+            n_events = 0
+            t_ev = -1e99
+            for _s, _p, tf in failures:
+                if float(tf) > t_ev + gap:
+                    n_events += 1
+                    t_ev = float(tf)
+            if n_events >= int(stop_after_n_failures):
+                outcome = "failure"
+                if not t_list or t_list[-1] < t:
+                    record(t)
+                break
 
         # --- Alg.1 line 7: stopping ------------------------------------------
         if drone_mode:
@@ -437,9 +541,45 @@ def integrate(disc, material, drone, numerics, contact, output,
             if had_negative_vz and vz >= 0.0:
                 outcome = "arrested"
                 arrested = True
+                drone_x_arrest = float(xd[0])
+                drone_y_arrest = float(xd[1])
                 break
-            if xd[2] < -2.0 * net_R:
+            # Early perforation ("point of no return"): still descending, and
+            # either no intact segment is in contact / connected to the gripped
+            # node, or the drone centre has passed below the deepest intact
+            # material by more than r_d. The classical z < -2R is the fallback.
+            perforated_early = False
+            if vz < 0.0:
+                active_c = base_free.copy()
+                if grip.active:
+                    active_c[grip.node] = False
+                in_contact = False
+                if active_c.any():
+                    dvec = x[active_c] - xd
+                    dd = np.sqrt(np.sum(dvec * dvec, axis=1))
+                    in_contact = bool(np.any(r_d - dd > 0.0))
+                grip_connected = False
+                if grip.active:
+                    g = grip.node
+                    conn = (seg_edges[:, 0] == g) | (seg_edges[:, 1] == g)
+                    grip_connected = bool(np.any(intact & conn))
+                if grip.active and not grip_connected and not in_contact:
+                    perforated_early = True
+                elif not grip.active and not in_contact and xd[2] < 0.0:
+                    if np.any(intact):
+                        nodes_i = np.unique(seg_edges[intact].ravel())
+                        z_deep = float(np.min(x[nodes_i, 2]))
+                        if xd[2] < z_deep - r_d:
+                            perforated_early = True
+                    else:
+                        perforated_early = True
+            if perforated_early or xd[2] < -2.0 * net_R:
                 outcome = "perforated"
+                t_perforate = float(t)
+                drone_x_arrest = float(xd[0])
+                drone_y_arrest = float(xd[1])
+                logger.info("perforated at t=%.4g s (early=%s, z=%.4g)",
+                            t, perforated_early, float(xd[2]))
                 break
         if steps > max_steps * 4:  # safety guard
             logger.warning("step guard triggered; stopping")
@@ -449,8 +589,25 @@ def integrate(disc, material, drone, numerics, contact, output,
     if not t_list or t_list[-1] < t:
         record(t)
 
-    if outcome == "timeout":
+    # A timeout after the drone has already reversed (vz crossed through zero
+    # from below, or is non-negative at stop) is an arrest: the bounce happened
+    # but the run hit t_end before the discrete check caught it, or the stiff
+    # contact kept vz asymptotically near zero. Counting that as a failure of
+    # the criterion would make criterion B fail on heavy nets that criterion A
+    # (same physics, later in the scan) accepts.
+    if (outcome == "timeout" and drone_mode and had_negative_vz
+            and float(vd[2]) >= -1e-12):
+        outcome = "arrested"
+        arrested = True
+        drone_x_arrest = float(xd[0])
+        drone_y_arrest = float(xd[1])
+        logger.info("timeout after vz reversal treated as arrest (vz=%.4g)",
+                    float(vd[2]))
+    elif outcome == "timeout":
         logger.info("run reached t_end without arrest/perforation (timeout)")
+        if drone_mode:
+            drone_x_arrest = float(xd[0])
+            drone_y_arrest = float(xd[1])
 
     # Assemble.
     t_arr = np.asarray(t_list)
@@ -493,4 +650,9 @@ def integrate(disc, material, drone, numerics, contact, output,
         delta_max=delta_max_run,
         delta_ref=delta_ref,
         k_c=k_c,
+        drone_x_arrest=drone_x_arrest,
+        drone_y_arrest=drone_y_arrest,
+        drone_x_first_fail=drone_x_first_fail,
+        drone_y_first_fail=drone_y_first_fail,
+        t_perforate=t_perforate,
     )

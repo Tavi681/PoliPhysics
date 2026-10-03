@@ -5,3 +5,6 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 validation/output/
+
+# Local agent prompts — not part of the delivered code
+cursor_prompt*

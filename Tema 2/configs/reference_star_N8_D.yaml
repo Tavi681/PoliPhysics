@@ -22,7 +22,7 @@ contact:
   # contact and blows up the energy balance (eerr ~ 2.6). Use the relative mode
   # so k_c tracks the axial stiffness and the contact stays resolved.
   k_c_mode: relative
-  k_c_factor: 4.0     # TODO: fix before production runs
+  k_c_factor: 8.0     # TODO: fix before production runs (round-4 default)
   k_c: 1.0e+7         # TODO: fix before production runs (fallback if absolute)
   segment_contact: false
   delta_ref_frac: 0.01

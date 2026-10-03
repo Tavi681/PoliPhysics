@@ -97,7 +97,7 @@ def nodes_for_resolution(n_resolved, Lx=2.0, frac_time=0.55):
 
 
 def run_smith(v0=300.0, material_name="S", Lx=2.0, n_nodes=801, n_resolved=None,
-              frac_time=0.55, A_hat=1e-6):
+              frac_time=0.55, A_hat=1e-6, n_front_times=6):
     if n_resolved is not None:
         n_nodes = nodes_for_resolution(n_resolved, Lx, frac_time)
     material = get_material(material_name)
@@ -124,9 +124,11 @@ def run_smith(v0=300.0, material_name="S", Lx=2.0, n_nodes=801, n_resolved=None,
 
     # Time so the longitudinal front stays away from the anchors.
     t_end = frac_time * (Lx / 2) / cL
+    # Dense output so we can fit front position vs time (≥ 5 samples).
+    dt_out = t_end / max(n_front_times + 2, 8)
 
     drone = DroneConfig(M=1.0, r_d=1.0, v0=0.0)
-    numerics = NumericsConfig(n_s=1, C=0.4, t_end=t_end, dt_out=t_end / 3,
+    numerics = NumericsConfig(n_s=1, C=0.4, t_end=t_end, dt_out=dt_out,
                               use_numba=False)
     contact = ContactConfig(mode="frictionless", k_c=1e7)
     output = OutputConfig(hdf5=None, R_max=1e9, k_max=10 ** 9)
@@ -137,35 +139,67 @@ def run_smith(v0=300.0, material_name="S", Lx=2.0, n_nodes=801, n_resolved=None,
                      kinematic=kin, net_R=Lx)
 
     # Strain vs Lagrangian coordinate (segment midpoints, distance from centre).
-    xf = traj.x[-1]
-    d = xf[edges[:, 1]] - xf[edges[:, 0]]
-    eps_num_seg = np.linalg.norm(d, axis=1) / rest - 1.0
-    Xseg = (0.5 * (xs[:-1] + xs[1:]) - Lx / 2)  # Lagrangian (undeformed) coord
-
-    # Right half.
+    Xseg = (0.5 * (xs[:-1] + xs[1:]) - Lx / 2)
     right = Xseg > 0
     Xr = Xseg[right]
-    er = eps_num_seg[right]
 
-    tt = traj.t[-1]
-    cLt = cL * tt
-    cTt = cT * tt
+    # Sample front position at ≥ 5 late times and fit X_front(t) = c_L_num * t
+    # (through origin would reintroduce start-up bias; use slope of a linear fit).
+    t_samples = []
+    front_samples = []
+    kink_samples = []
+    eps_nums = []
+    # Skip the first ~30% of frames (start-up), keep the rest.
+    n_frames = traj.t.size
+    i0 = max(1, n_frames // 3)
+    for i in range(i0, n_frames):
+        tt = float(traj.t[i])
+        if tt <= 0:
+            continue
+        xf = traj.x[i]
+        d = xf[edges[:, 1]] - xf[edges[:, 0]]
+        eps_seg = np.linalg.norm(d, axis=1) / rest - 1.0
+        er = eps_seg[right]
+        cLt = cL * tt
+        cTt = cT * tt
+        band = (Xr > 0.15 * cLt) & (Xr < 0.6 * cLt)
+        eps_num_i = float(np.median(er[band])) if np.any(band) else float(np.max(er))
+        front_i = _fit_step(Xr, er, eps_num_i, cLt, rising=False)
+        vz = traj.v[i][:, 2]
+        vzt_seg = np.abs(0.5 * (vz[edges[:, 0]] + vz[edges[:, 1]])[right])
+        kink_i = _fit_step(Xr, vzt_seg, v0, cTt, rising=False)
+        if np.isfinite(front_i) and np.isfinite(kink_i):
+            t_samples.append(tt)
+            front_samples.append(front_i)
+            kink_samples.append(kink_i)
+            eps_nums.append(eps_num_i)
 
-    # Plateau strain: median in the interval (0.15, 0.6) c_L t (behind kink).
-    band = (Xr > 0.15 * cLt) & (Xr < 0.6 * cLt)
-    eps_num = float(np.median(er[band])) if np.any(band) else float(np.max(er))
+    tt = float(traj.t[-1])
+    eps_num = float(np.median(eps_nums)) if eps_nums else float("nan")
 
-    # Longitudinal front: fit an error-function step (plateau -> 0) to the
-    # strain profile. A sharp half-crossing detector overshoots on refined grids
-    # (post-front ringing), so the error would grow with resolution; the erf fit
-    # is a sub-cell-accurate, ringing-robust estimate of the front location.
-    front_num = _fit_step(Xr, er, eps_num, cLt, rising=False)
+    if len(t_samples) >= 5:
+        # Linear fit X = c * t + b; report slope c (removes start-up offset b).
+        t_arr = np.asarray(t_samples)
+        cL_num = float(np.polyfit(t_arr, np.asarray(front_samples), 1)[0])
+        cT_num = float(np.polyfit(t_arr, np.asarray(kink_samples), 1)[0])
+        front_num = cL_num * tt
+        kink_num = cT_num * tt
+    else:
+        # Fallback: single-frame erf fit / t.
+        xf = traj.x[-1]
+        d = xf[edges[:, 1]] - xf[edges[:, 0]]
+        er = (np.linalg.norm(d, axis=1) / rest - 1.0)[right]
+        front_num = _fit_step(Xr, er, eps_num, cL * tt, rising=False)
+        vz = traj.v[-1][:, 2]
+        vzt_seg = np.abs(0.5 * (vz[edges[:, 0]] + vz[edges[:, 1]])[right])
+        kink_num = _fit_step(Xr, vzt_seg, v0, cT * tt, rising=False)
+        cL_num = front_num / tt
+        cT_num = kink_num / tt
 
-    # Kink (transverse front): |v_z| drops from ~v0 (behind) to 0 (ahead) at
-    # X = c_T t; fit the same error-function step to |v_z|.
-    vz = traj.v[-1][:, 2]
-    vzt_seg = np.abs(0.5 * (vz[edges[:, 0]] + vz[edges[:, 1]])[right])
-    kink_num = _fit_step(Xr, vzt_seg, v0, cTt, rising=False)
+    # Final-frame profile (for fig_smith).
+    xf = traj.x[-1]
+    d = xf[edges[:, 1]] - xf[edges[:, 0]]
+    er = (np.linalg.norm(d, axis=1) / rest - 1.0)[right]
 
     front_ana = cL * tt
     kink_ana = cT * tt
@@ -176,18 +210,19 @@ def run_smith(v0=300.0, material_name="S", Lx=2.0, n_nodes=801, n_resolved=None,
         "eps_num": eps_num, "eps_ana": eps_a,
         "eps_relerr": abs(eps_num - eps_a) / eps_a,
         "front_num": front_num, "front_ana": front_ana,
-        "front_relerr": abs(front_num - front_ana) / front_ana,
+        "front_relerr": abs(cL_num - cL) / cL,
         "kink_num": kink_num, "kink_ana": kink_ana,
-        "kink_relerr": abs(kink_num - kink_ana) / kink_ana,
+        "kink_relerr": abs(cT_num - cT) / cT,
+        "cL_num": cL_num, "cT_num": cT_num,
         "X": Xr, "eps_profile": er, "t": tt, "cL": cL, "cT": cT,
         "traj": traj, "edges": edges, "xs": xs, "Lx": Lx, "rest": rest,
+        "n_front_times": len(t_samples),
     }
 
 
-# v0 chosen comfortably below the breaking strain of each material (S breaks
-# near 936 m/s, D near 1094 m/s; at those limits Smith's steady profile
-# degenerates and both strain and kink detection become meaningless).
-MATERIAL_V0 = {"S": (100.0, 200.0, 300.0), "D": (100.0, 300.0, 500.0)}
+# Paper SPEC (round 3): S uses {100, 300, 500}; D uses {100, 500, 900}.
+# 1000 m/s exceeds the critical velocity for S (v_c ≈ 936 m/s).
+MATERIAL_V0 = {"S": (100.0, 300.0, 500.0), "D": (100.0, 500.0, 900.0)}
 RESOLUTIONS = (200, 400, 800)
 
 

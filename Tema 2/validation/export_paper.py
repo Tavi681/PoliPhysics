@@ -15,6 +15,7 @@ No physics or tolerances are tuned; all numbers are measured or analytic.
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import csv
 import datetime
 import math
@@ -37,6 +38,21 @@ from netsim.materials import get_material
 OUT_DIR = Path(__file__).resolve().parent.parent / "paper_results"
 _COMMIT = git_commit()
 _DATE = datetime.datetime.now().isoformat(timespec="seconds")
+
+# Process-pool width for independent export cases (overridden by --jobs).
+_N_JOBS = max(1, os.cpu_count() or 1)
+
+
+def _parallel_map(fn, jobs, desc=""):
+    """Map ``fn`` over ``jobs`` with a process pool when it pays off."""
+    if not jobs:
+        return []
+    n = min(int(_N_JOBS), len(jobs))
+    if n <= 1:
+        return [fn(j) for j in jobs]
+    print(f"    [{desc}] {len(jobs)} jobs × {n} workers", flush=True)
+    with concurrent.futures.ProcessPoolExecutor(max_workers=n) as pool:
+        return list(pool.map(fn, jobs))
 
 
 def _write(name, fieldnames, rows, config="default"):
@@ -74,7 +90,7 @@ def export_params_used():
     for sym, val, unit, com in (
         ("r_d", 0.15, "m", "drone radius (working value; '?' in paper)"),
         ("k_c", 1e7, "N/m^1.5", "absolute penalty stiffness (working value)"),
-        ("k_c_factor", 4.0, "-", "relative-k_c factor for material D"),
+        ("k_c_factor", 8.0, "-", "relative-k_c factor for material D (round 4)"),
         ("R_max", 0.5, "m", "cascade radius (working value)"),
         ("k_max", 10, "-", "cascade failure count (working value)"),
         ("N", 8, "-", "reference number of radials"),
@@ -93,16 +109,15 @@ def export_params_used():
 # Smith (Test 1)
 # --------------------------------------------------------------------------- #
 def export_smith():
-    from validation.test1_smith import run_smith, strain_analytic
+    from validation.test1_smith import run_smith, strain_analytic, MATERIAL_V0
     rows = []
     for mat in ("S", "D"):
-        for v0 in (100.0, 500.0, 1000.0):
+        for v0 in MATERIAL_V0[mat]:
             if strain_analytic(get_material(mat), v0) is None:
                 continue  # v0 exceeds breaking strain for this material
             r = run_smith(v0, material_name=mat, n_resolved=800)
-            tt = r["t"]
-            cL_num = r["front_num"] / tt
-            cT_num = r["kink_num"] / tt
+            cL_num = r.get("cL_num", r["front_num"] / r["t"])
+            cT_num = r.get("cT_num", r["kink_num"] / r["t"])
             rows.append({
                 "material": mat, "v0": f"{v0:.6g}",
                 "eps_an": f"{r['eps_ana']:.6g}", "eps_num": f"{r['eps_num']:.6g}",
@@ -123,12 +138,13 @@ def export_smith_conv():
     rows = []
     for n_res in (200, 400, 800):
         r = run_smith(500.0, material_name="S", n_resolved=n_res)
-        tt = r["t"]
+        cL_num = r.get("cL_num", r["front_num"] / r["t"])
+        cT_num = r.get("cT_num", r["kink_num"] / r["t"])
         rows.append({
             "n_seg": int(round(r["n_resolved"])),
             "eps_err_pct": f"{100*r['eps_relerr']:.4g}",
-            "cL_err_pct": f"{_pct(r['front_num']/tt, r['cL']):.4g}",
-            "cT_err_pct": f"{_pct(r['kink_num']/tt, r['cT']):.4g}",
+            "cL_err_pct": f"{_pct(cL_num, r['cL']):.4g}",
+            "cT_err_pct": f"{_pct(cT_num, r['cT']):.4g}",
         })
     return _write("tab_smith_conv.csv",
                   ["n_seg", "eps_err_pct", "cL_err_pct", "cT_err_pct"], rows,
@@ -204,6 +220,8 @@ def export_junction_scaling():
 def export_conv():
     from validation.test4_convergence import run_case
     rows = []
+    # Gripped is the baseline; keep previously produced frictionless rows as a
+    # low-priority sensitivity (cheap; no new frictionless cases beyond this).
     for mode in ("gripped", "frictionless"):
         cases = [run_case(n_s, mode) for n_s in (10, 20, 40, 80)]
         w_ref = cases[-1]["w_max_over_R"]
@@ -217,9 +235,11 @@ def export_conv():
                 "eta": f"{c['eta']:.6g}",
                 "d_eta_pct": f"{_pct(c['eta'], e_ref):.4g}",
                 "R_d": f"{c['R_d']:.6g}", "cpu_s": f"{c['cpu']:.4g}",
+                "drone_x_arrest": f"{c.get('drone_x_arrest', float('nan')):.6g}",
+                "drone_y_arrest": f"{c.get('drone_y_arrest', float('nan')):.6g}",
             })
     cols = ["contact", "n_s", "wmax_over_R", "d_wmax_pct", "n_failed", "eta",
-            "d_eta_pct", "R_d", "cpu_s"]
+            "d_eta_pct", "R_d", "cpu_s", "drone_x_arrest", "drone_y_arrest"]
     return _write("tab_conv.csv", cols, rows, config="test4_convergence")
 
 
@@ -259,12 +279,14 @@ def export_daf():
     for mat_name, eps0 in regimes.items():
         mat = get_material(mat_name)
         for N in (4, 8, 16):
-            r = run_overload(N, mat, eps0=eps0, m_hub=0.01, n_s=2)
+            # Validation of the analytical table: hub constrained to z.
+            r = run_overload(N, mat, eps0=eps0, m_hub=0.01, n_s=2,
+                             constrain_hub_z=True)
             rows.append({
                 "material": mat_name, "N": N,
                 "n_eff_num": f"{r.n_eff:.6g}",
-                "eps_s_over_eps0": f"{r.eps_s/eps0:.6g}",
-                "eps_m_over_eps0": f"{r.eps_m/eps0:.6g}",
+                "eps_s_over_eps0": f"{r.eps_s_over_eps0:.6g}",
+                "eps_m_over_eps0": f"{r.eps_m_over_eps0:.6g}",
                 "m_hub": f"{0.01:.6g}",
             })
     return _write("tab_daf.csv",
@@ -273,64 +295,96 @@ def export_daf():
 
 
 def export_daf_ramp():
-    from netsim.overload import run_overload
+    from netsim.overload import run_overload, daf_sdof_nonlinear
     mat = get_material("D")
     rows = []
-    for tf in (0.0, 0.25, 0.5, 1.0, 2.0, 4.0):
+    # Measure n_eff once (constrained hub) for the nonlinear SDOF column.
+    r0 = run_overload(8, mat, eps0=0.01, m_hub=0.01, n_s=2,
+                      constrain_hub_z=True)
+    n_eff = r0.n_eff
+    for tf in (0.0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0):
         r = run_overload(8, mat, eps0=0.01, m_hub=0.01, n_s=2, t_f_over_Tn=tf,
-                         dyn_periods=16.0)
+                         dyn_periods=16.0, constrain_hub_z=True)
         x = math.pi * tf
         daf_an = 2.0 if tf == 0.0 else 1.0 + abs(math.sin(x)) / x
+        daf_nl = daf_sdof_nonlinear(n_eff, tf)
         rows.append({"N": 8, "material": "D", "tf_over_Tn": f"{tf:.6g}",
                      "eps_m_over_eps0": f"{r.eps_m/r.eps0_target:.6g}",
-                     "daf_an": f"{daf_an:.6g}"})
+                     "daf_an": f"{daf_an:.6g}",
+                     "daf_sdof_nl": f"{daf_nl:.6g}"})
     return _write("fig_daf_ramp.csv",
-                  ["N", "material", "tf_over_Tn", "eps_m_over_eps0", "daf_an"],
+                  ["N", "material", "tf_over_Tn", "eps_m_over_eps0", "daf_an",
+                   "daf_sdof_nl"],
                   rows, config="test_daf")
 
 
 # --------------------------------------------------------------------------- #
 # Off-centre eta (results)
 # --------------------------------------------------------------------------- #
-def export_etaa():
+def _etaa_case(job):
+    """One (material, ep_frac, a) row for fig_etaa — process-pool worker."""
+    mat, ep_frac, a = job
     from validation.offcentre import run_offcentre
     try:
         import offc
     except Exception:
         offc = None
+    try:
+        import offc_free
+    except Exception:
+        offc_free = None
+
+    r = run_offcentre(material_name=mat, a_over_R=a, eps_p_frac=ep_frac,
+                      n_s=20, continue_to_B=True)
+    etaA_num = r.get("eta_A", r.get("eta_ff", float("nan")))
+    etaB_num = r.get("eta_B", float("nan"))
+    etaA_ref = etaB_ref = ""
+    if offc is not None and a > 0:
+        try:
+            ref = offc.run(mat, 8, a, ep_frac)
+            etaA_ref = f"{ref[0][2]:.6g}"
+            if len(ref) > 1:
+                etaB_ref = f"{ref[1][2]:.6g}"
+        except Exception:
+            pass
+    etaB_str = f"{etaB_num:.6g}" if etaB_num == etaB_num else ""
+    etaA_free_num = etaA_free_ref = px_fail = ""
+    if a > 0:
+        rf = run_offcentre(material_name=mat, a_over_R=a, eps_p_frac=ep_frac,
+                           n_s=20, free_lateral=True, continue_to_B=False)
+        if rf["eta_A"] == rf["eta_A"]:
+            etaA_free_num = f"{rf['eta_A']:.6g}"
+        if rf["px_fail"] == rf["px_fail"]:
+            px_fail = f"{rf['px_fail']:.6g}"
+        if offc_free is not None:
+            try:
+                fr = offc_free.run(mat, 8, a, ep_frac)
+                etaA_free_ref = f"{fr[3]:.6g}"
+            except Exception:
+                pass
+    return {
+        "net": "star", "material": mat, "ep_frac": f"{ep_frac:.6g}",
+        "a_over_R": f"{a:.6g}",
+        "etaA_num": f"{etaA_num:.6g}",
+        "etaB_num": etaB_str,
+        "etaA_ref": etaA_ref, "etaB_ref": etaB_ref,
+        "first_failure": r.get("first_kind", "none"),
+        "etaA_free_num": etaA_free_num,
+        "etaA_free_ref": etaA_free_ref,
+        "px_fail": px_fail,
+    }
+
+
+def export_etaa():
     a_list = (0.0, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5)
-    rows = []
-    for mat in ("S", "D"):
-        for ep_frac in (0.0, 0.1):
-            ref_map = {}
-            if offc is not None:
-                for a in a_list:
-                    if a == 0.0:
-                        continue
-                    try:
-                        fails = offc.run(mat, 8, a, ep_frac)
-                        ref_map[a] = fails
-                    except Exception:
-                        ref_map[a] = None
-            for a in a_list:
-                r = run_offcentre(material_name=mat, a_over_R=a,
-                                  eps_p_frac=ep_frac, n_s=20)
-                etaA_num = r.get("eta_ff", float("nan"))
-                ref = ref_map.get(a)
-                etaA_ref = etaB_ref = ""
-                if ref:
-                    etaA_ref = f"{ref[0][2]:.6g}"
-                    if len(ref) > 1:
-                        etaB_ref = f"{ref[1][2]:.6g}"
-                rows.append({
-                    "net": "star", "material": mat, "ep_frac": f"{ep_frac:.6g}",
-                    "a_over_R": f"{a:.6g}",
-                    "etaA_num": f"{etaA_num:.6g}", "etaB_num": "",
-                    "etaA_ref": etaA_ref, "etaB_ref": etaB_ref,
-                    "first_failure": r.get("first_kind", "none"),
-                })
+    jobs = [(mat, ep, a)
+            for mat in ("S", "D")
+            for ep in (0.0, 0.1)
+            for a in a_list]
+    rows = _parallel_map(_etaa_case, jobs, desc="fig_etaa")
     cols = ["net", "material", "ep_frac", "a_over_R", "etaA_num", "etaB_num",
-            "etaA_ref", "etaB_ref", "first_failure"]
+            "etaA_ref", "etaB_ref", "first_failure",
+            "etaA_free_num", "etaA_free_ref", "px_fail"]
     return _write("fig_etaa.csv", cols, rows, config="offcentre")
 
 
@@ -348,12 +402,13 @@ def export_etaA_quasistatic():
             eta_an = 1.0 - float(m.Phi(eps_p)) / float(m.Phi(m.eps_b))
             wb_an = 1.0 * math.sqrt(((1 + m.eps_b) / (1 + eps_p)) ** 2 - 1.0)
             r = run_offcentre(material_name=mat, a_over_R=0.0,
-                              eps_p_frac=ep_frac, n_s=20)
+                              eps_p_frac=ep_frac, n_s=20,
+                              continue_to_B=False)
             wb_num = speed * r["t_first"] if "t_first" in r else float("nan")
             rows.append({
                 "material": mat, "ep_frac": f"{ep_frac:.6g}",
                 "eta_an": f"{eta_an:.6g}",
-                "eta_num": f"{r.get('eta_ff', float('nan')):.6g}",
+                "eta_num": f"{r.get('eta_A', r.get('eta_ff', float('nan'))):.6g}",
                 "wb_an": f"{wb_an:.6g}", "wb_num": f"{wb_num:.6g}",
             })
     return _write("tab_etaA.csv",
@@ -362,19 +417,18 @@ def export_etaA_quasistatic():
 
 
 def export_Fw():
-    # Hub force-deflection: analytic (overload restoring force) across w/R.
-    from netsim.overload import _restoring_force
+    # Hub force-deflection: analytic + numerical (segment reaction on hub).
+    from validation.offcentre import hub_force_deflection
     rows = []
     for mat_name in ("S", "D"):
-        mat = get_material(mat_name)
-        for wor in np.linspace(0.02, 0.6, 15):
-            w = wor * 1.0
-            # _restoring_force already sums over the N radials.
-            F = _restoring_force(mat, 8, 1.0, 1e-6, w)
-            eps = math.sqrt(1.0 + w * w) - 1.0
-            rows.append({"material": mat_name, "w_over_R": f"{wor:.6g}",
-                         "F_an": f"{F:.6g}", "F_num": "",
-                         "failed": bool(eps >= mat.eps_b)})
+        for r in hub_force_deflection(mat_name, eps_p_frac=0.1, n_s=20):
+            rows.append({
+                "material": r["material"],
+                "w_over_R": f"{r['w_over_R']:.6g}",
+                "F_an": f"{r['F_an']:.6g}",
+                "F_num": f"{r['F_num']:.6g}",
+                "failed": bool(r["failed"]),
+            })
     return _write("fig_Fw.csv",
                   ["material", "w_over_R", "F_an", "F_num", "failed"], rows,
                   config="overload")
@@ -388,16 +442,21 @@ def _mmin_cfg(material, M, v0, net_kind="star", n_s=10):
                                DroneConfig, NumericsConfig, ContactConfig,
                                OutputConfig)
     # Ring nets need a nonzero prestress for the FDM (q=0 is singular).
+    # t_end is long enough for stiff (large-s) nets to complete the bounce.
     ep = 0.1 * get_material(material).eps_b
     net = (NetConfig(kind="star_with_rings", N=8, R=1.0, eps_p=ep, A_hat=1e-6,
-                     radii=[0.5, 1.0], q_ratio=1.0) if net_kind == "star+ring"
+                     radii=[0.5, 1.0], q_ratio=1.0, fix_radii=True)
+           if net_kind == "star+ring"
            else NetConfig(kind="star", N=8, R=1.0, eps_p=0.0, A_hat=1e-6))
     return SimConfig(
         material=MaterialConfig(name=material), net=net,
         drone=DroneConfig(M=M, r_d=0.15, v0=v0, p=(0.0, 0.0)),
-        numerics=NumericsConfig(n_s=n_s, C=0.5, t_end=0.25, dt_out=5e-3,
+        numerics=NumericsConfig(n_s=n_s, C=0.5, t_end=0.5, dt_out=5e-3,
                                 use_numba=True),
         contact=ContactConfig(mode="gripped", k_c=1e7,
+                              k_c_mode=("relative" if material == "D"
+                                        else "absolute"),
+                              k_c_factor=8.0,
                               penetration_guard="reduce_dt"),
         output=OutputConfig(hdf5=None, R_max=0.5, k_max=10),
     )
@@ -420,40 +479,52 @@ def export_mmin_monotone():
                   config="mmin")
 
 
-def export_mmin(full=False):
+def _mmin_case(job):
+    """One (material, M, v0, full) row for tab_mmin — process-pool worker."""
+    mat, M, v0, full = job
     from netsim.mmin import MminConfig, minimum_mass
-    Ms = (0.25, 2.0) if full else (2.0,)
+    from netsim.simulate import build_net
+
+    m = get_material(mat)
     pts = [(0.0, 0.0), (0.25, 0.0), (0.5, 0.0)]
-    rows = []
-    for mat in ("S", "D"):
-        m = get_material(mat)
-        for M in Ms:
-            v0 = 20.0
-            cfg = _mmin_cfg(mat, M, v0, net_kind="star+ring",
-                            n_s=10 if full else 8)
-            from netsim.simulate import build_net
-            net = build_net(cfg)
-            m1 = net.net_mass(m.rho, 1.0)
-            Ekin = 0.5 * M * v0 ** 2
-            m_lower = Ekin / m.e_mat
-            mmA = MminConfig(criterion="A", tol=0.08, impact_points=pts,
-                             n_procs=min(3, len(pts)))
-            rA = minimum_mass(cfg, mmA)
-            mmB = MminConfig(criterion="B", tol=0.08, impact_points=pts,
-                             n_procs=min(3, len(pts)))
-            rB = minimum_mass(cfg, mmB)
-            ratio = rA.m_min / rB.m_min if rB.m_min else float("nan")
-            rows.append({
-                "material": mat, "M": f"{M:.6g}", "v0": f"{v0:.6g}",
-                "Ekin": f"{Ekin:.6g}",
-                "m_lower_g": f"{1e3*m_lower:.6g}",
-                "mA_min_g": f"{1e3*rA.m_min:.6g}",
-                "mB_min_g": f"{1e3*rB.m_min:.6g}",
-                "ratio": f"{ratio:.6g}",
-                "n_broken_B": rB.n_failures,
-                "worst_p_x": f"{rB.worst_point[0]:.6g}",
-                "worst_p_y": f"{rB.worst_point[1]:.6g}",
-            })
+    cfg = _mmin_cfg(mat, M, v0, net_kind="star+ring",
+                    n_s=10 if full else 8)
+    net = build_net(cfg)
+    Ekin = 0.5 * M * v0 ** 2
+    m_lower = Ekin / m.e_mat
+    # Outer pool already parallelises (mat,M,v0); keep impact points serial
+    # here to avoid nested process pools.
+    mmA = MminConfig(criterion="A", tol=0.08, impact_points=pts, n_procs=1)
+    rA = minimum_mass(cfg, mmA)
+    mmB = MminConfig(criterion="B", tol=0.08, impact_points=pts, n_procs=1,
+                     n_scan=24)
+    rB = minimum_mass(cfg, mmB)
+    ratio = rA.m_min / rB.m_min if rB.m_min else float("nan")
+    return {
+        "material": mat, "M": f"{M:.6g}", "v0": f"{v0:.6g}",
+        "Ekin": f"{Ekin:.6g}",
+        "m_lower_g": f"{1e3*m_lower:.6g}",
+        "mA_min_g": f"{1e3*rA.m_min:.6g}",
+        "mB_min_g": f"{1e3*rB.m_min:.6g}",
+        "ratio": f"{ratio:.6g}",
+        "n_broken_B": rB.n_failures,
+        "worst_p_x": f"{rB.worst_point[0]:.6g}",
+        "worst_p_y": f"{rB.worst_point[1]:.6g}",
+    }
+
+
+def export_mmin(full=False):
+    # Paper: S and D, M ∈ {0.25, 2}, v0=20, and the full (M,v0) grid with --full.
+    if full:
+        grid = [(0.25, 10.0), (0.25, 15.0), (0.25, 20.0),
+                (1.0, 10.0), (1.0, 15.0), (1.0, 20.0),
+                (2.0, 10.0), (2.0, 15.0), (2.0, 20.0)]
+    else:
+        grid = [(0.25, 20.0), (2.0, 20.0)]
+    jobs = [(mat, M, v0, full)
+            for mat in ("S", "D")
+            for M, v0 in grid]
+    rows = _parallel_map(_mmin_case, jobs, desc="tab_mmin")
     cols = ["material", "M", "v0", "Ekin", "m_lower_g", "mA_min_g", "mB_min_g",
             "ratio", "n_broken_B", "worst_p_x", "worst_p_y"]
     return _write("tab_mmin.csv", cols, rows, config="mmin")
@@ -462,63 +533,72 @@ def export_mmin(full=False):
 # --------------------------------------------------------------------------- #
 # Dynamic runs and phase maps (reduced by default)
 # --------------------------------------------------------------------------- #
-def export_dyn_runs(full=False):
+def _dyn_case(job):
+    """One (material, M, v0, a, s) row for dyn_runs — process-pool worker."""
+    mat, M, v0, a, s = job
     from netsim.config import (SimConfig, MaterialConfig, NetConfig,
                                DroneConfig, NumericsConfig, ContactConfig,
                                OutputConfig)
     from netsim.simulate import simulate_config, build_net
+
+    m = get_material(mat)
+    ep = 0.1 * m.eps_b
+    cfg = SimConfig(
+        material=MaterialConfig(name=mat),
+        net=NetConfig(kind="star_with_rings", N=8, R=1.0,
+                      eps_p=ep, A_hat=1e-6,
+                      radii=[0.5, 1.0], q_ratio=1.0,
+                      fix_radii=True),
+        drone=DroneConfig(M=M, r_d=0.15, v0=v0, p=(a, 0.0)),
+        numerics=NumericsConfig(
+            n_s=10, C=0.5, t_end=0.25, dt_out=5e-3,
+            area_scale=s, use_numba=True,
+            damping=0.0),
+        contact=ContactConfig(
+            mode="gripped", k_c=1e7,
+            k_c_mode=("relative" if mat == "D" else "absolute"),
+            k_c_factor=8.0,
+            penetration_guard="reduce_dt"),
+        output=OutputConfig(hdf5=None, R_max=0.5, k_max=10),
+    )
+    net = build_net(cfg)
+    m_net = net.net_mass(m.rho, s)
+    res = simulate_config(cfg, write=False)
+    PiE = (0.5 * M * v0 ** 2) / (m_net * m.e_mat) if m_net > 0 else float("nan")
+    return {
+        "material": mat, "net": "star+ring",
+        "M": f"{M:.6g}", "v0": f"{v0:.6g}",
+        "a_over_R": f"{a:.6g}", "s": f"{s:.6g}",
+        "m_net": f"{m_net:.6g}",
+        "PiE_M_over_m": f"{PiE:.6g}",
+        "arrested": bool(res.arrested),
+        "wmax_over_R": f"{res.w_max:.6g}",
+        "eta": f"{res.eta:.6g}",
+        "n_failed": res.n_failures,
+        "R_d": f"{res.R_d:.6g}",
+        "cascade": bool(res.cascade),
+        "energy_error": f"{res.energy_error:.6g}",
+        "drone_x_arrest": f"{res.drone_x_arrest:.6g}",
+        "drone_y_arrest": f"{res.drone_y_arrest:.6g}",
+    }
+
+
+def export_dyn_runs(full=False):
     Ms = (0.25, 1.0, 2.0) if full else (1.0,)
     v0s = (10.0, 15.0, 20.0) if full else (15.0,)
     a_list = (0.0, 0.25, 0.5) if full else (0.0, 0.5)
     s_list = (0.5, 1.0, 1.5) if full else (1.0,)
-    rows = []
-    for mat in ("S", "D"):
-        m = get_material(mat)
-        ep = 0.1 * m.eps_b
-        for M in Ms:
-            for v0 in v0s:
-                for a in a_list:
-                    for s in s_list:
-                        cfg = SimConfig(
-                            material=MaterialConfig(name=mat),
-                            net=NetConfig(kind="star_with_rings", N=8, R=1.0,
-                                          eps_p=ep, A_hat=1e-6,
-                                          radii=[0.5, 1.0], q_ratio=1.0),
-                            drone=DroneConfig(M=M, r_d=0.15, v0=v0, p=(a, 0.0)),
-                            numerics=NumericsConfig(
-                                n_s=10, C=0.5, t_end=0.25, dt_out=5e-3,
-                                area_scale=s, use_numba=True,
-                                damping=0.0),
-                            contact=ContactConfig(
-                                mode="gripped", k_c=1e7,
-                                k_c_mode=("relative" if mat == "D"
-                                          else "absolute"),
-                                k_c_factor=4.0,
-                                penetration_guard="reduce_dt"),
-                            output=OutputConfig(hdf5=None, R_max=0.5, k_max=10),
-                        )
-                        net = build_net(cfg)
-                        m_net = net.net_mass(m.rho, s)
-                        res = simulate_config(cfg, write=False)
-                        PiE = (0.5 * M * v0 ** 2) / (m_net * m.e_mat) \
-                            if m_net > 0 else float("nan")
-                        rows.append({
-                            "material": mat, "net": "star+ring",
-                            "M": f"{M:.6g}", "v0": f"{v0:.6g}",
-                            "a_over_R": f"{a:.6g}", "s": f"{s:.6g}",
-                            "m_net": f"{m_net:.6g}",
-                            "PiE_M_over_m": f"{PiE:.6g}",
-                            "arrested": bool(res.arrested),
-                            "wmax_over_R": f"{res.w_max:.6g}",
-                            "eta": f"{res.eta:.6g}",
-                            "n_failed": res.n_failures,
-                            "R_d": f"{res.R_d:.6g}",
-                            "cascade": bool(res.cascade),
-                            "energy_error": f"{res.energy_error:.6g}",
-                        })
+    jobs = [(mat, M, v0, a, s)
+            for mat in ("S", "D")
+            for M in Ms
+            for v0 in v0s
+            for a in a_list
+            for s in s_list]
+    rows = _parallel_map(_dyn_case, jobs, desc="dyn_runs")
     cols = ["material", "net", "M", "v0", "a_over_R", "s", "m_net",
             "PiE_M_over_m", "arrested", "wmax_over_R", "eta", "n_failed",
-            "R_d", "cascade", "energy_error"]
+            "R_d", "cascade", "energy_error",
+            "drone_x_arrest", "drone_y_arrest"]
     return _write("dyn_runs.csv", cols, rows, config="dyn")
 
 
@@ -538,7 +618,8 @@ def export_phase_maps():
         cfg = SimConfig(
             material=MaterialConfig(name=mat),
             net=NetConfig(kind="star_with_rings", N=8, R=1.0, eps_p=ep,
-                          A_hat=1e-6, radii=[0.5, 1.0], q_ratio=1.0),
+                          A_hat=1e-6, radii=[0.5, 1.0], q_ratio=1.0,
+                          fix_radii=True),
             drone=DroneConfig(M=1.0, r_d=0.15, v0=20.0, p=(0.25, 0.0)),
             numerics=NumericsConfig(n_s=10, C=0.5, t_end=0.25, dt_out=5e-3,
                                     area_scale=1.0,
@@ -546,7 +627,7 @@ def export_phase_maps():
             contact=ContactConfig(mode="gripped", k_c=1e7,
                                   k_c_mode=("relative" if mat == "D"
                                             else "absolute"),
-                                  k_c_factor=4.0,
+                                  k_c_factor=8.0,
                                   penetration_guard="reduce_dt"),
             output=OutputConfig(hdf5=h5, R_max=0.5, k_max=10),
         )
@@ -576,38 +657,84 @@ def export_phase_maps():
     return d
 
 
-def export_etaa_ring():
-    # Ring-net off-centre eta (reference left empty per SPEC).
+def _etaa_ring_case(job):
+    """One (material, q_ratio, a) row for fig_etaa_ring — process-pool worker."""
+    mat, q_ratio, a = job
     from netsim.config import (SimConfig, MaterialConfig, NetConfig,
                                DroneConfig, NumericsConfig, ContactConfig,
                                OutputConfig, KinematicConfig)
-    from netsim.simulate import simulate_config, build_net
+    from netsim.simulate import simulate, build_net
+    from netsim.discretize import discretize
+    from validation.offcentre import _absorbed
+
+    m = get_material(mat)
+    ep = 0.1 * m.eps_b
+    speed = 0.3
+    cfg = SimConfig(
+        material=MaterialConfig(name=mat),
+        net=NetConfig(kind="star_with_rings", N=8, R=1.0,
+                      eps_p=ep, A_hat=1e-6, radii=[0.5, 1.0],
+                      q_ratio=q_ratio, fix_radii=True),
+        drone=DroneConfig(M=1.0, r_d=0.15, v0=0.0),
+        numerics=NumericsConfig(n_s=10, C=0.5, t_end=5.0 / speed,
+                                dt_out=2e-3, damping=400.0,
+                                use_numba=False),
+        contact=ContactConfig(mode="gripped", k_c=1e7),
+        output=OutputConfig(hdf5=None, R_max=10.0, k_max=1e4),
+    )
+    net = build_net(cfg)
+    disc = discretize(net, m, 10, r_d=0.15)
+    target = np.array([a, 0.0])
+    free = np.nonzero(~disc.anchored)[0]
+    d2 = np.sum((disc.x0[free, :2] - target) ** 2, axis=1)
+    pnode = int(free[int(np.argmin(d2))])
+    cfg.kinematic = KinematicConfig(
+        enabled=True, node=pnode, mode="displacement",
+        direction=(0.0, 0.0, -1.0),
+        func=lambda t, s=speed: s * t)
+    # Stop after two time-separated failure events (A then B); do not run to t_end.
+    res = simulate(net, m, cfg.drone, cfg.numerics, cfg.contact,
+                   cfg.output, kinematic=cfg.kinematic,
+                   stop_on_failure=False, stop_after_n_failures=2)
+    traj = res.trajectory
+    etaA = etaB = float("nan")
+    first_kind = "none"
+    if traj.failures.shape[0]:
+        order = np.argsort(traj.failures[:, 2])
+        tA = float(traj.failures[order[0], 2])
+        before = np.nonzero(traj.t < tA)[0]
+        iA = before[-1] if before.size else 0
+        etaA = (float(traj.energy[iA, 2]) - traj.U_prestress) / (
+            res.m_net * m.e_mat)
+        parent0 = int(traj.failures[order[0], 1])
+        first_kind = "rad" if parent0 != 0 else "in"
+        gap = 1e-4
+        for j in order[1:]:
+            tB = float(traj.failures[j, 2])
+            if tB > tA + gap:
+                beforeB = np.nonzero(traj.t < tB)[0]
+                iB = beforeB[-1] if beforeB.size else iA
+                etaB = _absorbed(traj, iB, res.m_net, m.e_mat)
+                break
+    return {
+        "net": "star+ring", "material": mat,
+        "ep_frac": f"{ep/m.eps_b:.6g}", "a_over_R": f"{a:.6g}",
+        "etaA_num": f"{etaA:.6g}" if etaA == etaA else "",
+        "etaB_num": f"{etaB:.6g}" if etaB == etaB else "",
+        "etaA_ref": "", "etaB_ref": "",
+        "first_failure": first_kind,
+        "q_ratio": f"{q_ratio:.6g}",
+    }
+
+
+def export_etaa_ring():
+    # Ring-net off-centre eta with the ring fixed at R/2 (fix_radii=True).
     a_list = (0.0, 0.1, 0.25, 0.5)
-    rows = []
-    for mat in ("S", "D"):
-        for q_ratio in (0.5, 1.0):
-            for a in a_list:
-                cfg = SimConfig(
-                    material=MaterialConfig(name=mat),
-                    net=NetConfig(kind="star_with_rings", N=8, R=1.0,
-                                  eps_p=0.01, A_hat=1e-6, radii=[0.5, 1.0],
-                                  q_ratio=q_ratio),
-                    drone=DroneConfig(M=1.0, r_d=0.15, v0=15.0, p=(a, 0.0)),
-                    numerics=NumericsConfig(n_s=10, C=0.5, t_end=0.2,
-                                            dt_out=5e-3, use_numba=True,
-                                            damping=0.0),
-                    contact=ContactConfig(mode="gripped", k_c=1e7,
-                                          penetration_guard="reduce_dt"),
-                    output=OutputConfig(hdf5=None, R_max=0.5, k_max=10),
-                )
-                res = simulate_config(cfg, write=False)
-                rows.append({
-                    "net": "star+ring", "material": mat,
-                    "ep_frac": "0.1", "a_over_R": f"{a:.6g}",
-                    "etaA_num": f"{res.eta:.6g}", "etaB_num": "",
-                    "etaA_ref": "", "etaB_ref": "",
-                    "first_failure": "", "q_ratio": f"{q_ratio:.6g}",
-                })
+    jobs = [(mat, q, a)
+            for mat in ("S", "D")
+            for q in (0.5, 1.0)
+            for a in a_list]
+    rows = _parallel_map(_etaa_ring_case, jobs, desc="fig_etaa_ring")
     cols = ["net", "material", "ep_frac", "a_over_R", "etaA_num", "etaB_num",
             "etaA_ref", "etaB_ref", "first_failure", "q_ratio"]
     return _write("fig_etaa_ring.csv", cols, rows, config="offcentre_ring")
@@ -636,24 +763,30 @@ EXPORTERS = [
 
 
 def main(argv=None):
+    global _N_JOBS
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--full", action="store_true",
                     help="use the full (expensive) grids for mmin/dyn_runs")
     ap.add_argument("--only", default=None,
                     help="comma-separated list of CSV names to export")
+    ap.add_argument("--jobs", type=int, default=0,
+                    help="parallel workers for independent cases "
+                         "(default: all CPUs)")
     args = ap.parse_args(argv)
 
+    _N_JOBS = max(1, args.jobs) if args.jobs > 0 else max(1, os.cpu_count() or 1)
     only = set(args.only.split(",")) if args.only else None
-    print(f"Exporting paper CSVs to {OUT_DIR} (commit {_COMMIT[:8]})")
+    print(f"Exporting paper CSVs to {OUT_DIR} (commit {_COMMIT[:8]}, "
+          f"jobs={_N_JOBS})")
     for name, fn in EXPORTERS:
         if only and name not in only:
             continue
         try:
             path = fn(args.full)
-            print(f"  [ok]   {name:22s} -> {path}")
+            print(f"  [ok]   {name:22s} -> {path}", flush=True)
         except Exception as exc:  # pragma: no cover
             import traceback
-            print(f"  [FAIL] {name:22s} : {exc}")
+            print(f"  [FAIL] {name:22s} : {exc}", flush=True)
             traceback.print_exc()
 
 

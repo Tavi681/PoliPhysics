@@ -179,7 +179,7 @@ produces:
 | `validation/junction_linear_2d.py` | transverse-corrected 2D junction theory |
 | `validation/test3_junction.py`   | Test 3, junction vs 1D and 2D theory + finite amplitude vs `ref/` |
 | `validation/test4_convergence.py`| Test 4, convergence in `n_s` |
-| `validation/offcentre.py`        | off-centre `eta_A(a)` vs `ref/offc.py` |
+| `validation/offcentre.py`        | off-centre `eta_A(a)` vs `ref/offc.py` / `offc_free.py` |
 | `validation/energy.py`           | energy conservation vs `C` |
 | `validation/contact_d.py`        | material-D contact resolution (Item 2) |
 | `validation/test_daf.py`         | dynamic overload / DAF (Item 5a) |
@@ -212,6 +212,51 @@ segments from the hub, averaged over `t in [tarr + 0.6 L/c, tarr + 1.5 L/c]`
 (`tarr = L/c` the incident arrival time): after the junction reaches its steady
 state, but before reflections from the far anchors return (~`2 L/c` after
 arrival).
+
+### Round-3 notes (checks before `--full`)
+
+- **Criterion B.** Implemented as
+  `arrested and (n_failed == 0 or (n_failed < k_max and R_d <= R_max))`.
+  Zero-failure arrest therefore always passes B. A timeout after the drone has
+  already reversed (`had_negative_vz` and `vz >= 0`) is counted as arrest.
+  Because B is not monotone in `s`, Algorithm 2 for B is a scan (≥ 20 values)
+  plus local bisection; both `s_min_first_pass` and `s_min_all_pass` are kept.
+- **Gripped capture bookkeeping.** At grip the drone velocity is reset to the
+  centre-of-mass velocity of `(M, m)` and `dE_cap = ½ μ |v_rel|²` is booked.
+  Leaving `vd` unchanged while adding the node mass produced a C-independent
+  energy floor of order `dE_cap` (~6.5e-4).
+- **Smith longitudinal front (S).** Front speed is the slope of
+  `X_front(t)` over ≥ 5 late times (not `X/t`). The residual ~2% plateau for S
+  is the dispersive shock structure of the discrete chain (stiffening material),
+  not a start-up offset.
+- **Ring at R/2.** `NetConfig.fix_radii=True` (default) keeps ring nodes at the
+  prescribed radii and sets different radial force densities on the inner/outer
+  spans from ring-node equilibrium. Free FDM (`fix_radii=False`) still pulls the
+  ring inward (~0.235 R at `q_ratio=0.5`).
+- **Frictionless sensitivity.** At `a=R/2`, `N=8`, the gap between radials is
+  `2π a/N ≈ 0.39 m > 2 r_d = 0.30 m`, so the frictionless drone can pass between
+  radials (`w_max/R ≈ 2.15`, 0 failures). That is geometry, not a bug. Gripped is
+  the baseline contact model.
+
+### Round-4 notes (D contact, lateral drift)
+
+- **Early perforation.** Besides `z < -2R`, the run stops as `perforated` when
+  the drone is still descending and no intact segment is in contact or connected
+  to the gripped node (point of no return). Failures up to that time are kept.
+- **D contact default.** Arresting-case sweeps (`s = 1.1 sA_min`) show outcome,
+  failure set, `w_max` and `η` stable to < 1% for `k_c_factor` ∈ {4,8,16}. Default
+  for material D is now `k_c_factor=8`. Energy error on arresting D runs is ~1e-6.
+- **Failure energy.** Booked at the interpolated crossing `eps = eps_b` (not the
+  overshot `eps_new`); local dt shrinks near breaking. Single-thread work balance
+  is then ~1e-3 relative (D at the threshold, S a few ×10⁻³).
+- **Lateral drift.** `KinematicConfig.free_lateral` leaves the in-plane DOFs free
+  (matches `ref/offc_free.py`). `dyn_runs.csv` / `tab_conv.csv` carry
+  `drone_x_arrest`, `drone_y_arrest`; `fig_etaa.csv` carries `etaA_free_num`,
+  `etaA_free_ref`, `px_fail`.
+- **Paper CSV export.** `python -m validation.export_paper [--full] [--jobs N]`
+  writes every file in `paper_results/SPEC.md`. Independent cases
+  (`fig_etaa`, ring, `tab_mmin`, `dyn_runs`) use a process pool (`--jobs`
+  defaults to all CPUs).
 
 Run the pytest suite:
 

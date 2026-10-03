@@ -1,4 +1,4 @@
-# commit=335a0c6e99642d471e3cc0a2290bd67f80205669 date=2026-10-02T01:41:16 config=test3_junction
+# commit=9bf793028e31628fe08736ee0ff4cd3014050c41 date=2026-10-02T22:17:31 config=test3_junction
 material,ep_frac,ZT_over_ZL,T0_1d,T0_2d,T0_num
 D,0.02,0.0252982,1.5,1.51234,1.51209
 D,0.1,0.0565685,1.5,1.52677,1.5273
