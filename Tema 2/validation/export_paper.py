@@ -36,11 +36,28 @@ from netsim.io_hdf5 import git_commit
 from netsim.materials import get_material
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "paper_results"
+_ROOT = Path(__file__).resolve().parent.parent
 _COMMIT = git_commit()
 _DATE = datetime.datetime.now().isoformat(timespec="seconds")
 
 # Process-pool width for independent export cases (overridden by --jobs).
 _N_JOBS = max(1, os.cpu_count() or 1)
+_ALLOW_DIRTY = False
+
+
+def _working_tree_dirty() -> bool:
+    """True if Tema 2 has uncommitted changes (tracked or untracked)."""
+    import subprocess
+    try:
+        repo = _ROOT.parent if (_ROOT.parent / ".git").exists() else _ROOT
+        pathspec = "Tema 2" if repo != _ROOT else "."
+        r = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=normal",
+             "--", pathspec],
+            cwd=str(repo), capture_output=True, text=True, check=False)
+        return bool(r.stdout.strip())
+    except Exception:
+        return True
 
 
 def _parallel_map(fn, jobs, desc=""):
@@ -58,8 +75,10 @@ def _parallel_map(fn, jobs, desc=""):
 def _write(name, fieldnames, rows, config="default"):
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     path = OUT_DIR / name
+    dirty = _working_tree_dirty()
     with open(path, "w", newline="") as fh:
-        fh.write(f"# commit={_COMMIT} date={_DATE} config={config}\n")
+        fh.write(f"# commit={_COMMIT} date={_DATE} config={config} "
+                 f"dirty={'true' if dirty else 'false'}\n")
         w = csv.DictWriter(fh, fieldnames=fieldnames)
         w.writeheader()
         for r in rows:
@@ -273,48 +292,55 @@ def export_energy_conv():
 # Dynamic overload (5a)
 # --------------------------------------------------------------------------- #
 def export_daf():
-    from netsim.overload import run_overload
+    from netsim.overload import run_overload, analytic_eps_m_over_eps0
     regimes = {"D": 0.01, "S": round(0.8 * get_material("S").eps_b, 4)}
     rows = []
     for mat_name, eps0 in regimes.items():
         mat = get_material(mat_name)
         for N in (4, 8, 16):
-            # Validation of the analytical table: hub constrained to z.
             r = run_overload(N, mat, eps0=eps0, m_hub=0.01, n_s=2,
                              constrain_hub_z=True)
+            # Analytical eps_m/eps0 for S at the measured n_eff (energy identity).
+            eps_an = ""
+            if mat_name == "S":
+                eps_an = f"{analytic_eps_m_over_eps0(N, r.n_eff):.6g}"
             rows.append({
                 "material": mat_name, "N": N,
                 "n_eff_num": f"{r.n_eff:.6g}",
                 "eps_s_over_eps0": f"{r.eps_s_over_eps0:.6g}",
                 "eps_m_over_eps0": f"{r.eps_m_over_eps0:.6g}",
+                "eps_m_over_eps0_an": eps_an,
                 "m_hub": f"{0.01:.6g}",
             })
     return _write("tab_daf.csv",
                   ["material", "N", "n_eff_num", "eps_s_over_eps0",
-                   "eps_m_over_eps0", "m_hub"], rows, config="test_daf")
+                   "eps_m_over_eps0", "eps_m_over_eps0_an", "m_hub"],
+                  rows, config="test_daf")
 
 
 def export_daf_ramp():
     from netsim.overload import run_overload, daf_sdof_nonlinear
     mat = get_material("D")
     rows = []
-    # Measure n_eff once (constrained hub) for the nonlinear SDOF column.
     r0 = run_overload(8, mat, eps0=0.01, m_hub=0.01, n_s=2,
                       constrain_hub_z=True)
     n_eff = r0.n_eff
+    eps_s_ratio = r0.eps_s_over_eps0
     for tf in (0.0, 0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0):
         r = run_overload(8, mat, eps0=0.01, m_hub=0.01, n_s=2, t_f_over_Tn=tf,
                          dyn_periods=16.0, constrain_hub_z=True)
         x = math.pi * tf
         daf_an = 2.0 if tf == 0.0 else 1.0 + abs(math.sin(x)) / x
-        daf_nl = daf_sdof_nonlinear(n_eff, tf)
+        daf_num = r.eps_m / r.eps_s if r.eps_s > 0 else float("nan")
+        daf_nl = daf_sdof_nonlinear(n_eff, tf, eps_s_over_eps0=eps_s_ratio)
         rows.append({"N": 8, "material": "D", "tf_over_Tn": f"{tf:.6g}",
                      "eps_m_over_eps0": f"{r.eps_m/r.eps0_target:.6g}",
                      "daf_an": f"{daf_an:.6g}",
+                     "daf_num": f"{daf_num:.6g}",
                      "daf_sdof_nl": f"{daf_nl:.6g}"})
     return _write("fig_daf_ramp.csv",
                   ["N", "material", "tf_over_Tn", "eps_m_over_eps0", "daf_an",
-                   "daf_sdof_nl"],
+                   "daf_num", "daf_sdof_nl"],
                   rows, config="test_daf")
 
 
@@ -441,13 +467,12 @@ def _mmin_cfg(material, M, v0, net_kind="star", n_s=10):
     from netsim.config import (SimConfig, MaterialConfig, NetConfig,
                                DroneConfig, NumericsConfig, ContactConfig,
                                OutputConfig)
-    # Ring nets need a nonzero prestress for the FDM (q=0 is singular).
-    # t_end is long enough for stiff (large-s) nets to complete the bounce.
+    # Comparable prestress for star and star+ring (round 5).
     ep = 0.1 * get_material(material).eps_b
     net = (NetConfig(kind="star_with_rings", N=8, R=1.0, eps_p=ep, A_hat=1e-6,
                      radii=[0.5, 1.0], q_ratio=1.0, fix_radii=True)
            if net_kind == "star+ring"
-           else NetConfig(kind="star", N=8, R=1.0, eps_p=0.0, A_hat=1e-6))
+           else NetConfig(kind="star", N=8, R=1.0, eps_p=ep, A_hat=1e-6))
     return SimConfig(
         material=MaterialConfig(name=material), net=net,
         drone=DroneConfig(M=M, r_d=0.15, v0=v0, p=(0.0, 0.0)),
@@ -466,9 +491,10 @@ def export_mmin_monotone():
     from netsim.mmin import MminConfig, monotonicity_scan
     rows = []
     for mat in ("S", "D"):
-        cfg = _mmin_cfg(mat, 1.0, 15.0)
-        for crit in ("A", "B"):
-            mm = MminConfig(criterion=crit, impact_points=[(0.5, 0.0)])
+        cfg = _mmin_cfg(mat, 1.0, 15.0, net_kind="star+ring")
+        for crit in ("A", "B_any", "B_loc"):
+            mm = MminConfig(criterion=crit, impact_points=[(0.5, 0.0)],
+                            R_max=0.5)
             sc = monotonicity_scan(cfg, mm, (0.5, 0.0), n=10)
             for s, ok in zip(sc["s_values"], sc["pattern"]):
                 rows.append({"material": mat, "criterion": crit,
@@ -480,53 +506,86 @@ def export_mmin_monotone():
 
 
 def _mmin_case(job):
-    """One (material, M, v0, full) row for tab_mmin — process-pool worker."""
-    mat, M, v0, full = job
+    """One (net, material, M, v0, full) row for tab_mmin — process-pool worker."""
+    net_kind, mat, M, v0, full = job
     from netsim.mmin import MminConfig, minimum_mass
     from netsim.simulate import build_net
 
     m = get_material(mat)
     pts = [(0.0, 0.0), (0.25, 0.0), (0.5, 0.0)]
-    cfg = _mmin_cfg(mat, M, v0, net_kind="star+ring",
-                    n_s=10 if full else 8)
+    R = 1.0
+    cfg = _mmin_cfg(mat, M, v0, net_kind=net_kind, n_s=10 if full else 8)
     net = build_net(cfg)
     Ekin = 0.5 * M * v0 ** 2
     m_lower = Ekin / m.e_mat
-    # Outer pool already parallelises (mat,M,v0); keep impact points serial
-    # here to avoid nested process pools.
-    mmA = MminConfig(criterion="A", tol=0.08, impact_points=pts, n_procs=1)
+    tol = 0.08
+    mmA = MminConfig(criterion="A", tol=tol, impact_points=pts, n_procs=1)
     rA = minimum_mass(cfg, mmA)
-    mmB = MminConfig(criterion="B", tol=0.08, impact_points=pts, n_procs=1,
-                     n_scan=24)
-    rB = minimum_mass(cfg, mmB)
-    ratio = rA.m_min / rB.m_min if rB.m_min else float("nan")
+    # Same absolute scale for all B variants; cap each at s^A so mB <= mA.
+    mm_any = MminConfig(criterion="B_any", tol=tol, impact_points=pts,
+                        n_procs=1, n_scan=24)
+    r_any = minimum_mass(cfg, mm_any, s_cap=rA.s_min)
+    blocs = {}
+    n_broken = {"B_any": r_any.n_failures}
+    worst = r_any.worst_point
+    for frac in (0.25, 0.5, 0.75):
+        mm = MminConfig(criterion="B_loc", tol=tol, impact_points=pts,
+                        n_procs=1, n_scan=24, R_max=frac * R)
+        rb = minimum_mass(cfg, mm, s_cap=rA.s_min)
+        blocs[frac] = rb
+        n_broken[f"B_loc{int(100*frac):03d}"] = rb.n_failures
+        if rb.s_min >= r_any.s_min:
+            worst = rb.worst_point
+
+    def g(x):
+        return 1e3 * x
+
+    def ratio(mb):
+        return rA.m_min / mb if mb > 0 else float("nan")
+
+    mA = rA.m_min
     return {
-        "material": mat, "M": f"{M:.6g}", "v0": f"{v0:.6g}",
+        "net": net_kind, "material": mat, "M": f"{M:.6g}", "v0": f"{v0:.6g}",
         "Ekin": f"{Ekin:.6g}",
-        "m_lower_g": f"{1e3*m_lower:.6g}",
-        "mA_min_g": f"{1e3*rA.m_min:.6g}",
-        "mB_min_g": f"{1e3*rB.m_min:.6g}",
-        "ratio": f"{ratio:.6g}",
-        "n_broken_B": rB.n_failures,
-        "worst_p_x": f"{rB.worst_point[0]:.6g}",
-        "worst_p_y": f"{rB.worst_point[1]:.6g}",
+        "m_lower_g": f"{g(m_lower):.6g}",
+        "mA_min_g": f"{g(mA):.6g}",
+        "mBany_min_g": f"{g(r_any.m_min):.6g}",
+        "mBloc025_min_g": f"{g(blocs[0.25].m_min):.6g}",
+        "mBloc050_min_g": f"{g(blocs[0.5].m_min):.6g}",
+        "mBloc075_min_g": f"{g(blocs[0.75].m_min):.6g}",
+        "ratio_Bany": f"{ratio(r_any.m_min):.6g}",
+        "ratio_Bloc025": f"{ratio(blocs[0.25].m_min):.6g}",
+        "ratio_Bloc050": f"{ratio(blocs[0.5].m_min):.6g}",
+        "ratio_Bloc075": f"{ratio(blocs[0.75].m_min):.6g}",
+        "mA_over_Ekin_g_per_J": f"{(g(mA)/Ekin):.6g}",
+        "n_broken_Bany": n_broken["B_any"],
+        "n_broken_Bloc025": n_broken["B_loc025"],
+        "n_broken_Bloc050": n_broken["B_loc050"],
+        "n_broken_Bloc075": n_broken["B_loc075"],
+        "worst_p_x": f"{worst[0]:.6g}",
+        "worst_p_y": f"{worst[1]:.6g}",
     }
 
 
 def export_mmin(full=False):
-    # Paper: S and D, M ∈ {0.25, 2}, v0=20, and the full (M,v0) grid with --full.
+    # Star and star+ring at eps_p = 0.1 eps_b; full (M,v0) grid with --full.
     if full:
         grid = [(0.25, 10.0), (0.25, 15.0), (0.25, 20.0),
                 (1.0, 10.0), (1.0, 15.0), (1.0, 20.0),
                 (2.0, 10.0), (2.0, 15.0), (2.0, 20.0)]
     else:
         grid = [(0.25, 20.0), (2.0, 20.0)]
-    jobs = [(mat, M, v0, full)
+    jobs = [(net, mat, M, v0, full)
+            for net in ("star", "star+ring")
             for mat in ("S", "D")
             for M, v0 in grid]
     rows = _parallel_map(_mmin_case, jobs, desc="tab_mmin")
-    cols = ["material", "M", "v0", "Ekin", "m_lower_g", "mA_min_g", "mB_min_g",
-            "ratio", "n_broken_B", "worst_p_x", "worst_p_y"]
+    cols = ["net", "material", "M", "v0", "Ekin", "m_lower_g",
+            "mA_min_g", "mBany_min_g", "mBloc025_min_g", "mBloc050_min_g",
+            "mBloc075_min_g", "ratio_Bany", "ratio_Bloc025", "ratio_Bloc050",
+            "ratio_Bloc075", "mA_over_Ekin_g_per_J",
+            "n_broken_Bany", "n_broken_Bloc025", "n_broken_Bloc050",
+            "n_broken_Bloc075", "worst_p_x", "worst_p_y"]
     return _write("tab_mmin.csv", cols, rows, config="mmin")
 
 
@@ -603,10 +662,11 @@ def export_dyn_runs(full=False):
 
 
 def export_phase_maps():
-    """Write 2 representative HDF5 runs plus their segment maps."""
+    """Write maps at ``m^{B_any}_min`` for S and D (same net / impact)."""
     from netsim.config import (SimConfig, MaterialConfig, NetConfig,
                                DroneConfig, NumericsConfig, ContactConfig,
                                OutputConfig)
+    from netsim.mmin import MminConfig, minimum_mass
     from netsim.simulate import simulate_config
     d = OUT_DIR / "fig_phase_maps"
     d.mkdir(parents=True, exist_ok=True)
@@ -614,6 +674,16 @@ def export_phase_maps():
     for mat in ("S", "D"):
         run_name = f"phase_{mat}"
         h5 = str(d / f"{run_name}.h5")
+        # Find mBany at the paper impact (M=1, v0=20, a=0.25) on star+ring.
+        from dataclasses import replace as dc_replace
+        cfg0 = _mmin_cfg(mat, 1.0, 20.0, net_kind="star+ring", n_s=10)
+        cfg0 = dc_replace(cfg0, drone=dc_replace(cfg0.drone, p=(0.25, 0.0)))
+        mmA = MminConfig(criterion="A", tol=0.08, impact_points=[(0.25, 0.0)])
+        rA = minimum_mass(cfg0, mmA)
+        mmB = MminConfig(criterion="B_any", tol=0.08,
+                         impact_points=[(0.25, 0.0)], n_scan=24)
+        rB = minimum_mass(cfg0, mmB, s_cap=rA.s_min)
+        s_map = rB.s_min
         ep = 0.1 * get_material(mat).eps_b
         cfg = SimConfig(
             material=MaterialConfig(name=mat),
@@ -622,7 +692,7 @@ def export_phase_maps():
                           fix_radii=True),
             drone=DroneConfig(M=1.0, r_d=0.15, v0=20.0, p=(0.25, 0.0)),
             numerics=NumericsConfig(n_s=10, C=0.5, t_end=0.25, dt_out=5e-3,
-                                    area_scale=1.0,
+                                    area_scale=float(s_map),
                                     use_numba=True),
             contact=ContactConfig(mode="gripped", k_c=1e7,
                                   k_c_mode=("relative" if mat == "D"
@@ -632,25 +702,44 @@ def export_phase_maps():
             output=OutputConfig(hdf5=h5, R_max=0.5, k_max=10),
         )
         res = simulate_config(cfg, write=True)
-        # segments_<run>.csv
         traj = res.trajectory
-        broken = {int(s): float(t) for s, _, t in traj.failures} \
-            if traj.failures.size else {}
+        # Per coarse edge: earliest break among its discrete segments.
+        break_info = {}  # parent -> (t, order, drone_x, drone_y)
+        if traj.failures.size:
+            order = np.argsort(traj.failures[:, 2])
+            dxy = traj.failure_drone_xy
+            for k, idx in enumerate(order):
+                parent = int(traj.failures[idx, 1])
+                t_b = float(traj.failures[idx, 2])
+                if parent not in break_info:
+                    dx = float(dxy[idx, 0]) if dxy.shape[0] > idx else float("nan")
+                    dy = float(dxy[idx, 1]) if dxy.shape[0] > idx else float("nan")
+                    break_info[parent] = (t_b, k + 1, dx, dy)
         net = res.net
         seg_rows = []
         for e in range(net.n_e):
             i, j = int(net.edges[e, 0]), int(net.edges[e, 1])
             x1, y1 = net.nodes[i]
             x2, y2 = net.nodes[j]
-            seg_rows.append({"seg": e, "parent": e, "x1": f"{x1:.6g}",
-                             "y1": f"{y1:.6g}", "x2": f"{x2:.6g}",
-                             "y2": f"{y2:.6g}",
-                             "broken": bool(e in broken),
-                             "t_break": f"{broken.get(e, float('nan')):.6g}"})
+            info = break_info.get(e)
+            seg_rows.append({
+                "seg": e, "parent": e, "x1": f"{x1:.6g}",
+                "y1": f"{y1:.6g}", "x2": f"{x2:.6g}", "y2": f"{y2:.6g}",
+                "broken": bool(info is not None),
+                "t_break": (f"{info[0]:.6g}" if info else ""),
+                "break_order": (f"{info[1]}" if info else ""),
+                "drone_x_break": (f"{info[2]:.6g}" if info else ""),
+                "drone_y_break": (f"{info[3]:.6g}" if info else ""),
+            })
+        dirty = _working_tree_dirty()
         with open(d / f"segments_{run_name}.csv", "w", newline="") as fh:
-            fh.write(f"# commit={_COMMIT} date={_DATE} config=phase\n")
-            w = csv.DictWriter(fh, fieldnames=["seg", "parent", "x1", "y1",
-                                               "x2", "y2", "broken", "t_break"])
+            fh.write(f"# commit={_COMMIT} date={_DATE} config=phase "
+                     f"s_Bany={s_map:.6g} dirty="
+                     f"{'true' if dirty else 'false'}\n")
+            w = csv.DictWriter(
+                fh, fieldnames=["seg", "parent", "x1", "y1", "x2", "y2",
+                                "broken", "t_break", "break_order",
+                                "drone_x_break", "drone_y_break"])
             w.writeheader()
             w.writerows(seg_rows)
         written.append(h5)
@@ -763,7 +852,7 @@ EXPORTERS = [
 
 
 def main(argv=None):
-    global _N_JOBS
+    global _N_JOBS, _ALLOW_DIRTY
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--full", action="store_true",
                     help="use the full (expensive) grids for mmin/dyn_runs")
@@ -772,12 +861,22 @@ def main(argv=None):
     ap.add_argument("--jobs", type=int, default=0,
                     help="parallel workers for independent cases "
                          "(default: all CPUs)")
+    ap.add_argument("--allow-dirty", action="store_true",
+                    help="export even with a dirty working tree "
+                         "(header still records dirty=true)")
     args = ap.parse_args(argv)
 
     _N_JOBS = max(1, args.jobs) if args.jobs > 0 else max(1, os.cpu_count() or 1)
+    _ALLOW_DIRTY = bool(args.allow_dirty)
+    dirty = _working_tree_dirty()
+    if dirty and not _ALLOW_DIRTY:
+        print("Refusing to export: Tema 2 working tree is dirty. "
+              "Commit first, or pass --allow-dirty "
+              "(CSV headers will then include dirty=true).", flush=True)
+        sys.exit(2)
     only = set(args.only.split(",")) if args.only else None
     print(f"Exporting paper CSVs to {OUT_DIR} (commit {_COMMIT[:8]}, "
-          f"jobs={_N_JOBS})")
+          f"jobs={_N_JOBS}, dirty={'true' if dirty else 'false'})")
     for name, fn in EXPORTERS:
         if only and name not in only:
             continue

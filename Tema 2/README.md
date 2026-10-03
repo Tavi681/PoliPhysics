@@ -256,7 +256,21 @@ arrival).
 - **Paper CSV export.** `python -m validation.export_paper [--full] [--jobs N]`
   writes every file in `paper_results/SPEC.md`. Independent cases
   (`fig_etaa`, ring, `tab_mmin`, `dyn_runs`) use a process pool (`--jobs`
-  defaults to all CPUs).
+  defaults to all CPUs). Refuses a dirty Tema 2 tree unless `--allow-dirty`
+  (header always records `dirty=true|false`).
+
+### Round-5 notes (criterion B variants, star vs ring)
+
+- **B_any / B_loc.** `B_any`: arrested, not perforated, `n_failed < k_max`.
+  `B_loc`: B_any and every failure lies within `R_max` of the drone in-plane
+  position **at that failure time**. Legacy `B` is an alias for `B_loc`.
+  `m^B_min <= m^A_min` is enforced by capping at `s^A`.
+- **`tab_mmin.csv`.** Columns for A, B_any, B_loc at `R_max/R ∈ {0.25,0.5,0.75}`,
+  plus `net` ∈ {star, star+ring} at the same `\epsilon_p = 0.1\epsilon_b`, and
+  `mA_over_Ekin_g_per_J`.
+- **DAF.** `daf_num` and `daf_sdof_nl` are both `\epsilon_m/\epsilon_s`.
+- **Phase maps.** Regenerated at `m^{B_any}_min` with `break_order` and
+  `drone_*_break` columns.
 
 Run the pytest suite:
 

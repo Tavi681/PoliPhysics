@@ -32,7 +32,8 @@ from .discretize import discretize
 from .topology import star
 
 __all__ = ["ThreadRemoval", "remove_thread", "ForcingSpec", "OverloadResult",
-           "static_force_for_strain", "run_overload", "daf_sdof_nonlinear"]
+           "static_force_for_strain", "run_overload", "daf_sdof_nonlinear",
+           "analytic_eps_m_over_eps0"]
 
 
 @dataclass
@@ -104,90 +105,80 @@ def static_force_for_strain(material, N, R, eps0):
     return F, w0
 
 
-def daf_sdof_nonlinear(n_eff, tf_over_Tn, *, n_periods=8.0, n_steps=4000):
-    """Peak dynamic amplification of the nonlinear 1-DOF model.
+def daf_sdof_nonlinear(n_eff, tf_over_Tn, *, eps_s_over_eps0=None, N=8,
+                       n_periods=8.0, n_steps=4000):
+    """Peak dynamic amplification of the nonlinear 1-DOF model as ``eps_m/eps_s``.
 
-    Integrates ``m w'' = P - ((N-1)/N) k |w|^{n-1} w`` equivalent nondimensional
-    form after removing one of N identical springs. With the static post-removal
-    deflection scaled to 1, the equation reduces to
+    ``u = eps / eps_s`` is the strain relative to the post-removal static value.
+    At the instant of removal the hub deflection (hence strain) is still the
+    pre-removal value, so
 
-        u'' = 1 - |u|^{n-1} u
+        u(0) = eps0 / eps_s = 1 / (eps_s/eps0),
 
-    under a linear load ramp over ``t_f`` (nondimensional time unit = T_n with
-    the *pre*-removal linearised period convention matching ``run_overload``:
-    we use the energy-style ramp comparison requested by the round-3 prompt,
-    ``m w'' = P - ((N-1)/N) k w^n`` with ``n = n_eff``).
+    and the undamped linear step response overshoots to ``2 - u(0)``, matching
+    the z-constrained ``run_overload`` ratio ``eps_m/eps_s`` at ``t_f = 0``.
 
-    Returns the peak of ``eps(t)/eps0`` ≈ ``u(t)^{2/n?}`` — for the force law
-    F ∝ w^n near the operating point we track the nondimensional deflection
-    ratio ``u_max / u_s`` where ``u_s`` is the static post-removal equilibrium
-    (``u_s = 1`` in these units), so the returned DAF is ``u_max``.
+    The restoring law after removal is ``u^n`` with ``n = n_eff``, equilibrium
+    at ``u = 1``. A finite ``t_f`` ramps the removed spring's share from 1 to 0.
     """
-    # Nondimensional: tau = t / T_n * 2π would be omega-based; use T_n as unit
-    # so omega_n = 2π. The linearised equation is u'' + (2π)^2 u = (2π)^2 P(t)
-    # with P ramping to 1. For the nonlinear law F = k u^n (post-removal
-    # stiffness scaled so static u_s = 1 at P = 1):
-    #   u'' = (2π)^2 (P(t) - u^n).
     n = float(n_eff)
     omega = 2.0 * math.pi
     t_f = float(tf_over_Tn)
     t_end = n_periods
     dt = t_end / n_steps
-    u = 1.0  # start from the pre-removal static state (all N springs); the
-    # removal drops the restoring force from 1 to ((N-1)/N) at fixed u,
-    # which we model as an instantaneous drop of the equilibrium from 1 to
-    # u_s = ((N-1)/N)^{1/n} ≈ 1 for large N. Matching run_overload more
-    # closely: begin at the pre-removal equilibrium u=1 with P=1, then the
-    # restoring coefficient switches from 1 to ((N-1)/N) — equivalent to
-    # rescaling so post-removal static is 1 and the initial condition is
-    # u(0) = (N/(N-1))^{1/n}.
-    # Use N=8 as the reference for the analytic column (paper table uses N).
-    N = 8
-    u = (N / (N - 1)) ** (1.0 / n)
+    # Strain-based IC: geometry (hence eps) frozen at removal.
+    if eps_s_over_eps0 is None or not (eps_s_over_eps0 > 1.0):
+        # Analytic shallow-string estimate for a linear net.
+        eps_s_over_eps0 = N / (N - 1)
+    u = 1.0 / float(eps_s_over_eps0)
     v = 0.0
     u_max = u
     for k in range(n_steps):
         t = k * dt
         if t_f <= 0.0:
-            # Instantaneous: P already at post-removal value (=1 in these units)
-            # with IC above; restoring = u^n.
-            P = 1.0
-            ramp = 0.0  # unused
-            # Instant removal: restoring drops immediately.
-            force = 1.0 - u ** n
+            force = 1.0 - (abs(u) ** (n - 1) * u if u != 0 else 0.0)
         else:
-            # Finite ramp of the removed spring's contribution.
-            # Restoring = ((N-1)/N)*u^n + (1/N)*ramp*u^n, P=1.
-            # With u scaled so ((N-1)/N) k U_s^n = P => U_s=1 in post-removal
-            # units, IC = (N/(N-1))^{1/n}, ramp from 1 to 0 over t_f.
-            if t < t_f:
-                ramp = 1.0 - t / t_f
-            else:
-                ramp = 0.0
-            # Restoring relative to post-removal static spring: 
-            # ((N-1)/N + ramp/N) / ((N-1)/N) * u^n = (1 + ramp/(N-1)) u^n
-            # Equilibrium of full net: u_full^n = N/(N-1) => u_full = (N/(N-1))^{1/n}
-            rest = (1.0 + ramp / (N - 1)) * (u ** n)
+            ramp = 0.0 if t >= t_f else (1.0 - t / t_f)
+            # Full-net equilibrium at u0: rest = (1 + ramp/(N-1)) u^n = 1 at t=0.
+            rest = (1.0 + ramp / (N - 1)) * (abs(u) ** n)
             force = 1.0 - rest
-            # At t=0, ramp=1: rest = (1+1/(N-1))*u^n = (N/(N-1))*u^n = 1 for
-            # u=(N/(N-1))^{1/n}. Good.
         a = (omega ** 2) * force
-        # Velocity-Verlet.
         u = u + v * dt + 0.5 * a * dt * dt
-        # Force at new position (same P/ramp for this step end).
         if t_f <= 0.0:
-            force2 = 1.0 - u ** n
+            force2 = 1.0 - (abs(u) ** (n - 1) * u if u != 0 else 0.0)
         else:
             t2 = t + dt
             ramp2 = 0.0 if t2 >= t_f else (1.0 - t2 / t_f)
-            rest2 = (1.0 + ramp2 / (N - 1)) * (u ** n)
+            rest2 = (1.0 + ramp2 / (N - 1)) * (abs(u) ** n)
             force2 = 1.0 - rest2
         a2 = (omega ** 2) * force2
         v = v + 0.5 * (a + a2) * dt
         if u > u_max:
             u_max = u
-    # DAF relative to post-removal static deflection (=1).
     return float(u_max)
+
+
+def analytic_eps_m_over_eps0(N, n_eff):
+    """Solve ``((N-1)/N)(r^{n+1}-1)/(n+1) = r-1`` and return ``r^2 = eps/eps0``."""
+    n = float(n_eff)
+    # f(r) = 0 for r > 1; at r=1, f=0 is the trivial root — seek r > 1.
+    def f(r):
+        return ((N - 1) / N) * (r ** (n + 1) - 1.0) / (n + 1.0) - (r - 1.0)
+
+    # Bracket: f'(1) = ((N-1)/N) - 1 < 0, f→+∞ as r→∞ for n>0.
+    lo, hi = 1.0 + 1e-6, 1.0 + 1e-6
+    while f(hi) <= 0.0 and hi < 20.0:
+        hi *= 1.5
+    if f(hi) <= 0.0:
+        return float("nan")
+    for _ in range(60):
+        mid = 0.5 * (lo + hi)
+        if f(mid) > 0.0:
+            hi = mid
+        else:
+            lo = mid
+    r = 0.5 * (lo + hi)
+    return float(r * r)
 
 
 def _radial_strain(material, N, R, A_hat, eps0, w):

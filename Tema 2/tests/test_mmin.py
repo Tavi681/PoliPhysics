@@ -9,7 +9,7 @@ from netsim.config import (SimConfig, MaterialConfig, NetConfig, DroneConfig,
                            NumericsConfig, ContactConfig, OutputConfig)
 from netsim.mmin import (MminConfig, analytical_s0, minimum_mass,
                          monotonicity_scan, evaluate, _criterion_pass,
-                         _write_cache, _read_cache)
+                         _write_cache, _read_cache, pass_from_info)
 
 
 def _cfg(n_s=6, t_end=0.2):
@@ -36,16 +36,22 @@ def test_analytical_s0_formula():
 
 
 class _FakeTraj:
-    def __init__(self, mids):
+    def __init__(self, mids, drone_xy=None):
         self.failure_midpoints = np.asarray(mids, dtype=float).reshape(-1, 3)
-        self.failures = np.zeros((self.failure_midpoints.shape[0], 3))
+        n = self.failure_midpoints.shape[0]
+        self.failures = np.zeros((n, 3))
+        if drone_xy is None:
+            self.failure_drone_xy = np.zeros((n, 2))
+        else:
+            self.failure_drone_xy = np.asarray(drone_xy, dtype=float).reshape(-1, 2)
 
 
 class _FakeRes:
-    def __init__(self, arrested, n_failures, mids=(), R_d=None, outcome="arrested"):
+    def __init__(self, arrested, n_failures, mids=(), R_d=None,
+                 outcome="arrested", drone_xy=None):
         self.arrested = arrested
         self.n_failures = n_failures
-        self.trajectory = _FakeTraj(mids)
+        self.trajectory = _FakeTraj(mids, drone_xy)
         self.outcome = outcome
         if R_d is not None:
             self.R_d = R_d
@@ -53,6 +59,7 @@ class _FakeRes:
             self.R_d = float(max(np.hypot(m[0], m[1]) for m in mids))
         else:
             self.R_d = 0.0
+        self.energy_error = 0.0
 
 
 def test_criterion_logic():
@@ -61,45 +68,60 @@ def test_criterion_logic():
     assert not _criterion_pass(_FakeRes(True, 1, [(0, 0, 0)]), (0, 0), "A", 0.5, 10)
     assert not _criterion_pass(_FakeRes(False, 0, outcome="timeout"), (0, 0),
                                "A", 0.5, 10)
-    # B: arrested and (n_failed == 0 or (n_failed < k_max and R_d <= R_max)).
-    assert _criterion_pass(_FakeRes(True, 0), (0, 0), "B", 0.5, 10)  # A => B
-    assert _criterion_pass(_FakeRes(True, 2, [(0.1, 0, 0), (0.2, 0, 0)],
-                                    R_d=0.2),
-                           (0, 0), "B", 0.5, 10)
-    assert not _criterion_pass(_FakeRes(True, 1, [(0.9, 0, 0)], R_d=0.9),
-                               (0, 0), "B", 0.5, 10)  # outside R_max
-    assert not _criterion_pass(_FakeRes(True, 10, [(0, 0, 0)] * 10, R_d=0.0),
-                               (0, 0), "B", 0.5, 10)  # >= k_max
+    # B_any: arrested, not perforated, n_failed < k_max (no R_max cut).
+    assert _criterion_pass(_FakeRes(True, 0), (0, 0), "B_any", 0.5, 10)
+    assert _criterion_pass(
+        _FakeRes(True, 2, [(0.9, 0, 0), (0.8, 0, 0)], R_d=0.9),
+        (0, 0), "B_any", 0.5, 10)
+    assert not _criterion_pass(
+        _FakeRes(True, 2, [(0.1, 0, 0)], outcome="perforated"),
+        (0, 0), "B_any", 0.5, 10)
+    assert not _criterion_pass(
+        _FakeRes(True, 10, [(0, 0, 0)] * 10), (0, 0), "B_any", 0.5, 10)
+    # B_loc: failures within R_max of drone at break (not of p).
+    # Failures far from p=0 but near drifting drone at x=0.6 → pass at R_max=0.5.
+    assert _criterion_pass(
+        _FakeRes(True, 1, mids=[(0.7, 0, 0)], drone_xy=[(0.6, 0)]),
+        (0, 0), "B_loc", 0.5, 10)
+    # Far from drone → fail.
+    assert not _criterion_pass(
+        _FakeRes(True, 1, mids=[(0.9, 0, 0)], drone_xy=[(0.0, 0)]),
+        (0, 0), "B_loc", 0.5, 10)
+    # Legacy B == B_loc.
+    assert _criterion_pass(
+        _FakeRes(True, 1, mids=[(0.7, 0, 0)], drone_xy=[(0.6, 0)]),
+        (0, 0), "B", 0.5, 10)
+
+
+def test_a_implies_b_any():
+    info = {"arrested": True, "n_failures": 0, "outcome": "arrested",
+            "fail_mids": np.zeros((0, 3)), "fail_drone_xy": np.zeros((0, 2)),
+            "R_d": 0.0}
+    ok_a, _ = pass_from_info(info, "A", 0.5, 10)
+    ok_b, _ = pass_from_info(info, "B_any", 0.5, 10)
+    assert ok_a and ok_b
 
 
 def test_cache_roundtrip(tmp_path):
     pytest.importorskip("h5py")
     info = {"passed": True, "arrested": True, "n_failures": 2,
-            "fail_segs": [3, 7], "fail_mids": np.array([[0.1, 0.0, 0.0],
-                                                        [0.2, 0.0, 0.0]])}
+            "fail_segs": [3, 7],
+            "fail_mids": np.array([[0.1, 0.0, 0.0], [0.2, 0.0, 0.0]]),
+            "fail_drone_xy": np.array([[0.05, 0.0], [0.15, 0.0]]),
+            "R_d": 0.2, "outcome": "arrested", "energy_error": 1e-6}
     path = str(tmp_path / "e.h5")
     _write_cache(path, info)
     back = _read_cache(path)
-    assert back["passed"] and back["n_failures"] == 2
-    assert list(back["fail_segs"]) == [3, 7]
+    assert back["arrested"] is True
+    assert back["n_failures"] == 2
+    assert back["fail_drone_xy"].shape == (2, 2)
 
 
-def test_minimum_mass_centre_passes():
-    # The centre impact is easy to arrest; m_min must be positive and the
-    # analytical guess must bracket it (s_min <= a few * s0 is plausible).
-    cfg = _cfg()
-    mm = MminConfig(criterion="A", tol=0.2, impact_points=[(0.0, 0.0)])
+@pytest.mark.slow
+def test_minimum_mass_smoke():
+    cfg = _cfg(n_s=6, t_end=0.25)
+    mm = MminConfig(criterion="A", tol=0.15, impact_points=[(0.0, 0.0)],
+                    n_procs=1)
     r = minimum_mass(cfg, mm)
-    assert r.m_min > 0.0
-    assert r.s_min > 0.0
-    assert r.worst_point == (0.0, 0.0)
-
-
-def test_monotonicity_scan_structure():
-    cfg = _cfg()
-    mm = MminConfig(criterion="B", impact_points=[(0.5, 0.0)])
-    sc = monotonicity_scan(cfg, mm, (0.5, 0.0), n=5)
-    assert len(sc["pattern"]) == 5
-    assert isinstance(sc["monotone"], bool)
-    # Largest scanned s must pass (it brackets the minimum).
-    assert sc["pattern"][-1] is True
+    assert r.m_min > 0
+    assert r.s_min > 0

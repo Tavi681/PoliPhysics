@@ -91,6 +91,7 @@ class Trajectory:
     energy: np.ndarray       # (n_t, 6): KE_dr, KE_net, U_el, U_fail, U_c, dE_cap
     failures: np.ndarray     # (n_f, 3): seg index, parent thread, time
     failure_midpoints: np.ndarray  # (n_f, 3)
+    failure_drone_xy: np.ndarray   # (n_f, 2): drone in-plane pos at each break
     outcome: str = "timeout"
     arrested: bool = False
     w_max: float = 0.0
@@ -291,6 +292,7 @@ def integrate(disc, material, drone, numerics, contact, output,
         [], [], [], [], [], [])
     failures = []
     failure_mid = []
+    failure_drone = []
 
     from .energy import (elastic_energy, kinetic_energy_net,
                          kinetic_energy_drone)
@@ -459,6 +461,10 @@ def integrate(disc, material, drone, numerics, contact, output,
                 U_failure += seg_A[s] * seg_rest[s] * phi_book
                 failures.append((int(s), int(disc.seg_parent[s]), t_fail))
                 failure_mid.append(mid.copy())
+                if drone_mode:
+                    failure_drone.append([float(xd_new[0]), float(xd_new[1])])
+                else:
+                    failure_drone.append([float("nan"), float("nan")])
                 R_d = max(R_d, float(np.linalg.norm(mid[:2] - p3[:2])))
                 if drone_mode and not np.isfinite(drone_x_first_fail):
                     drone_x_first_fail = float(xd_new[0])
@@ -623,9 +629,11 @@ def integrate(disc, material, drone, numerics, contact, output,
     if failures:
         failures_arr = np.asarray(failures, dtype=float)
         failure_mid_arr = np.asarray(failure_mid, dtype=float)
+        failure_drone_arr = np.asarray(failure_drone, dtype=float).reshape(-1, 2)
     else:
         failures_arr = np.zeros((0, 3))
         failure_mid_arr = np.zeros((0, 3))
+        failure_drone_arr = np.zeros((0, 2))
 
     return Trajectory(
         t=t_arr,
@@ -636,6 +644,7 @@ def integrate(disc, material, drone, numerics, contact, output,
         energy=energy_arr,
         failures=failures_arr,
         failure_midpoints=failure_mid_arr,
+        failure_drone_xy=failure_drone_arr,
         outcome=outcome,
         arrested=arrested,
         w_max=w_max,
