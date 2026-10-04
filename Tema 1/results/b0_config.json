@@ -1,0 +1,10 @@
+{
+  "dt_max": 0.01,
+  "dt_max_factor": 1.4546675148851733,
+  "estimate_dt_scale": 1.0,
+  "t3_pass": true,
+  "t2_pass": true,
+  "t2_followup_pass": true,
+  "k_max": 251.32741228718345,
+  "field_independent_of_Nt": true
+}

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Legacy launcher (cost-probe / old 11200-run grid). Prefer:
+#   scripts/run_stage_b0_R_on_gcp.sh   — R || B0 on c2-standard-16 + PD
+#   scripts/run_stage_b12_on_gcp.sh    — B1/B2 shards (only after confirmation)
+#
 # Ephemeral GCP CPU for Tema 1 Stage B (Algorithm alg:sweep).
 # Pattern mirrors Tema 2/scripts/run_round6_export_on_gcp.sh:
 #   create VM → scp code → run job → pull results → ALWAYS delete VM

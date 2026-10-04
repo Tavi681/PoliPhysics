@@ -32,6 +32,26 @@ def test_params_turb_renormalize_default_false():
     assert P.turb_renormalize is False
 
 
+def test_modes_independent_of_Nt():
+    """After the field fix, modes depend only on (seed, sigma, ell, U_h, N_k, λ)."""
+    kwargs = dict(sigma=0.30, ell=1.0, U_h=1.0, N_k=200, seed=42,
+                  lambda_=0.5, renormalize=True, L=0.5)
+    a = KinematicSimulation(N_t=50, **kwargs)
+    b = KinematicSimulation(N_t=100, **kwargs)
+    assert a.modes_equal(b)
+    assert abs(a.k_max - 2.0 * np.pi / (5.0 * 0.005)) < 1e-12
+    # Pre-fix mesh-limited fields at the T2 point differed.
+    old50 = KinematicSimulation(N_t=50, mesh_limited=True, **kwargs)
+    old100 = KinematicSimulation(N_t=100, mesh_limited=True, **kwargs)
+    assert not old50.modes_equal(old100)
+    # T1 band: N_t=100 mesh-limited == fixed k_max
+    t1 = dict(sigma=0.25, ell=1.0, U_h=0.0, N_k=200, seed=0,
+              renormalize=True, L=0.5)
+    assert KinematicSimulation(N_t=100, mesh_limited=False, **t1).modes_equal(
+        KinematicSimulation(N_t=100, mesh_limited=True, **t1)
+    )
+
+
 def test_make_flow_passes_renormalize():
     P = Params(flow_model="kinematic", sigma_w=0.2, ell=0.5, turb_N_k=80,
                turb_seed=1, turb_renormalize=True, N_t=50, L=0.5)
@@ -97,6 +117,76 @@ def test_aggregate_phase_wilson_excludes_timeout():
     assert phase[0]["n_down"] == 1
     assert phase[0]["n_timeout"] == 1
     assert abs(phase[0]["P"] - 0.5) < 1e-12
+
+
+def test_production_grid_counts_and_order():
+    pts = SB.iter_production_points()
+    assert len(pts) == 8600
+    assert sum(1 for p in pts if p.split == "main") == 8000
+    assert sum(1 for p in pts if p.split == "gen_N") == 300
+    assert sum(1 for p in pts if p.split == "gen_sigma") == 300
+    assert pts[0].split in ("gen_N", "gen_sigma")
+    main = [p for p in pts if p.split == "main"]
+    first_8 = next(i for i, p in enumerate(main) if p.N == 8)
+    assert all(p.N != 8 for p in main[:first_8])
+    # M by x on the main grid
+    n_core = sum(1 for p in main if p.x in SB.SWEEP_X_CORE)
+    n_wing = sum(1 for p in main if p.x not in SB.SWEEP_X_CORE)
+    assert n_core == 4 * 2 * 3 * 200
+    assert n_wing == 4 * 2 * 4 * 100
+
+
+def test_shard_assignment_partitions():
+    pts = SB.iter_production_points()
+    assign = SB.shard_assignment(pts, 3)
+    assert len(assign) == len(pts)
+    assert set(assign) == {0, 1, 2}
+    loads = [0.0, 0.0, 0.0]
+    for pt, s in zip(pts, assign):
+        loads[s] += SB.cost_weight(pt.N)
+    # LPT should keep the three shards within 20% of each other
+    assert max(loads) / min(loads) < 1.2
+
+
+def test_write_ml_hdf5_layout(tmp_path):
+    from ballooning.geometry import Topology
+    from ballooning.integrator import Trajectory
+    from ballooning.io_hdf5 import write_ml_hdf5
+    import h5py
+
+    P = Params(N=1, N_t=4, L=0.5, flow_model="kinematic",
+               sigma_w=0.15, ell=1.0, turb_N_k=8, turb_seed=1,
+               turb_renormalize=True)
+    from ballooning.fields import make_flow
+    make_flow(P)
+    topo = Topology(P)
+    T, n, ne = 3, topo.n_nodes, topo.n_edges
+    x = np.zeros((T, n, 3))
+    x[:, 0, 2] = [0.5, 0.51, 0.52]
+    traj = Trajectory(
+        t=np.array([0.0, 0.01, 0.02]),
+        x=x, v=np.zeros((T, n, 3)),
+        theta=np.zeros((T, ne)),
+        edges=topo.edges.copy(),
+        thread_id=topo.thread_id.copy(),
+        q_node=np.zeros(n),
+        outcome={"status": "timeout", "exit_time": 0.02, "entangled": False,
+                 "diag": {"newton_failures": 0, "n_steps": 2}},
+    )
+    path = tmp_path / "ml.h5"
+    write_ml_hdf5(str(path), P, traj, float32=True)
+    with h5py.File(path, "r") as f:
+        assert "theta" not in f
+        assert f["t"].dtype == np.float32
+        assert f["x"].shape == (T, n, 3)
+        assert f["twist"].shape == (T, ne)
+        assert f["u_air"].shape == (T, n, 3)
+        assert f["charge"].shape == (n,)
+        assert "thread_id" in f["topology"]
+        assert "node_type" in f["topology"]
+        assert "edges" in f["topology"]
+        assert "renorm_factor" in f["turb"].attrs or "renorm_factor" in f["turb"]
+        assert f["outcome"].attrs["status"] == "timeout"
 
 
 @pytest.mark.slow

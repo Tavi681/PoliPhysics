@@ -1,0 +1,304 @@
+{
+  "git_commit": "",
+  "workers": 8,
+  "tab_wc_m10": "ok",
+  "T1": {
+    "pass": true,
+    "std_w": 0.2503112570933101,
+    "sigma": 0.25,
+    "rel": 0.0012450283732403644,
+    "renorm_factor": 1.018721534192087,
+    "n_seeds": 200
+  },
+  "T2": {
+    "pass": false,
+    "max_abs_dz0": 0.5207974380470829,
+    "n_outcome_match": 5,
+    "details": [
+      {
+        "i": 0,
+        "dz0_m": 0.2045975962334705,
+        "outcome_50": "fall",
+        "outcome_100": "fall",
+        "exit_50": 4.120999999999956,
+        "exit_100": 8.850999999999855,
+        "wall_50": 587.3850962679999,
+        "wall_100": 2552.254640139,
+        "match": true
+      },
+      {
+        "i": 1,
+        "dz0_m": 0.3860080468060899,
+        "outcome_50": "fall",
+        "outcome_100": "rise",
+        "exit_50": 29.28100000000178,
+        "exit_100": 15.740999999999708,
+        "wall_50": 2795.900304459,
+        "wall_100": 3981.945972746,
+        "match": false
+      },
+      {
+        "i": 2,
+        "dz0_m": 0.3747180787706526,
+        "outcome_50": "fall",
+        "outcome_100": "fall",
+        "exit_50": 2.2609999999999957,
+        "exit_100": 14.320999999999739,
+        "wall_50": 348.4403371469999,
+        "wall_100": 2837.955513327,
+        "match": true
+      },
+      {
+        "i": 3,
+        "dz0_m": 0.1823256308394206,
+        "outcome_50": "fall",
+        "outcome_100": "fall",
+        "exit_50": 4.480999999999948,
+        "exit_100": 3.1709999999999763,
+        "wall_50": 636.592089425,
+        "wall_100": 1096.1700853939997,
+        "match": true
+      },
+      {
+        "i": 4,
+        "dz0_m": 0.5207974380470829,
+        "outcome_50": "fall",
+        "outcome_100": "fall",
+        "exit_50": 12.950999999999768,
+        "exit_100": 13.870999999999748,
+        "wall_50": 1747.855523528,
+        "wall_100": 3452.1750383309995,
+        "match": true
+      },
+      {
+        "i": 5,
+        "dz0_m": 0.16369092686842385,
+        "outcome_50": "fall",
+        "outcome_100": "fall",
+        "exit_50": 6.530999999999905,
+        "exit_100": 6.980999999999895,
+        "wall_50": 906.6222205710001,
+        "wall_100": 1529.408506016,
+        "match": true
+      }
+    ]
+  },
+  "T3": {
+    "pass": true,
+    "max_abs_dz0": 0.00651095755628428,
+    "n_outcome_match": 6,
+    "dt_max_factor": 1.4546675148851733,
+    "dt_max": 0.01,
+    "estimate_dt_scale": 1.0,
+    "details": [
+      {
+        "i": 0,
+        "dz0_m": 0.0018498959705915419,
+        "outcome_01": "fall",
+        "outcome_005": "fall",
+        "wall_01": 583.9207680360005,
+        "wall_005": 943.1844265959999,
+        "ratio": 1.6152609707107553,
+        "match": true
+      },
+      {
+        "i": 1,
+        "dz0_m": 0.00651095755628428,
+        "outcome_01": "fall",
+        "outcome_005": "fall",
+        "wall_01": 2859.861234178,
+        "wall_005": 3861.369163038,
+        "ratio": 1.350194588776214,
+        "match": true
+      },
+      {
+        "i": 2,
+        "dz0_m": 0.004494186752005441,
+        "outcome_01": "fall",
+        "outcome_005": "fall",
+        "wall_01": 348.559292895,
+        "wall_005": 569.8987211089998,
+        "ratio": 1.6350122711566208,
+        "match": true
+      },
+      {
+        "i": 3,
+        "dz0_m": 0.0012062982683740398,
+        "outcome_01": "fall",
+        "outcome_005": "fall",
+        "wall_01": 635.2147843270004,
+        "wall_005": 1005.7373668310001,
+        "ratio": 1.5833028318076103,
+        "match": true
+      },
+      {
+        "i": 4,
+        "dz0_m": 0.0008430389704821017,
+        "outcome_01": "fall",
+        "outcome_005": "fall",
+        "wall_01": 1331.385588817,
+        "wall_005": 2017.7179598949997,
+        "ratio": 1.5155023284335223,
+        "match": true
+      },
+      {
+        "i": 5,
+        "dz0_m": 0.0016250267911278038,
+        "outcome_01": "fall",
+        "outcome_005": "fall",
+        "wall_01": 905.2501246889997,
+        "wall_005": 931.2598603719998,
+        "ratio": 1.028732098426317,
+        "match": true
+      }
+    ]
+  },
+  "T4": {
+    "pass": true,
+    "n_rows": 8,
+    "n_dup": 0,
+    "n_restarted": 4,
+    "hdf5_intact": 8,
+    "sample_hdf5": "/mnt/pd/tema1/new/results/b0_t4/ml_samples/N1_sw0.15_x+0_i0000.h5"
+  },
+  "T5": {
+    "pass": true,
+    "P": 0.425,
+    "P_lo": 0.28509392559950375,
+    "P_hi": 0.5780493145800892,
+    "P_dd": 0.25,
+    "n_up": 17,
+    "n_down": 23,
+    "n_timeout": 0,
+    "M": 40
+  },
+  "T6": {
+    "pass": true,
+    "file": "/mnt/pd/tema1/new/results/b0_t4/ml_samples/N1_sw0.15_x+0_i0000.h5",
+    "datasets": [
+      {
+        "path": "/charge",
+        "shape": [
+          51
+        ],
+        "dtype": "float32"
+      },
+      {
+        "path": "/t",
+        "shape": [
+          368
+        ],
+        "dtype": "float32"
+      },
+      {
+        "path": "/topology/edges",
+        "shape": [
+          50,
+          2
+        ],
+        "dtype": "int64"
+      },
+      {
+        "path": "/topology/node_type",
+        "shape": [
+          51
+        ],
+        "dtype": "object"
+      },
+      {
+        "path": "/topology/thread_id",
+        "shape": [
+          51
+        ],
+        "dtype": "int64"
+      },
+      {
+        "path": "/turb/a_n",
+        "shape": [
+          200,
+          3
+        ],
+        "dtype": "float32"
+      },
+      {
+        "path": "/turb/b_n",
+        "shape": [
+          200,
+          3
+        ],
+        "dtype": "float32"
+      },
+      {
+        "path": "/turb/k_n",
+        "shape": [
+          200,
+          3
+        ],
+        "dtype": "float32"
+      },
+      {
+        "path": "/turb/omega_n",
+        "shape": [
+          200
+        ],
+        "dtype": "float32"
+      },
+      {
+        "path": "/twist",
+        "shape": [
+          368,
+          50
+        ],
+        "dtype": "float32"
+      },
+      {
+        "path": "/u_air",
+        "shape": [
+          368,
+          51,
+          3
+        ],
+        "dtype": "float32"
+      },
+      {
+        "path": "/v",
+        "shape": [
+          368,
+          51,
+          3
+        ],
+        "dtype": "float32"
+      },
+      {
+        "path": "/x",
+        "shape": [
+          368,
+          51,
+          3
+        ],
+        "dtype": "float32"
+      }
+    ],
+    "dump": "file: /mnt/pd/tema1/new/results/b0_t4/ml_samples/N1_sw0.15_x+0_i0000.h5\n  /charge               shape=(51,)  dtype=float32\n  /outcome/  attrs=['R', 'V', 'entangled', 'exit_time', 'max_abs_u', 'mean_dt', 'min_dt', 'n_steps', 'newton_failures', 'status', 'steady_state', 'theta_L']\n  /params/  attrs=['E_constant', 'K', 'L', 'N', 'N_t', 'Q_s', 'Q_t', 'U_h', 'Y', 'adaptive_dt', 'charge_model', 'coulomb_include_spider', 'd0', 'delta', 'dt0', 'dt_max', 'dt_min', 'ell', 'entangle_contact_factor', 'eps', 'field_model', 'first_integral_beta', 'flow_model', 'flow_velocity', 'g', 'git_commit', 'h', 'k_e', 'lag_tangent', 'm', 'mu', 'nu', 'output_dt', 'r', 'r_s', 'release_mode', 'rho_t', 'sigma_w', 'stop_on_steady', 't_end', 't_w', 'turb_N_k', 'turb_lambda', 'turb_renormalize', 'turb_seed', 'use_alg2_stopping', 'z0']\n  /t                    shape=(368,)  dtype=float32\n  /topology/edges       shape=(50, 2)  dtype=int64\n  /topology/node_type   shape=(51,)  dtype=object\n  /topology/thread_id   shape=(51,)  dtype=int64\n  /turb/  attrs=['N_k', 'U_h', 'ell', 'energy_fraction', 'k_max', 'k_min_used', 'lambda', 'renorm_factor', 'seed', 'sigma_w', 'turb_renormalize']\n  /turb/a_n             shape=(200, 3)  dtype=float32\n  /turb/b_n             shape=(200, 3)  dtype=float32\n  /turb/k_n             shape=(200, 3)  dtype=float32\n  /turb/omega_n         shape=(200,)  dtype=float32\n  /twist                shape=(368, 50)  dtype=float32\n  /u_air                shape=(368, 51, 3)  dtype=float32\n  /v                    shape=(368, 51, 3)  dtype=float32\n  /x                    shape=(368, 51, 3)  dtype=float32\nmissing=none  no_/theta=True  PASS=True",
+    "missing": []
+  },
+  "estimate": {
+    "n_runs": 8600,
+    "n_b1": 8000,
+    "n_b2": 600,
+    "scale_Nt": 0.5,
+    "scale_dt": 1.0,
+    "scale_total": 0.5,
+    "cost_probe_mean_s": {
+      "1": 675.7149487728,
+      "2": 1754.4442739546,
+      "4": 2576.15476944,
+      "8": 6021.623079003801
+    },
+    "total_cpu_h": 3288.2074998404987,
+    "wall_32_workers_h": 102.79229606352287,
+    "wall_2x32_h": 51.41454257164225,
+    "wall_3x32_h": 34.297949682961516
+  },
+  "all_pass": false
+}

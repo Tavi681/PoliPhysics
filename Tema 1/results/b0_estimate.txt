@@ -1,0 +1,10 @@
+Stage B B0 cost estimate (no re-probe)
+B1+B2 runs: 8600 (B1=8000, B2=600)
+scale = 0.5 (N_t 100→50) × 1 (T3 dt_max) = 0.5
+total CPU  ≈ 3288.21 h
+wall @ 32 workers (1× c2-standard-32) ≈ 102.79 h
+wall @ 2×32 workers                     ≈ 51.41 h / machine
+wall @ 3×32 workers                     ≈ 34.30 h / machine
+cost-probe means (N_t=100): N=1:675.7s, N=2:1754.4s, N=4:2576.2s, N=8:6021.6s
+
+Do not launch B1/B2 until confirmed.

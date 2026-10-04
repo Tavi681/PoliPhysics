@@ -1,0 +1,13 @@
+Stage B B0 report
+git=  workers=8
+
+T1  PASS  {'std_w': 0.2503112570933101, 'sigma': 0.25, 'rel': 0.0012450283732403644, 'renorm_factor': 1.018721534192087, 'n_seeds': 200}
+T2  FAIL  {'max_abs_dz0': 0.5207974380470829, 'n_outcome_match': 5}
+T3  PASS  {'max_abs_dz0': 0.00651095755628428, 'n_outcome_match': 6, 'dt_max_factor': 1.4546675148851733, 'dt_max': 0.01, 'estimate_dt_scale': 1.0}
+T4  PASS  {'n_rows': 8, 'n_dup': 0, 'n_restarted': 4, 'hdf5_intact': 8, 'sample_hdf5': '/mnt/pd/tema1/new/results/b0_t4/ml_samples/N1_sw0.15_x+0_i0000.h5'}
+T5  PASS  {'P': 0.425, 'P_lo': 0.28509392559950375, 'P_hi': 0.5780493145800892, 'P_dd': 0.25, 'n_up': 17, 'n_down': 23, 'n_timeout': 0, 'M': 40}
+T6  PASS  {'file': '/mnt/pd/tema1/new/results/b0_t4/ml_samples/N1_sw0.15_x+0_i0000.h5', 'missing': []}
+
+VERDICT: FAIL
+Stop here. Do not launch B1/B2 until confirmed.
+

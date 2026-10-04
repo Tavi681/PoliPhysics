@@ -119,6 +119,12 @@ _VK_INTEGRAL = 0.5 * math.gamma(2.5) * math.gamma(1.0 / 3.0) / math.gamma(17.0 /
 # Log each unique renormalization factor once (factor is seed-independent).
 _RENORM_LOGGED: set[tuple] = set()
 
+# Stage B band is independent of the rod mesh. Reference: L=0.5 m, N_t=100
+# so dl = 0.005 m and k_max = 2 pi / (5 dl) = 251.327... 1/m. k_min = 0.1/ell.
+# Modes then depend only on (seed, sigma, ell, U_h, N_k, lambda).
+KS_REF_DL = 0.005
+KS_K_MAX = 2.0 * math.pi / (5.0 * KS_REF_DL)
+
 
 def von_karman_E(k, sigma: float, ell: float) -> np.ndarray:
     """von Karman energy spectrum E(k), Eq. (eq:vk).
@@ -141,22 +147,24 @@ class KinematicSimulation:
         x' = x - U_h t x_hat.
 
     Modes are ``N_k`` geometric wavenumber shells from ``k_min = 0.1/ell`` to
-    ``k_max = 2 pi / (5 dl)``, ``dl = L / N_t``. Directions ``k_hat`` are uniform on
-    the sphere; ``a_n, b_n`` are perpendicular to ``k_n`` (so div u = 0 exactly)
-    with random in-plane orientation and ``|a_n| = |b_n| = sqrt(2 E(k_n) dk_n)`` so
-    that ``(1/2) <|u - U_h x_hat|^2> = sum_n E(k_n) dk_n = (3/2) sigma^2`` (variance
+    ``k_max = 2 pi / (5 * 0.005 m) = 251.327 1/m`` (fixed; independent of the
+    rod mesh ``N_t``). Directions ``k_hat`` are uniform on the sphere; ``a_n, b_n``
+    are perpendicular to ``k_n`` (so div u = 0 exactly) with random in-plane
+    orientation and ``|a_n| = |b_n| = sqrt(2 E(k_n) dk_n)`` so that
+    ``(1/2) <|u - U_h x_hat|^2> = sum_n E(k_n) dk_n = (3/2) sigma^2`` (variance
     ``sigma^2`` per velocity component). ``omega_n = lambda sqrt(k_n^3 E(k_n))``.
 
-    All randomness comes from one ``numpy.random.Generator(seed)``. If the discrete
-    modes capture ``< energy_capture_min`` of ``(3/2) sigma^2``, ``k_min`` is halved
-    until the target is met; the value actually used is stored in ``k_min_used``.
+    All randomness comes from one ``numpy.random.Generator(seed)``. The discrete
+    modes therefore depend only on ``(seed, sigma, ell, U_h, N_k, lambda)``.
+    ``mesh_limited=True`` restores the older ``k_max = 2 pi / (5 L/N_t)`` band
+    (used only to reconstruct pre-fix T2 fields).
     """
 
     def __init__(self, sigma: float, ell: float, U_h: float = 0.0,
                  N_k: int = 100, seed: int = 0, L: float = 0.5, N_t: int = 100,
                  lambda_: float = 0.5, k_min_factor: float = 0.1,
                  k_max_dl_factor: float = 5.0, energy_capture_min: float = 0.98,
-                 renormalize: bool = False):
+                 renormalize: bool = False, mesh_limited: bool = False):
         self.sigma = float(sigma)
         self.ell = float(ell)
         self.U_h = float(U_h)
@@ -164,10 +172,14 @@ class KinematicSimulation:
         self.seed = int(seed)
         self.lambda_ = float(lambda_)
         self.renormalize = bool(renormalize)
+        self.mesh_limited = bool(mesh_limited)
 
-        dl = L / N_t
-        k_max = 2.0 * math.pi / (k_max_dl_factor * dl)
         k_min = k_min_factor / ell
+        if self.mesh_limited:
+            dl = L / N_t
+            k_max = 2.0 * math.pi / (k_max_dl_factor * dl)
+        else:
+            k_max = KS_K_MAX
 
         target = 1.5 * self.sigma ** 2
 
@@ -180,17 +192,16 @@ class KinematicSimulation:
             return frac, km, dkm
 
         fraction, k_mag, dk = _fraction(k_min)
-        # Lower k_min to capture more energy only if it can actually help. The
-        # low-k tail below k_min = 0.1/ell is O(1e-6) of the total, so any deficit
-        # here is the high-k tail beyond the mesh-limited k_max = 2 pi / (5 dl),
-        # which k_min cannot recover. Probe a very low floor: only descend if even
-        # that reaches the target (i.e. the deficit truly lives at low k).
-        k_floor = 1e-4 / ell
-        floor_fraction, _, _ = _fraction(k_floor)
-        if fraction < energy_capture_min and floor_fraction >= energy_capture_min:
-            while fraction < energy_capture_min and k_min > k_floor:
-                k_min *= 0.5
-                fraction, k_mag, dk = _fraction(k_min)
+        # Mesh-limited (legacy) path only: lower k_min if the missing energy is
+        # actually at low k. The Stage B default never does this, so the band
+        # stays k_min = 0.1/ell, k_max = KS_K_MAX for every N_t.
+        if self.mesh_limited:
+            k_floor = 1e-4 / ell
+            floor_fraction, _, _ = _fraction(k_floor)
+            if fraction < energy_capture_min and floor_fraction >= energy_capture_min:
+                while fraction < energy_capture_min and k_min > k_floor:
+                    k_min *= 0.5
+                    fraction, k_mag, dk = _fraction(k_min)
         self.k_min_used = float(k_min)
         self.k_max = float(k_max)
         self.energy_fraction = fraction
@@ -273,6 +284,26 @@ class KinematicSimulation:
         x = np.asarray(x, dtype=float)
         _, g = self._eval(x, t, want_grad=True)
         return g[0] if x.ndim == 1 else g
+
+    def largest_scale_index(self) -> int:
+        """Index of the smallest-|k| shell (largest spatial scale)."""
+        return int(np.argmin(self.k_mag))
+
+    def largest_scale_w(self, x: np.ndarray, t: float) -> float:
+        """Contribution of the largest-scale mode to w = u_z at ``x, t``."""
+        i = self.largest_scale_index()
+        x = np.atleast_1d(np.asarray(x, dtype=float)).reshape(3)
+        xp = x.copy()
+        xp[0] -= self.U_h * t
+        phase = float(np.dot(self.k[i], xp) + self.omega[i] * t)
+        return float(self.a[i, 2] * math.cos(phase) + self.b[i, 2] * math.sin(phase))
+
+    def modes_equal(self, other: "KinematicSimulation") -> bool:
+        """Exact equality of (k_n, a_n, b_n, omega_n)."""
+        return (np.array_equal(self.k, other.k)
+                and np.array_equal(self.a, other.a)
+                and np.array_equal(self.b, other.b)
+                and np.array_equal(self.omega, other.omega))
 
     def turb_metadata(self) -> dict:
         """Everything needed to reconstruct the field, for /turb in the HDF5 output."""
