@@ -36,13 +36,26 @@ __all__ = ["git_commit", "package_versions", "write_run"]
 
 
 def git_commit() -> str:
-    """Return the current git commit hash, or 'unknown'."""
+    """Return the current git commit hash, or 'unknown'.
+
+    Falls back to a ``COMMIT`` file next to the package (used on ephemeral VMs
+    that ship without a ``.git`` directory).
+    """
     try:
         out = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL)
         return out.decode().strip()
     except Exception:
-        return "unknown"
+        pass
+    try:
+        from pathlib import Path
+        for base in (Path.cwd(), Path(__file__).resolve().parents[1]):
+            p = base / "COMMIT"
+            if p.is_file():
+                return p.read_text().strip() or "unknown"
+    except Exception:
+        pass
+    return "unknown"
 
 
 def package_versions() -> dict:

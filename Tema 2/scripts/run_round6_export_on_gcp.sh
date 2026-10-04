@@ -12,6 +12,8 @@
 #
 # Optional env:
 #   INSTANCE ZONE MACHINE PREEMPTIBLE JOBS EXPECTED_PROJECT SERVICE_ACCOUNT
+#   DETACH=true  — start job then exit WITHOUT deleting the VM (safe to close laptop);
+#                  pull/delete manually when done.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"   # Tema 2/
@@ -20,6 +22,7 @@ INSTANCE="${INSTANCE:-poliphysics-tema2-r6}"
 ZONE="${ZONE:-us-central1-a}"
 MACHINE="${MACHINE:-c2-standard-16}"
 PREEMPTIBLE="${PREEMPTIBLE:-true}"          # spot-like; set false for on-demand
+DETACH="${DETACH:-false}"                   # true: leave VM running, no local poll
 JOBS="${JOBS:-16}"
 EXPECTED_PROJECT="${EXPECTED_PROJECT:-authorship-verification}"
 REMOTE_DIR="${REMOTE_DIR:-/home/octav/tema2}"
@@ -33,7 +36,7 @@ export CLOUDSDK_CORE_DISABLE_PROMPTS=1
 PROJECT="$(gcloud config get-value project 2>/dev/null || true)"
 ACCOUNT="$(gcloud config get-value account 2>/dev/null || true)"
 echo "gcloud account: ${ACCOUNT:-<none>} | project: ${PROJECT:-<none>} | zone: ${ZONE} | instance: ${INSTANCE}"
-echo "machine: ${MACHINE} preemptible=${PREEMPTIBLE} jobs=${JOBS}"
+echo "machine: ${MACHINE} preemptible=${PREEMPTIBLE} detach=${DETACH} jobs=${JOBS}"
 
 if [[ -z "${PROJECT}" || "${PROJECT}" != "${EXPECTED_PROJECT}" ]]; then
   echo "ERROR: need project ${EXPECTED_PROJECT}, got '${PROJECT:-<none>}'" >&2
@@ -46,11 +49,16 @@ if gcloud compute instances describe "${INSTANCE}" --zone="${ZONE}" &>/dev/null;
 fi
 
 TAR=""
+DELETE_ON_EXIT=1
 cleanup() {
   local ec=$?
   rm -f "${TAR}"
-  echo "Deleting instance ${INSTANCE} in ${ZONE} (mandatory cleanup)..."
-  gcloud compute instances delete "${INSTANCE}" --zone="${ZONE}" --quiet || true
+  if [[ "${DELETE_ON_EXIT}" == "1" ]]; then
+    echo "Deleting instance ${INSTANCE} in ${ZONE} (mandatory cleanup)..."
+    gcloud compute instances delete "${INSTANCE}" --zone="${ZONE}" --quiet || true
+  else
+    echo "Leaving instance ${INSTANCE} running (DETACH/no-delete)."
+  fi
   return "${ec}"
 }
 trap cleanup EXIT
@@ -86,13 +94,17 @@ done
 echo "Transferring Tema 2 package (no .venv / mmin cache)..."
 gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="mkdir -p ${REMOTE_DIR}"
 
+# Provenance for the VM (no .git in the tarball).
+git -C "${REPO}" rev-parse HEAD > "${ROOT}/COMMIT" 2>/dev/null || echo "unknown" > "${ROOT}/COMMIT"
+echo "Packed commit: $(cat "${ROOT}/COMMIT")"
+
 TAR="${TMPDIR:-/tmp}/tema2_r6_$$.tgz"
 tar -C "${ROOT}" -czf "${TAR}" \
   --exclude='.venv' --exclude='__pycache__' --exclude='.pytest_cache' \
   --exclude='.cache' --exclude='paper_results/*.h5' \
   --exclude='paper_results/fig_phase_maps/*.h5' \
   --exclude='*.egg-info' \
-  netsim validation tests configs ref pyproject.toml paper_results
+  netsim validation tests configs ref pyproject.toml paper_results COMMIT
 
 gcloud compute scp "${TAR}" "${INSTANCE}:/tmp/tema2.tgz" --zone="${ZONE}"
 gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="
@@ -123,7 +135,19 @@ gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="
   echo NOHUP_PID=\$(cat ${REMOTE_DIR}/job.pid)
 "
 
-echo "Polling for ${REMOTE_DIR}/paper_results/_ROUND6_DONE (touched at end)..."
+if [[ "${DETACH}" == "true" ]]; then
+  DELETE_ON_EXIT=0
+  echo "DETACH=true: export running on ${INSTANCE}; local script exits."
+  echo "Status:"
+  echo "  gcloud compute ssh ${INSTANCE} --zone=${ZONE} --command='tail -n 20 ${REMOTE_DIR}/round6_export.log; ps -p \$(cat ${REMOTE_DIR}/job.pid) || echo DONE'"
+  echo "Pull + delete when finished:"
+  echo "  gcloud compute scp --recurse ${INSTANCE}:${REMOTE_DIR}/paper_results/. \"${LOCAL_RESULTS}/\" --zone=${ZONE}"
+  echo "  gcloud compute scp ${INSTANCE}:${REMOTE_DIR}/round6_export.log \"${LOCAL_LOG}\" --zone=${ZONE}"
+  echo "  gcloud compute instances delete ${INSTANCE} --zone=${ZONE} --quiet"
+  exit 0
+fi
+
+echo "Polling for export completion..."
 # export_paper has no _DONE file — watch the log for completion + dead process.
 while true; do
   if gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="
