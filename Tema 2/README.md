@@ -272,6 +272,28 @@ arrival).
 - **Phase maps.** Regenerated at `m^{B_any}_min` with `break_order` and
   `drone_*_break` columns.
 
+### Round-7 notes (binding points, n_s, Smith)
+
+- **`tab_mmin.csv` binding columns.** Each criterion X ∈ {A, Bany, Bloc025,
+  Bloc050, Bloc075} now reports `worst_p_*_X`, `n_broken_X` at the X-binding
+  point, `n_broken_X_at_Aworst` at `(0.5, 0)`, and `outcome_below_X` just
+  below `m^X_min`. CSV headers take `GIT_COMMIT` / `CODE_DIRTY` from the
+  environment when set (used on the ephemeral VM).
+- **Phase maps.** Written for star and star+ring, S and D, at the A-worst
+  impact `(0.5, 0)` with the global `s_Bany`. See
+  `paper_results/fig_phase_maps/phase_maps_note.txt` if a map has no broken
+  segments.
+- **`n_s` resolution.** Paper spacing wants `n_s ≥ 27`. Default export stays
+  at `n_s=10` unless `paper_results/ns_check.json` reports a >3% change in
+  star S/D `mA` / `mBany` at `n_s=40`. That comparison (and a timing
+  extrapolation) is produced by `python -m validation.round7_ns`.
+- **Smith S@500.** The mid-node Verlet overshoot at C=0.4 broke the chain
+  (plateau median ~0). `run_smith` now uses C=0.2 for S at v0≥400 and
+  retries at C/2 if any segment fails. `fig_smith.csv` is S@300 and D@500
+  with `material,v0` columns.
+- **Light HDF5 pilot.** `paper_results/runs_round7/` plus
+  `runs_round7_index.csv`; time series decimated to ≤50 frames.
+
 Run the pytest suite:
 
 ```bash

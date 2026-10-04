@@ -18,6 +18,36 @@ def test_write_header_and_columns(tmp_path, monkeypatch):
     assert text[2] == "1,2"
 
 
+def test_select_light_frames_caps_and_keeps_ends():
+    from types import SimpleNamespace
+    import numpy as np
+    from netsim.io_hdf5 import select_light_frames
+
+    n = 200
+    t = np.linspace(0.0, 1.0, n)
+    energy = np.zeros((n, 6))
+    energy[20, 4] = 1.0
+    drone = np.zeros((n, 6))
+    drone[:40, 5] = -1.0
+    drone[40:, 5] = 0.1
+    failures = np.array([[0, 0, t[80]]])
+    traj = SimpleNamespace(t=t, energy=energy, drone=drone, failures=failures)
+    idx = select_light_frames(traj, max_frames=50)
+    assert idx[0] == 0 and idx[-1] == n - 1
+    assert len(idx) <= 50
+    assert 20 in idx and 40 in idx and 80 in idx
+
+
+def test_header_uses_env_provenance(tmp_path, monkeypatch):
+    monkeypatch.setattr(ep, "OUT_DIR", tmp_path)
+    monkeypatch.setattr(ep, "_COMMIT", "deadbeef")
+    monkeypatch.setattr(ep, "_CODE_DIRTY", False)
+    path = ep._write("prov.csv", ["a"], [{"a": 1}], config="unit")
+    hdr = path.read_text().splitlines()[0]
+    assert "commit=deadbeef" in hdr
+    assert "code_dirty=false" in hdr
+
+
 def test_params_used_columns(tmp_path, monkeypatch):
     monkeypatch.setattr(ep, "OUT_DIR", tmp_path)
     path = ep.export_params_used()

@@ -20,6 +20,14 @@ def test_smith_strain(v0):
     assert r["eps_num"] == pytest.approx(r["eps_ana"], rel=0.03)
 
 
+def test_smith_S_500_does_not_collapse():
+    r = run_smith(500.0, material_name="S", n_resolved=400)
+    assert r["traj"].failures.size == 0
+    assert r["eps_num"] == pytest.approx(r["eps_ana"], rel=0.05)
+    assert r["kink_relerr"] < 0.08
+    assert r["front_relerr"] < 0.12
+
+
 def test_smith_front_and_kink():
     r = run_smith(300.0, material_name="S", n_resolved=400)
     assert r["front_num"] == pytest.approx(r["front_ana"], rel=0.08)

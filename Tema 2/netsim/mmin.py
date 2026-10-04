@@ -87,6 +87,8 @@ class MminResult:
     s_min_first_pass: Optional[float] = None
     s_min_all_pass: Optional[float] = None
     scan_pattern: Optional[list] = None
+    # Last failing scale at the worst point (just below the passing bracket).
+    s_below: Optional[float] = None
 
 
 def analytical_s0(cfg: SimConfig) -> float:
@@ -293,7 +295,7 @@ def evaluate(cfg: SimConfig, s: float, point, mmincfg: MminConfig,
 
 
 def _bisect_bracket(cfg, point, mmincfg, point_idx, s_lo, s_hi, hi_info):
-    """Bisection on [s_lo (fail), s_hi (pass)]; returns (s_hi, hi_info, n_eval)."""
+    """Bisection on [s_lo (fail), s_hi (pass)]; returns (s_hi, hi_info, n, s_lo)."""
     n_eval = 0
     it = 0
     while (s_hi - s_lo) / s_hi > mmincfg.tol and it < mmincfg.max_bisect:
@@ -305,7 +307,7 @@ def _bisect_bracket(cfg, point, mmincfg, point_idx, s_lo, s_hi, hi_info):
         else:
             s_lo = s_mid
         it += 1
-    return s_hi, hi_info, n_eval
+    return s_hi, hi_info, n_eval, s_lo
 
 
 def _minimum_mass_point_A(cfg, point, mmincfg, point_idx, s0) -> dict:
@@ -336,13 +338,13 @@ def _minimum_mass_point_A(cfg, point, mmincfg, point_idx, s0) -> dict:
             lo_info = evaluate(cfg, s_lo, point, mmincfg, point_idx)
             n_eval += 1
 
-    s_hi, hi_info, n_bis = _bisect_bracket(
+    s_hi, hi_info, n_bis, s_lo = _bisect_bracket(
         cfg, point, mmincfg, point_idx, s_lo, s_hi, hi_info)
     n_eval += n_bis
     return {"point": tuple(point), "point_idx": point_idx, "s_min": s_hi,
             "info": hi_info, "evaluations": n_eval,
             "s_min_first_pass": s_hi, "s_min_all_pass": s_hi,
-            "scan_pattern": None}
+            "scan_pattern": None, "s_below": float(s_lo)}
 
 
 def _minimum_mass_point_B(cfg, point, mmincfg, point_idx, s0) -> dict:
@@ -396,7 +398,7 @@ def _minimum_mass_point_B(cfg, point, mmincfg, point_idx, s0) -> dict:
         return {"point": tuple(point), "point_idx": point_idx, "s_min": s_hi,
                 "info": info_hi, "evaluations": n_eval,
                 "s_min_first_pass": None, "s_min_all_pass": None,
-                "scan_pattern": pattern}
+                "scan_pattern": pattern, "s_below": float(s_lo)}
 
     i_pass = next(i for i, ok in enumerate(pattern) if ok)
     s_pass = float(s_values[i_pass])
@@ -413,14 +415,14 @@ def _minimum_mass_point_B(cfg, point, mmincfg, point_idx, s0) -> dict:
         info_pass = infos[i_all]
         s_fail = float(s_values[i_all - 1]) if i_all > 0 else 0.5 * s_pass
 
-    s_bis, info_bis, n_bis = _bisect_bracket(
+    s_bis, info_bis, n_bis, s_lo_b = _bisect_bracket(
         cfg, point, mmincfg, point_idx, s_fail, s_pass, info_pass)
     n_eval += n_bis
 
     return {"point": tuple(point), "point_idx": point_idx, "s_min": s_bis,
             "info": info_bis, "evaluations": n_eval,
             "s_min_first_pass": first_pass, "s_min_all_pass": all_pass,
-            "scan_pattern": pattern}
+            "scan_pattern": pattern, "s_below": float(s_lo_b)}
 
 
 def minimum_mass_point(args) -> dict:
@@ -457,6 +459,7 @@ def minimum_mass(cfg: SimConfig, mmincfg: MminConfig,
     if s_cap is not None:
         for r in results:
             if r["s_min"] > s_cap:
+                r["s_below"] = float(r.get("s_below", 0.995 * s_cap))
                 r["s_min"] = float(s_cap)
                 r["info"] = evaluate(cfg, float(s_cap), r["point"], mmincfg,
                                      r["point_idx"])
@@ -482,6 +485,7 @@ def minimum_mass(cfg: SimConfig, mmincfg: MminConfig,
         s_min_first_pass=worst.get("s_min_first_pass"),
         s_min_all_pass=worst.get("s_min_all_pass"),
         scan_pattern=worst.get("scan_pattern"),
+        s_below=worst.get("s_below"),
     )
 
 

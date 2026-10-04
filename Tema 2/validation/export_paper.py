@@ -207,20 +207,26 @@ def export_smith_conv():
 def export_fig_smith():
     from validation.test1_smith import run_smith
     rows = []
-    for frac in (0.35, 0.45, 0.55):
-        r = run_smith(500.0, material_name="S", n_resolved=400, frac_time=frac)
-        tt = r["t"]
-        xf = r["traj"].x[-1]
-        edges = r["edges"]
-        xs = r["xs"]
-        Lx = r["Lx"]
-        Xseg = 0.5 * (xs[:-1] + xs[1:]) - Lx / 2
-        right = Xseg > 0
-        mids = 0.5 * (xf[edges[:, 0]] + xf[edges[:, 1]])[right]
-        for X, eps, mid in zip(r["X"], r["eps_profile"], mids):
-            rows.append({"t": f"{tt:.6g}", "X": f"{X:.6g}", "eps": f"{eps:.6g}",
-                         "x": f"{mid[0]:.6g}", "y": f"{mid[2]:.6g}"})
-    return _write("fig_smith.csv", ["t", "X", "eps", "x", "y"], rows,
+    # S@300 and D@500; frac_time keeps both fronts inside the half-thread.
+    for mat, v0 in (("S", 300.0), ("D", 500.0)):
+        for frac in (0.35, 0.45, 0.55):
+            r = run_smith(v0, material_name=mat, n_resolved=400, frac_time=frac)
+            tt = r["t"]
+            xf = r["traj"].x[-1]
+            edges = r["edges"]
+            xs = r["xs"]
+            Lx = r["Lx"]
+            Xseg = 0.5 * (xs[:-1] + xs[1:]) - Lx / 2
+            right = Xseg > 0
+            mids = 0.5 * (xf[edges[:, 0]] + xf[edges[:, 1]])[right]
+            for X, eps, mid in zip(r["X"], r["eps_profile"], mids):
+                rows.append({
+                    "material": mat, "v0": f"{v0:.6g}",
+                    "t": f"{tt:.6g}", "X": f"{X:.6g}", "eps": f"{eps:.6g}",
+                    "x": f"{mid[0]:.6g}", "y": f"{mid[2]:.6g}",
+                })
+    return _write("fig_smith.csv",
+                  ["material", "v0", "t", "X", "eps", "x", "y"], rows,
                   config="test1_smith")
 
 
@@ -539,39 +545,86 @@ def export_mmin_monotone():
                   config="mmin")
 
 
+_A_WORST = (0.5, 0.0)
+_MMIN_CRIT_KEYS = ("A", "Bany", "Bloc025", "Bloc050", "Bloc075")
+
+
+def _mmin_row_cols():
+    cols = ["net", "material", "M", "v0", "Ekin", "m_lower_g",
+            "mA_min_g", "mBany_min_g", "mBloc025_min_g", "mBloc050_min_g",
+            "mBloc075_min_g", "ratio_Bany", "ratio_Bloc025", "ratio_Bloc050",
+            "ratio_Bloc075", "mA_over_Ekin_g_per_J",
+            "n_broken_A", "n_broken_Bany", "n_broken_Bloc025",
+            "n_broken_Bloc050", "n_broken_Bloc075",
+            "worst_p_x", "worst_p_y"]
+    for key in _MMIN_CRIT_KEYS:
+        cols += [f"worst_p_x_{key}", f"worst_p_y_{key}",
+                 f"n_broken_{key}_at_Aworst", f"outcome_below_{key}"]
+    return cols
+
+
 def _mmin_case(job):
-    """One (net, material, M, v0, full) row for tab_mmin — process-pool worker."""
-    net_kind, mat, M, v0, full = job
-    from netsim.mmin import MminConfig, minimum_mass
+    """One (net, material, M, v0, full[, n_s]) row — process-pool worker."""
+    if len(job) == 6:
+        net_kind, mat, M, v0, full, n_s = job
+    else:
+        net_kind, mat, M, v0, full = job
+        n_s = 10 if full else 8
+    from netsim.mmin import MminConfig, minimum_mass, evaluate
     from netsim.simulate import build_net
 
     m = get_material(mat)
     pts = [(0.0, 0.0), (0.25, 0.0), (0.5, 0.0)]
     R = 1.0
-    cfg = _mmin_cfg(mat, M, v0, net_kind=net_kind, n_s=10 if full else 8)
+    cfg = _mmin_cfg(mat, M, v0, net_kind=net_kind, n_s=int(n_s))
     net = build_net(cfg)
     Ekin = 0.5 * M * v0 ** 2
     m_lower = Ekin / m.e_mat
     # A: 8% bisection; B variants: scan then local bisection to 1%.
     tol_A, tol_B = 0.08, 0.01
-    cache = str(_MMIN_CACHE / f"{net_kind}_{mat}_M{M:g}_v{v0:g}")
+    cache = str(_MMIN_CACHE / f"{net_kind}_{mat}_M{M:g}_v{v0:g}_ns{int(n_s)}")
     mmA = MminConfig(criterion="A", tol=tol_A, impact_points=pts, n_procs=1,
                      cache_dir=cache)
     rA = minimum_mass(cfg, mmA)
-    # Same absolute scale for all B variants; cap each at s^A so mB <= mA.
-    # n_broken_* comes from the run at exactly m^X_min (passing bracket end).
     mm_any = MminConfig(criterion="B_any", tol=tol_B, impact_points=pts,
                         n_procs=1, n_scan=24, cache_dir=cache)
     r_any = minimum_mass(cfg, mm_any, s_cap=rA.s_min)
     blocs = {}
-    n_broken = {"B_any": r_any.n_failures}
     for frac in (0.25, 0.5, 0.75):
         mm = MminConfig(criterion="B_loc", tol=tol_B, impact_points=pts,
                         n_procs=1, n_scan=24, R_max=frac * R,
                         cache_dir=cache)
-        rb = minimum_mass(cfg, mm, s_cap=rA.s_min)
-        blocs[frac] = rb
-        n_broken[f"B_loc{int(100*frac):03d}"] = rb.n_failures
+        blocs[frac] = minimum_mass(cfg, mm, s_cap=rA.s_min)
+
+    named = {
+        "A": (mmA, rA),
+        "Bany": (mm_any, r_any),
+        "Bloc025": (MminConfig(criterion="B_loc", tol=tol_B, impact_points=pts,
+                               n_procs=1, n_scan=24, R_max=0.25 * R,
+                               cache_dir=cache), blocs[0.25]),
+        "Bloc050": (MminConfig(criterion="B_loc", tol=tol_B, impact_points=pts,
+                               n_procs=1, n_scan=24, R_max=0.5 * R,
+                               cache_dir=cache), blocs[0.5]),
+        "Bloc075": (MminConfig(criterion="B_loc", tol=tol_B, impact_points=pts,
+                               n_procs=1, n_scan=24, R_max=0.75 * R,
+                               cache_dir=cache), blocs[0.75]),
+    }
+
+    extra = {}
+    for key, (mm, rx) in named.items():
+        wp = rx.worst_point
+        extra[f"worst_p_x_{key}"] = f"{wp[0]:.6g}"
+        extra[f"worst_p_y_{key}"] = f"{wp[1]:.6g}"
+        info_aw = evaluate(cfg, float(rx.s_min), _A_WORST, mm, 2)
+        extra[f"n_broken_{key}_at_Aworst"] = int(info_aw["n_failures"])
+        s_lo = rx.s_below if rx.s_below is not None else 0.99 * rx.s_min
+        if s_lo >= rx.s_min:
+            s_lo = 0.99 * rx.s_min
+        wp_idx = next((i for i, q in enumerate(pts)
+                       if abs(q[0] - wp[0]) < 1e-12
+                       and abs(q[1] - wp[1]) < 1e-12), 0)
+        info_lo = evaluate(cfg, float(s_lo), wp, mm, wp_idx)
+        extra[f"outcome_below_{key}"] = info_lo.get("outcome", "")
 
     def g(x):
         return 1e3 * x
@@ -580,9 +633,8 @@ def _mmin_case(job):
         return rA.m_min / mb if mb > 0 else float("nan")
 
     mA = rA.m_min
-    # worst_p is the criterion-A worst impact point (matches mA_min).
     worst = rA.worst_point
-    return {
+    row = {
         "net": net_kind, "material": mat, "M": f"{M:.6g}", "v0": f"{v0:.6g}",
         "Ekin": f"{Ekin:.6g}",
         "m_lower_g": f"{g(m_lower):.6g}",
@@ -596,16 +648,25 @@ def _mmin_case(job):
         "ratio_Bloc050": f"{ratio(blocs[0.5].m_min):.6g}",
         "ratio_Bloc075": f"{ratio(blocs[0.75].m_min):.6g}",
         "mA_over_Ekin_g_per_J": f"{(g(mA)/Ekin):.6g}",
-        "n_broken_Bany": n_broken["B_any"],
-        "n_broken_Bloc025": n_broken["B_loc025"],
-        "n_broken_Bloc050": n_broken["B_loc050"],
-        "n_broken_Bloc075": n_broken["B_loc075"],
+        "n_broken_A": rA.n_failures,
+        "n_broken_Bany": r_any.n_failures,
+        "n_broken_Bloc025": blocs[0.25].n_failures,
+        "n_broken_Bloc050": blocs[0.5].n_failures,
+        "n_broken_Bloc075": blocs[0.75].n_failures,
         "worst_p_x": f"{worst[0]:.6g}",
         "worst_p_y": f"{worst[1]:.6g}",
     }
+    row.update(extra)
+    print(
+        f"    [tab_mmin] {net_kind} {mat} M={M:g} v0={v0:g} n_s={n_s} "
+        f"mA={g(mA):.4g}g A@({worst[0]:.2f},{worst[1]:.2f}) "
+        f"Bany@({r_any.worst_point[0]:.2f},{r_any.worst_point[1]:.2f}) "
+        f"nB={r_any.n_failures} nB_Aworst={extra['n_broken_Bany_at_Aworst']}",
+        flush=True)
+    return row
 
 
-def export_mmin(full=False):
+def export_mmin(full=False, n_s=None, nets=None, name="tab_mmin.csv"):
     # Star and star+ring at eps_p = 0.1 eps_b; full (M,v0) grid with --full.
     if full:
         grid = [(0.25, 10.0), (0.25, 15.0), (0.25, 20.0),
@@ -613,18 +674,16 @@ def export_mmin(full=False):
                 (2.0, 10.0), (2.0, 15.0), (2.0, 20.0)]
     else:
         grid = [(0.25, 20.0), (2.0, 20.0)]
-    jobs = [(net, mat, M, v0, full)
-            for net in ("star", "star+ring")
+    if n_s is None:
+        n_s = 10 if full else 8
+    if nets is None:
+        nets = ("star", "star+ring")
+    jobs = [(net, mat, M, v0, full, n_s)
+            for net in nets
             for mat in ("S", "D")
             for M, v0 in grid]
-    rows = _parallel_map(_mmin_case, jobs, desc="tab_mmin")
-    cols = ["net", "material", "M", "v0", "Ekin", "m_lower_g",
-            "mA_min_g", "mBany_min_g", "mBloc025_min_g", "mBloc050_min_g",
-            "mBloc075_min_g", "ratio_Bany", "ratio_Bloc025", "ratio_Bloc050",
-            "ratio_Bloc075", "mA_over_Ekin_g_per_J",
-            "n_broken_Bany", "n_broken_Bloc025", "n_broken_Bloc050",
-            "n_broken_Bloc075", "worst_p_x", "worst_p_y"]
-    return _write("tab_mmin.csv", cols, rows, config="mmin")
+    rows = _parallel_map(_mmin_case, jobs, desc=name)
+    return _write(name, _mmin_row_cols(), rows, config="mmin")
 
 
 # --------------------------------------------------------------------------- #
@@ -699,88 +758,259 @@ def export_dyn_runs(full=False):
     return _write("dyn_runs.csv", cols, rows, config="dyn")
 
 
+def _phase_break_rows(res):
+    traj = res.trajectory
+    break_info = {}
+    if traj.failures.size:
+        order = np.argsort(traj.failures[:, 2])
+        dxy = traj.failure_drone_xy
+        for k, idx in enumerate(order):
+            parent = int(traj.failures[idx, 1])
+            t_b = float(traj.failures[idx, 2])
+            if parent not in break_info:
+                dx = float(dxy[idx, 0]) if dxy.shape[0] > idx else float("nan")
+                dy = float(dxy[idx, 1]) if dxy.shape[0] > idx else float("nan")
+                break_info[parent] = (t_b, k + 1, dx, dy)
+    net = res.net
+    seg_rows = []
+    for e in range(net.n_e):
+        i, j = int(net.edges[e, 0]), int(net.edges[e, 1])
+        x1, y1 = net.nodes[i]
+        x2, y2 = net.nodes[j]
+        info = break_info.get(e)
+        seg_rows.append({
+            "seg": e, "parent": e, "x1": f"{x1:.6g}",
+            "y1": f"{y1:.6g}", "x2": f"{x2:.6g}", "y2": f"{y2:.6g}",
+            "broken": bool(info is not None),
+            "t_break": (f"{info[0]:.6g}" if info else ""),
+            "break_order": (f"{info[1]}" if info else ""),
+            "drone_x_break": (f"{info[2]:.6g}" if info else ""),
+            "drone_y_break": (f"{info[3]:.6g}" if info else ""),
+        })
+    return seg_rows, break_info
+
+
+def _s_bany_for(net_kind, mat, M=1.0, v0=20.0, n_s=10):
+    from netsim.mmin import MminConfig, minimum_mass
+    pts = [(0.0, 0.0), (0.25, 0.0), (0.5, 0.0)]
+    cfg = _mmin_cfg(mat, M, v0, net_kind=net_kind, n_s=n_s)
+    cache = str(_MMIN_CACHE / f"{net_kind}_{mat}_M{M:g}_v{v0:g}_ns{n_s}")
+    mmA = MminConfig(criterion="A", tol=0.08, impact_points=pts, n_procs=1,
+                     cache_dir=cache)
+    rA = minimum_mass(cfg, mmA)
+    mmB = MminConfig(criterion="B_any", tol=0.01, impact_points=pts,
+                     n_procs=1, n_scan=24, cache_dir=cache)
+    rB = minimum_mass(cfg, mmB, s_cap=rA.s_min)
+    return rB, rA
+
+
 def export_phase_maps():
-    """Write maps at ``m^{B_any}_min`` for S and D (same net / impact)."""
+    """Maps at global ``s_Bany`` and the A-worst impact (0.5, 0)."""
     from netsim.config import (SimConfig, MaterialConfig, NetConfig,
                                DroneConfig, NumericsConfig, ContactConfig,
                                OutputConfig)
-    from netsim.mmin import MminConfig, minimum_mass
     from netsim.simulate import simulate_config
     d = OUT_DIR / "fig_phase_maps"
     d.mkdir(parents=True, exist_ok=True)
-    written = []
-    for mat in ("S", "D"):
-        run_name = f"phase_{mat}"
-        h5 = str(d / f"{run_name}.h5")
-        # Find mBany at the paper impact (M=1, v0=20, a=0.25) on star+ring.
-        from dataclasses import replace as dc_replace
-        cfg0 = _mmin_cfg(mat, 1.0, 20.0, net_kind="star+ring", n_s=10)
-        cfg0 = dc_replace(cfg0, drone=dc_replace(cfg0.drone, p=(0.25, 0.0)))
-        mmA = MminConfig(criterion="A", tol=0.08, impact_points=[(0.25, 0.0)])
-        rA = minimum_mass(cfg0, mmA)
-        mmB = MminConfig(criterion="B_any", tol=0.08,
-                         impact_points=[(0.25, 0.0)], n_scan=24)
-        rB = minimum_mass(cfg0, mmB, s_cap=rA.s_min)
-        s_map = rB.s_min
-        ep = 0.1 * get_material(mat).eps_b
+    notes = []
+    for net_kind in ("star", "star+ring"):
+        for mat in ("S", "D"):
+            run_name = f"phase_{net_kind.replace('+', '_')}_{mat}"
+            h5 = str(d / f"{run_name}.h5")
+            rB, rA = _s_bany_for(net_kind, mat, M=1.0, v0=20.0, n_s=10)
+            s_map = rB.s_min
+            p = _A_WORST
+            ep = 0.1 * get_material(mat).eps_b
+            net_cfg = (NetConfig(kind="star_with_rings", N=8, R=1.0, eps_p=ep,
+                                 A_hat=1e-6, radii=[0.5, 1.0], q_ratio=1.0,
+                                 fix_radii=True)
+                       if net_kind == "star+ring"
+                       else NetConfig(kind="star", N=8, R=1.0, eps_p=ep,
+                                      A_hat=1e-6))
+            cfg = SimConfig(
+                material=MaterialConfig(name=mat),
+                net=net_cfg,
+                drone=DroneConfig(M=1.0, r_d=0.15, v0=20.0, p=p),
+                numerics=NumericsConfig(n_s=10, C=0.5, t_end=0.25, dt_out=5e-3,
+                                        area_scale=float(s_map),
+                                        use_numba=True),
+                contact=ContactConfig(mode="gripped", k_c=1e7,
+                                      k_c_mode=("relative" if mat == "D"
+                                                else "absolute"),
+                                      k_c_factor=8.0,
+                                      penetration_guard="reduce_dt"),
+                output=OutputConfig(hdf5=h5, hdf5_light=True,
+                                    hdf5_max_frames=50, R_max=0.5, k_max=10),
+            )
+            res = simulate_config(cfg, write=True)
+            seg_rows, break_info = _phase_break_rows(res)
+            n_broken = sum(1 for r in seg_rows if r["broken"] in (True, "True"))
+            why = ""
+            if n_broken == 0:
+                why = (f"no broken segs at A-worst {p} with global s_Bany="
+                       f"{s_map:.6g} (B-bind {rB.worst_point}, "
+                       f"A-bind {rA.worst_point}, n_fail={res.n_failures}, "
+                       f"outcome={res.outcome}); s_Bany is set by a different "
+                       f"impact than (0.5, 0), so this thicker net can pass A")
+                notes.append(f"{run_name}: {why}")
+            print(f"    [phase] {run_name} s_Bany={s_map:.4g} "
+                  f"B@({rB.worst_point[0]:.2f},{rB.worst_point[1]:.2f}) "
+                  f"broken={n_broken} outcome={res.outcome}", flush=True)
+            with open(d / f"segments_{run_name}.csv", "w", newline="") as fh:
+                fh.write(f"# commit={_COMMIT} date={_DATE} config=phase "
+                         f"net={net_kind} s_Bany={s_map:.6g} "
+                         f"impact=({p[0]:.2f},{p[1]:.2f}) "
+                         f"B_bind=({rB.worst_point[0]:.4g},"
+                         f"{rB.worst_point[1]:.4g}) "
+                         f"n_broken={n_broken} code_dirty="
+                         f"{_header_dirty_flag()}\n")
+                if why:
+                    fh.write(f"# note={why}\n")
+                w = csv.DictWriter(
+                    fh, fieldnames=["seg", "parent", "x1", "y1", "x2", "y2",
+                                    "broken", "t_break", "break_order",
+                                    "drone_x_break", "drone_y_break"])
+                w.writeheader()
+                w.writerows(seg_rows)
+    if notes:
+        (d / "phase_maps_note.txt").write_text("\n".join(notes) + "\n")
+    else:
+        (d / "phase_maps_note.txt").write_text(
+            "broken segments present at A-worst (0.5, 0) for all four maps\n")
+    return d
+
+
+def _t_first_contact(traj):
+    energy = getattr(traj, "energy", None)
+    if energy is None or np.asarray(energy).size == 0:
+        return float("nan")
+    uc = np.asarray(energy)[:, 4]
+    hit = np.nonzero(uc > 0)[0]
+    return float(traj.t[int(hit[0])]) if hit.size else float("nan")
+
+
+def _t_arrest(traj):
+    drone = getattr(traj, "drone", None)
+    if drone is None or not np.isfinite(drone).any():
+        return float("nan")
+    vz = np.asarray(drone)[:, 5]
+    seen_neg = False
+    for i, vzi in enumerate(vz):
+        if not np.isfinite(vzi):
+            continue
+        if vzi < 0:
+            seen_neg = True
+        elif seen_neg:
+            return float(traj.t[i])
+    return float("nan")
+
+
+def export_runs_round7():
+    """Light HDF5 pilot: phase-map cases plus a few dyn rows."""
+    import time
+    from netsim.config import (SimConfig, MaterialConfig, NetConfig,
+                               DroneConfig, NumericsConfig, ContactConfig,
+                               OutputConfig)
+    from netsim.simulate import simulate_config
+    d = OUT_DIR / "runs_round7"
+    d.mkdir(parents=True, exist_ok=True)
+    rows = []
+    write_s = 0.0
+    sim_s = 0.0
+    skip_dyn = False
+
+    def _record(run_id, path, net_kind, mat, M, v0, a, s, n_s, res, n_full):
+        traj = res.trajectory
+        t_fail = (float(traj.failures[0, 2])
+                  if traj.failures.size else float("nan"))
+        n_kept = int(min(50, n_full))
+        rows.append({
+            "run_id": run_id, "path": str(Path(path).relative_to(OUT_DIR)),
+            "net": net_kind, "material": mat,
+            "M": f"{M:.6g}", "v0": f"{v0:.6g}", "a": f"{a:.6g}",
+            "s": f"{s:.6g}", "n_s": n_s,
+            "n_failed": res.n_failures,
+            "arrested": bool(res.arrested),
+            "outcome": res.outcome,
+            "t_first_contact": f"{_t_first_contact(traj):.6g}",
+            "t_first_fail": f"{t_fail:.6g}" if t_fail == t_fail else "",
+            "t_arrest": f"{_t_arrest(traj):.6g}",
+            "n_frames_kept": n_kept,
+            "n_frames_full": n_full,
+        })
+
+    # Phase-map cases already written by export_phase_maps; copy index only
+    # if those files exist, otherwise re-run a thin set.
+    maps = OUT_DIR / "fig_phase_maps"
+    for net_kind, mat in (("star", "S"), ("star", "D"),
+                          ("star+ring", "S"), ("star+ring", "D")):
+        name = f"phase_{net_kind.replace('+', '_')}_{mat}"
+        src = maps / f"{name}.h5"
+        if src.is_file():
+            rows.append({
+                "run_id": name, "path": f"fig_phase_maps/{name}.h5",
+                "net": net_kind, "material": mat,
+                "M": "1", "v0": "20", "a": "0.5", "s": "", "n_s": 10,
+                "n_failed": "", "arrested": "", "outcome": "",
+                "t_first_contact": "", "t_first_fail": "", "t_arrest": "",
+                "n_frames_kept": "", "n_frames_full": "",
+            })
+
+    pilots = [(mat, a) for mat in ("S", "D") for a in (0.0, 0.25, 0.5)]
+    for mat, a in pilots:
+        if skip_dyn:
+            break
+        run_id = f"dyn_{mat}_a{a:g}"
+        h5 = str(d / f"{run_id}.h5")
+        m = get_material(mat)
+        ep = 0.1 * m.eps_b
         cfg = SimConfig(
             material=MaterialConfig(name=mat),
             net=NetConfig(kind="star_with_rings", N=8, R=1.0, eps_p=ep,
                           A_hat=1e-6, radii=[0.5, 1.0], q_ratio=1.0,
                           fix_radii=True),
-            drone=DroneConfig(M=1.0, r_d=0.15, v0=20.0, p=(0.25, 0.0)),
+            drone=DroneConfig(M=1.0, r_d=0.15, v0=15.0, p=(a, 0.0)),
             numerics=NumericsConfig(n_s=10, C=0.5, t_end=0.25, dt_out=5e-3,
-                                    area_scale=float(s_map),
-                                    use_numba=True),
+                                    area_scale=1.0, use_numba=True),
             contact=ContactConfig(mode="gripped", k_c=1e7,
                                   k_c_mode=("relative" if mat == "D"
                                             else "absolute"),
                                   k_c_factor=8.0,
                                   penetration_guard="reduce_dt"),
-            output=OutputConfig(hdf5=h5, R_max=0.5, k_max=10),
+            output=OutputConfig(hdf5=None, R_max=0.5, k_max=10),
         )
-        res = simulate_config(cfg, write=True)
-        traj = res.trajectory
-        # Per coarse edge: earliest break among its discrete segments.
-        break_info = {}  # parent -> (t, order, drone_x, drone_y)
-        if traj.failures.size:
-            order = np.argsort(traj.failures[:, 2])
-            dxy = traj.failure_drone_xy
-            for k, idx in enumerate(order):
-                parent = int(traj.failures[idx, 1])
-                t_b = float(traj.failures[idx, 2])
-                if parent not in break_info:
-                    dx = float(dxy[idx, 0]) if dxy.shape[0] > idx else float("nan")
-                    dy = float(dxy[idx, 1]) if dxy.shape[0] > idx else float("nan")
-                    break_info[parent] = (t_b, k + 1, dx, dy)
-        net = res.net
-        seg_rows = []
-        for e in range(net.n_e):
-            i, j = int(net.edges[e, 0]), int(net.edges[e, 1])
-            x1, y1 = net.nodes[i]
-            x2, y2 = net.nodes[j]
-            info = break_info.get(e)
-            seg_rows.append({
-                "seg": e, "parent": e, "x1": f"{x1:.6g}",
-                "y1": f"{y1:.6g}", "x2": f"{x2:.6g}", "y2": f"{y2:.6g}",
-                "broken": bool(info is not None),
-                "t_break": (f"{info[0]:.6g}" if info else ""),
-                "break_order": (f"{info[1]}" if info else ""),
-                "drone_x_break": (f"{info[2]:.6g}" if info else ""),
-                "drone_y_break": (f"{info[3]:.6g}" if info else ""),
-            })
-        with open(d / f"segments_{run_name}.csv", "w", newline="") as fh:
-            fh.write(f"# commit={_COMMIT} date={_DATE} config=phase "
-                     f"s_Bany={s_map:.6g} code_dirty="
-                     f"{_header_dirty_flag()}\n")
-            w = csv.DictWriter(
-                fh, fieldnames=["seg", "parent", "x1", "y1", "x2", "y2",
-                                "broken", "t_break", "break_order",
-                                "drone_x_break", "drone_y_break"])
-            w.writeheader()
-            w.writerows(seg_rows)
-        written.append(h5)
-    return d
+        t0 = time.perf_counter()
+        res = simulate_config(cfg, write=False)
+        sim_s += time.perf_counter() - t0
+        n_full = int(res.trajectory.t.size)
+        cfg.output.hdf5 = h5
+        cfg.output.hdf5_light = True
+        cfg.output.hdf5_max_frames = 50
+        t1 = time.perf_counter()
+        from netsim.io_hdf5 import write_run
+        from netsim.discretize import discretize
+        disc = discretize(res.net, res.material, 10, area_scale=1.0, r_d=0.15)
+        write_run(h5, res.net, disc, res.material, cfg, res.trajectory,
+                  eta=res.eta, cascade=res.cascade, light=True, max_frames=50)
+        dt_w = time.perf_counter() - t1
+        write_s += dt_w
+        overhead = write_s / max(sim_s, 1e-9)
+        print(f"    [runs_round7] {run_id} write={dt_w:.3f}s "
+              f"overhead={100*overhead:.2f}%", flush=True)
+        if overhead > 0.05 and len(rows) >= 2:
+            skip_dyn = True
+            print("    [runs_round7] write overhead > 5%; skipping rest",
+                  flush=True)
+        _record(run_id, h5, "star+ring", mat, 1.0, 15.0, a, 1.0, 10,
+                res, n_full)
+
+    path = _write("runs_round7_index.csv",
+                  ["run_id", "path", "net", "material", "M", "v0", "a", "s",
+                   "n_s", "n_failed", "arrested", "outcome",
+                   "t_first_contact", "t_first_fail", "t_arrest",
+                   "n_frames_kept", "n_frames_full"],
+                  rows, config="runs_round7")
+    return path
 
 
 def _etaa_ring_case(job):
@@ -885,6 +1115,7 @@ EXPORTERS = [
     ("tab_mmin.csv", lambda full: export_mmin(full)),
     ("dyn_runs.csv", lambda full: export_dyn_runs(full)),
     ("fig_phase_maps/", lambda full: export_phase_maps()),
+    ("runs_round7/", lambda full: export_runs_round7()),
 ]
 
 
@@ -906,16 +1137,27 @@ def main(argv=None):
 
     _N_JOBS = max(1, args.jobs) if args.jobs > 0 else max(1, os.cpu_count() or 1)
     _ALLOW_DIRTY = bool(args.allow_dirty)
-    # Provenance frozen at start: writing paper_results must not flip the flag.
+    # Provenance frozen at start. Env wins so a VM without .git can still
+    # stamp the local commit / dirty flag that packed the tarball.
     import subprocess
-    try:
-        _COMMIT = subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=str(_repo_root()),
-            capture_output=True, text=True, check=True).stdout.strip()
-    except Exception:
-        _COMMIT = git_commit()
+    env_commit = os.environ.get("GIT_COMMIT", "").strip()
+    if env_commit:
+        _COMMIT = env_commit
+    else:
+        try:
+            _COMMIT = subprocess.run(
+                ["git", "rev-parse", "HEAD"], cwd=str(_repo_root()),
+                capture_output=True, text=True, check=True).stdout.strip()
+        except Exception:
+            _COMMIT = git_commit()
     _DATE = datetime.datetime.now().isoformat(timespec="seconds")
-    _CODE_DIRTY = _code_paths_dirty()
+    env_dirty = os.environ.get("CODE_DIRTY", "").strip().lower()
+    if env_dirty in ("true", "1", "yes"):
+        _CODE_DIRTY = True
+    elif env_dirty in ("false", "0", "no"):
+        _CODE_DIRTY = False
+    else:
+        _CODE_DIRTY = _code_paths_dirty()
     dirty_tree = _working_tree_dirty()
     if dirty_tree and not _ALLOW_DIRTY:
         print("Refusing to export: Tema 2 working tree is dirty. "

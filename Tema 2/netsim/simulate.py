@@ -135,5 +135,7 @@ def simulate_config(cfg, *, write: bool = True) -> Result:
         disc = _discretize(net, material, cfg.numerics.n_s,
                            area_scale=cfg.numerics.area_scale, r_d=cfg.drone.r_d)
         write_run(cfg.output.hdf5, net, disc, material, cfg, result.trajectory,
-                  eta=result.eta, cascade=result.cascade)
+                  eta=result.eta, cascade=result.cascade,
+                  light=bool(getattr(cfg.output, "hdf5_light", False)),
+                  max_frames=int(getattr(cfg.output, "hdf5_max_frames", 50)))
     return result

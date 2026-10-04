@@ -146,6 +146,8 @@ class OutputConfig:
     """Output and cascade-criterion parameters."""
 
     hdf5: Optional[str] = None
+    hdf5_light: bool = False
+    hdf5_max_frames: int = 50
     R_max: float = 0.5  # TODO: fix before production runs
     k_max: int = 10  # TODO: fix before production runs
 

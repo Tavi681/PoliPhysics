@@ -97,7 +97,7 @@ def nodes_for_resolution(n_resolved, Lx=2.0, frac_time=0.55):
 
 
 def run_smith(v0=300.0, material_name="S", Lx=2.0, n_nodes=801, n_resolved=None,
-              frac_time=0.55, A_hat=1e-6, n_front_times=6):
+              frac_time=0.55, A_hat=1e-6, n_front_times=6, C=None):
     if n_resolved is not None:
         n_nodes = nodes_for_resolution(n_resolved, Lx, frac_time)
     material = get_material(material_name)
@@ -127,16 +127,28 @@ def run_smith(v0=300.0, material_name="S", Lx=2.0, n_nodes=801, n_resolved=None,
     # Dense output so we can fit front position vs time (≥ 5 samples).
     dt_out = t_end / max(n_front_times + 2, 8)
 
+    # S@500 used to collapse: mid-node Verlet overshoot hit eps_b and broke
+    # the chain, so the plateau median fell to ~0. A smaller C removes the
+    # spurious break; if any segment still fails, retry at C/2.
+    if C is None:
+        C = 0.2 if (material_name == "S" and v0 >= 400.0) else 0.4
     drone = DroneConfig(M=1.0, r_d=1.0, v0=0.0)
-    numerics = NumericsConfig(n_s=1, C=0.4, t_end=t_end, dt_out=dt_out,
-                              use_numba=False)
     contact = ContactConfig(mode="frictionless", k_c=1e7)
     output = OutputConfig(hdf5=None, R_max=1e9, k_max=10 ** 9)
     kin = KinematicConfig(enabled=True, node=mid, mode="velocity",
                           direction=(0.0, 0.0, 1.0), amplitude=v0)
 
-    traj = integrate(disc, material, drone, numerics, contact, output,
-                     kinematic=kin, net_R=Lx)
+    traj = None
+    C_try = float(C)
+    for _attempt in range(4):
+        numerics = NumericsConfig(n_s=1, C=C_try, t_end=t_end, dt_out=dt_out,
+                                  use_numba=False)
+        traj = integrate(disc, material, drone, numerics, contact, output,
+                         kinematic=kin, net_R=Lx)
+        if traj.failures.size == 0:
+            break
+        C_try *= 0.5
+    assert traj is not None
 
     # Strain vs Lagrangian coordinate (segment midpoints, distance from centre).
     Xseg = (0.5 * (xs[:-1] + xs[1:]) - Lx / 2)
@@ -159,12 +171,21 @@ def run_smith(v0=300.0, material_name="S", Lx=2.0, n_nodes=801, n_resolved=None,
         xf = traj.x[i]
         d = xf[edges[:, 1]] - xf[edges[:, 0]]
         eps_seg = np.linalg.norm(d, axis=1) / rest - 1.0
-        er = eps_seg[right]
+        intact = traj.intact[i] if traj.intact.shape[0] > i else np.ones_like(eps_seg, dtype=bool)
+        er = np.where(intact[right], eps_seg[right], np.nan)
         cLt = cL * tt
         cTt = cT * tt
-        band = (Xr > 0.15 * cLt) & (Xr < 0.6 * cLt)
-        eps_num_i = float(np.median(er[band])) if np.any(band) else float(np.max(er))
-        front_i = _fit_step(Xr, er, eps_num_i, cLt, rising=False)
+        # Plateau lives between the kink and the longitudinal front.
+        band = (Xr > 1.15 * cTt) & (Xr < 0.80 * cLt) & np.isfinite(er)
+        if not np.any(band):
+            band = (Xr > 0.15 * cLt) & (Xr < 0.6 * cLt) & np.isfinite(er)
+        if np.any(band):
+            eps_num_i = float(np.nanmedian(er[band]))
+        else:
+            finite = er[np.isfinite(er)]
+            eps_num_i = float(np.nanmax(finite)) if finite.size else float("nan")
+        er_fit = np.nan_to_num(er, nan=0.0)
+        front_i = _fit_step(Xr, er_fit, eps_num_i, cLt, rising=False)
         vz = traj.v[i][:, 2]
         vzt_seg = np.abs(0.5 * (vz[edges[:, 0]] + vz[edges[:, 1]])[right])
         kink_i = _fit_step(Xr, vzt_seg, v0, cTt, rising=False)

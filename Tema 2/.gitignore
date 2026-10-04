@@ -6,6 +6,7 @@ __pycache__/
 .pytest_cache/
 .cache/
 COMMIT
+CODE_DIRTY
 validation/output/
 
 # Local agent prompts — not part of the delivered code

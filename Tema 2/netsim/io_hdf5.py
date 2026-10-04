@@ -28,19 +28,23 @@ Datasets are gzip-compressed and chunked along the time axis.
 
 from __future__ import annotations
 
+import os
 import subprocess
 
 import numpy as np
 
-__all__ = ["git_commit", "package_versions", "write_run"]
+__all__ = ["git_commit", "package_versions", "write_run", "select_light_frames"]
 
 
 def git_commit() -> str:
     """Return the current git commit hash, or 'unknown'.
 
-    Falls back to a ``COMMIT`` file next to the package (used on ephemeral VMs
-    that ship without a ``.git`` directory).
+    Order: ``GIT_COMMIT`` env (ephemeral VM), live ``git rev-parse``, then a
+    ``COMMIT`` file next to the package.
     """
+    env = os.environ.get("GIT_COMMIT", "").strip()
+    if env:
+        return env
     try:
         out = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL)
@@ -79,10 +83,69 @@ def _chunk_time(shape):
     return (1,) + tuple(shape[1:])
 
 
+def select_light_frames(traj, max_frames=50):
+    """Indices that keep first/last, contact, failures, arrest; cap at ``max_frames``."""
+    n = int(getattr(traj.t, "size", 0))
+    if n <= 0:
+        return np.zeros(0, dtype=int)
+    if n <= max_frames:
+        return np.arange(n, dtype=int)
+
+    special = {0, n - 1}
+    if getattr(traj, "failures", None) is not None and traj.failures.size:
+        t = np.asarray(traj.t)
+        for tf in np.asarray(traj.failures)[:, 2]:
+            special.add(int(np.argmin(np.abs(t - float(tf)))))
+    energy = getattr(traj, "energy", None)
+    if energy is not None and np.asarray(energy).size:
+        uc = np.asarray(energy)[:, 4] if np.asarray(energy).ndim == 2 else None
+        if uc is not None:
+            hit = np.nonzero(uc > 0)[0]
+            if hit.size:
+                special.add(int(hit[0]))
+    drone = getattr(traj, "drone", None)
+    if drone is not None and np.asarray(drone).size and np.isfinite(drone).any():
+        vz = np.asarray(drone)[:, 5]
+        seen_neg = False
+        for i, vzi in enumerate(vz):
+            if not np.isfinite(vzi):
+                continue
+            if vzi < 0:
+                seen_neg = True
+            elif seen_neg:
+                special.add(i)
+                break
+    special = sorted(i for i in special if 0 <= i < n)
+    if len(special) >= max_frames:
+        return np.asarray(special[:max_frames], dtype=int)
+    fill = np.linspace(0, n - 1, max_frames).astype(int)
+    keep = sorted(set(special) | set(fill.tolist()))
+    if len(keep) > max_frames:
+        # Prefer specials; thin the uniform fill.
+        extra = [i for i in keep if i not in special]
+        need = max_frames - len(special)
+        if need <= 0:
+            keep = special[:max_frames]
+        else:
+            step = max(1, len(extra) / need)
+            picked = [extra[int(k * step)] for k in range(need)]
+            keep = sorted(set(special) | set(picked))[:max_frames]
+    return np.asarray(keep, dtype=int)
+
+
 def write_run(path, net, disc, material, cfg, traj, *, eta, cascade,
-              extra_params=None):
-    """Write a full run to ``path`` (HDF5)."""
+              extra_params=None, light=False, max_frames=50):
+    """Write a full (or frame-decimated light) run to ``path`` (HDF5)."""
     import h5py
+
+    t_idx = select_light_frames(traj, max_frames) if light else None
+    n_full = int(getattr(traj.t, "size", 0))
+
+    def _take(data):
+        arr = np.asarray(data)
+        if t_idx is None or arr.ndim == 0 or arr.shape[0] != n_full:
+            return arr
+        return arr[t_idx]
 
     with h5py.File(path, "w") as h5:
         # ---- /params -------------------------------------------------------
@@ -107,6 +170,9 @@ def write_run(path, net, disc, material, cfg, traj, *, eta, cascade,
         p.attrs["k_c"] = cfg.contact.k_c
         p.attrs["area_scale"] = cfg.numerics.area_scale
         p.attrs["git_commit"] = git_commit()
+        p.attrs["light"] = bool(light)
+        p.attrs["n_frames_full"] = n_full
+        p.attrs["n_frames_kept"] = int(t_idx.size) if t_idx is not None else n_full
         for k, val in package_versions().items():
             p.attrs[f"version_{k}"] = val
         # Full flattened config for provenance.
@@ -147,12 +213,12 @@ def write_run(path, net, disc, material, cfg, traj, *, eta, cascade,
                 kw["chunks"] = chunks
             h5.create_dataset(name, data=data, **kw)
 
-        ds("t", traj.t)
-        ds("x", traj.x)
-        ds("v", traj.v)
-        ds("intact", traj.intact)
-        ds("drone", traj.drone)
-        ds("energy", traj.energy)
+        ds("t", _take(traj.t))
+        ds("x", _take(traj.x))
+        ds("v", _take(traj.v))
+        ds("intact", _take(traj.intact))
+        ds("drone", _take(traj.drone))
+        ds("energy", _take(traj.energy))
         h5.create_dataset("failures", data=traj.failures, compression="gzip")
 
         # ---- /outcome ------------------------------------------------------
