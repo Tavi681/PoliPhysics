@@ -1,0 +1,8 @@
+test,config,reference,value,rel_err_pct
+4a velocity,N=1 chamber tip charge,8.500000000e-02,8.501596017e-02,1.877667071e-02
+4a t_95,N=1 chamber tip charge (reference 3 t_s),5.973106068e-01,6.040000000e-01,1.119918708e+00
+4b velocity,N=1 chamber spider charge,8.500000000e-02,8.515845640e-02,1.864192912e-01
+4b t_95,N=1 chamber spider charge (reference 3 t_s),5.973106068e-01,1.000000000e-03,9.983258292e+01
+5 vbar_t,N=2 constant E Fbar_l=2 N_t=100,2.000000000e+00,2.088283901e+00,4.414195055e+00
+3,N=1 constant E Q_s=0,9.512724478e-02,9.519911403e-02,7.555064949e-02
+3,N=1 constant E Q_s=3pC,1.004366724e-01,1.005025006e-01,6.554203440e-02
