@@ -95,3 +95,17 @@ Additive: written alongside the baseline CSVs; a `stage_a` section is merged int
 | Table `tab:wc` | N∈{1,2,4,8}, m∈{0.1,1,10} mg, q∈{0,0.6} nC, tip, E=7.41 kV/m, still air, Q_s=0 | `tab_wc.csv` `w_c` numeric vs `w_s(1-Fbar_l)`; fold-below-spider flagged |
 | Lateral relaxation | equal-t transient (v0=0) cache runs | `relax.csv` (`dR/L`, `dshape/L`); decay times τ_R, τ_shape and `t_s` in `meta.json` |
 | Pilot (`alg:sweep`) | N∈{1,2,4,8}×3 seeds, Fbar_l=1, σ_w=0.25, ℓ=1, U_h=1, N_k=100, z0=0.5, h=2, t_end=60, clamped release | `pilot.csv` (cost/outcome); float32 `ml_samples/pilot_N*.h5`, bytes/sim-second in `meta.json` |
+
+## Stage B production sweep (`scripts/stage_b.py`, Algorithm `alg:sweep`)
+
+Additive. `turb_renormalize=True` (default False elsewhere), `N_k=200`. Does not touch
+`produce_results.py`. Resume-safe append to `results/sweep.csv`.
+
+| Item | Setup | Output |
+|---|---|---|
+| Amplitude renormalization | rescale `a_n,b_n` so `sum E(k)dk = (3/2)σ²`; log factor once per unique shell set | `/turb` attrs `renorm_factor`, `turb_renormalize`; regenerates `fig_ksvalid.csv` / `_pdf` at N_k=200 |
+| `tab_wc` m=10 mg | `t_end=40 s`, overwrite only those rows | `tab_wc.csv` |
+| Production grid | N∈{1,2,4,8}×σ_w∈{0.15,0.30}×x∈{-4,-2,-1,0,1,2,4}×M=200; `Fbar_l=1+x K/(w_s h)`, `K=σ_w ℓ`; seed = blake2b hash of `(N,σ_w,x,i)`; clamped; Alg.2 stop; order N=1,2,4 then 8 | `sweep.csv`, progress in `sweep_log.txt` |
+| Phase table | Wilson 95% CI on P=n_up/(n_up+n_down); `P_dd` Eq. (eq:Pdd) = BM barrier formula with `U0=w_s(Fbar_l-1)` | `tab_phase.csv` |
+| Snapshots | N=4, σ_w=0.30, x=0, i=0,1,2; every 0.25 s | `snapshots/*.npz` (`positions`, `u`, `x_grid`) |
+| ML HDF5 | float32, `output_dt=0.05` (0.25 for the 3 snapshot runs) | `ml_samples/` (gitignored) |

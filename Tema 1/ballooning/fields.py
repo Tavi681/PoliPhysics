@@ -116,6 +116,8 @@ class UniformFlow:
 # von Karman spectral integral I = int_0^inf s^4 / (1+s^2)^(17/6) ds
 # = (1/2) B(5/2, 1/3); normalises E(k) so that int_0^inf E dk = (3/2) sigma^2.
 _VK_INTEGRAL = 0.5 * math.gamma(2.5) * math.gamma(1.0 / 3.0) / math.gamma(17.0 / 6.0)
+# Log each unique renormalization factor once (factor is seed-independent).
+_RENORM_LOGGED: set[tuple] = set()
 
 
 def von_karman_E(k, sigma: float, ell: float) -> np.ndarray:
@@ -153,13 +155,15 @@ class KinematicSimulation:
     def __init__(self, sigma: float, ell: float, U_h: float = 0.0,
                  N_k: int = 100, seed: int = 0, L: float = 0.5, N_t: int = 100,
                  lambda_: float = 0.5, k_min_factor: float = 0.1,
-                 k_max_dl_factor: float = 5.0, energy_capture_min: float = 0.98):
+                 k_max_dl_factor: float = 5.0, energy_capture_min: float = 0.98,
+                 renormalize: bool = False):
         self.sigma = float(sigma)
         self.ell = float(ell)
         self.U_h = float(U_h)
         self.N_k = int(N_k)
         self.seed = int(seed)
         self.lambda_ = float(lambda_)
+        self.renormalize = bool(renormalize)
 
         dl = L / N_t
         k_max = 2.0 * math.pi / (k_max_dl_factor * dl)
@@ -217,6 +221,23 @@ class KinematicSimulation:
         self.k_mag = k_mag
         self.dk = dk
 
+        # Stage B option: rescale a_n, b_n by a common factor so the resolved
+        # discrete energy sum_n E(k_n) dk_n equals (3/2) sigma^2 exactly.
+        # Amplitudes scale as sqrt(E dk), so the energy scales as factor^2.
+        resolved = float(np.sum(von_karman_E(k_mag, self.sigma, self.ell) * dk))
+        self.renorm_factor = 1.0
+        if self.renormalize and resolved > 0.0 and target > 0.0:
+            self.renorm_factor = float(np.sqrt(target / resolved))
+            self.a *= self.renorm_factor
+            self.b *= self.renorm_factor
+            self.energy_fraction = 1.0
+            key = (self.N_k, self.sigma, self.ell, self.k_min_used, self.k_max)
+            if key not in _RENORM_LOGGED:
+                _RENORM_LOGGED.add(key)
+                print(f"KinematicSimulation: turb_renormalize factor={self.renorm_factor:.6f} "
+                      f"(resolved/target was {resolved / target:.6f}, N_k={self.N_k})",
+                      flush=True)
+
     @staticmethod
     def _shells(k_min: float, k_max: float, N_k: int):
         """Geometric shell centres (geometric mean of edges) and widths."""
@@ -265,6 +286,8 @@ class KinematicSimulation:
             "k_min_used": self.k_min_used,
             "k_max": self.k_max,
             "energy_fraction": self.energy_fraction,
+            "turb_renormalize": self.renormalize,
+            "renorm_factor": self.renorm_factor,
             "k_n": self.k.copy(),
             "a_n": self.a.copy(),
             "b_n": self.b.copy(),
@@ -297,6 +320,7 @@ def make_flow(P) -> AirFlow:
         ks = KinematicSimulation(
             sigma=P.sigma_w, ell=P.ell, U_h=P.U_h, N_k=P.turb_N_k,
             seed=P.turb_seed, L=P.L, N_t=P.N_t, lambda_=P.turb_lambda,
+            renormalize=P.turb_renormalize,
         )
         P.turb = ks.turb_metadata()
         return ks

@@ -58,6 +58,9 @@ class Params:
     turb_N_k: int = 100  # number of wavenumber shells  # TODO: config
     turb_seed: int = 0  # RNG seed for the mode draws  # TODO: config
     turb_lambda: float = 0.5  # unsteadiness factor omega_n = lambda sqrt(k^3 E)  # TODO: config
+    # If True, rescale a_n, b_n so the resolved discrete variance equals sigma^2
+    # exactly (Stage B). Default False preserves Stage A behaviour.
+    turb_renormalize: bool = False
 
     # --- Time stepping (Algorithm 1) ------------------------------------
     dt0: float = 1e-4  # initial time step [s]

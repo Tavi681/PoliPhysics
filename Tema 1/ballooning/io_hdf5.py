@@ -45,6 +45,7 @@ _PARAM_ATTRS = [
     "adaptive_dt", "delta", "t_w", "stop_on_steady", "use_alg2_stopping", "h",
     "release_mode",
     "sigma_w", "ell", "U_h", "turb_N_k", "turb_seed", "turb_lambda",
+    "turb_renormalize",
     "lag_tangent",
     "coulomb_include_spider", "entangle_contact_factor",
 ]

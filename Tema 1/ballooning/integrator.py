@@ -352,6 +352,9 @@ def _simulate_clamped_release(P: Params, field=None, progress: bool = False) -> 
     P2 = replace(P, release_mode="free")
     traj2 = simulate(P2, field=field, flow=None, xi0=xi_release,
                      xi_dot0=xi_dot_release, progress=progress)
+    # make_flow(P2) filled P2.turb; propagate so the caller's Params (and HDF5
+    # /turb writer) see the Stage B modes / renorm_factor.
+    P.turb = dict(P2.turb)
     traj2.outcome["clamped_release"] = True
     traj2.outcome["phase1_steady"] = bool(traj1.outcome.get("steady_state", False))
     traj2.outcome["phase1_t_exit"] = float(traj1.t[-1])

@@ -23,3 +23,9 @@ Tema 1/results/ml_samples/
 Tema 1/results/tab_wc_run.log
 Tema 1/results/log.txt
 Tema 1/results/pilot_run.log
+
+# Stage B regenerable / local
+Tema 1/results/ml_samples_smoke/
+Tema 1/results/snapshots_smoke/
+Tema 1/results/sweep_smoke.csv
+Tema 1/results/sweep_log.txt

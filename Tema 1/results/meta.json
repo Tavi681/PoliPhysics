@@ -2230,5 +2230,15 @@
         }
       }
     }
+  },
+  "stage_b": {
+    "ks_validation": {
+      "N_k": 200,
+      "renormalize": true,
+      "renorm_factor": 1.018721534192087,
+      "energy_fraction": 1.0,
+      "sigma": 0.25,
+      "ell": 1.0
+    }
   }
 }

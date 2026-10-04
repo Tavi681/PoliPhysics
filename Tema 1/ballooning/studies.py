@@ -615,7 +615,7 @@ def _longitudinal_target(k1: float) -> float:
     return float(val)
 
 
-def ks_validation_spectrum(N_k: int) -> dict:
+def ks_validation_spectrum(N_k: int, renormalize: bool = False) -> dict:
     """Measured vs target 1-D longitudinal spectrum of w, averaged over seeds.
 
     A line of ``KSVALID_NPTS`` points spanning ``KSVALID_SPAN_ELL * ell`` along z;
@@ -629,7 +629,8 @@ def ks_validation_spectrum(N_k: int) -> dict:
     acc = np.zeros(N // 2 + 1)
     for s in range(KSVALID_SEEDS):
         ks = KinematicSimulation(sigma=KSVALID_SIGMA, ell=KSVALID_ELL, U_h=0.0,
-                                 N_k=N_k, seed=s, L=0.5, N_t=100)
+                                 N_k=N_k, seed=s, L=0.5, N_t=100,
+                                 renormalize=renormalize)
         line = np.zeros((N, 3))
         line[:, 2] = z
         w = ks.u(line, 0.0)[:, 2]
@@ -658,7 +659,7 @@ def ks_validation_spectrum(N_k: int) -> dict:
     return {"N_k": N_k, "k": centers, "E_target": E_tgt, "E_measured": E_meas}
 
 
-def ks_validation_pdf(N_k: int, n_bins: int = 61) -> dict:
+def ks_validation_pdf(N_k: int, n_bins: int = 61, renormalize: bool = False) -> dict:
     """PDF of w (=u_z) over all seeds/points vs a Gaussian with std sigma."""
     span = KSVALID_SPAN_ELL * KSVALID_ELL
     N = KSVALID_NPTS
@@ -666,7 +667,8 @@ def ks_validation_pdf(N_k: int, n_bins: int = 61) -> dict:
     samples = []
     for s in range(KSVALID_SEEDS):
         ks = KinematicSimulation(sigma=KSVALID_SIGMA, ell=KSVALID_ELL, U_h=0.0,
-                                 N_k=N_k, seed=s, L=0.5, N_t=100)
+                                 N_k=N_k, seed=s, L=0.5, N_t=100,
+                                 renormalize=renormalize)
         line = np.zeros((N, 3))
         line[:, 2] = z
         samples.append(ks.u(line, 0.0)[:, 2])
@@ -680,16 +682,21 @@ def ks_validation_pdf(N_k: int, n_bins: int = 61) -> dict:
     return {"N_k": N_k, "w_bin_center": centers, "pdf": pdf, "gaussian": gauss}
 
 
-def run_ks_validation(N_k_values=(100, 200)) -> dict:
+def run_ks_validation(N_k_values=(100, 200), renormalize: bool = False) -> dict:
     """Full KS validation for the requested N_k values (fig_ksvalid / _pdf)."""
-    spectra = [ks_validation_spectrum(nk) for nk in N_k_values]
-    pdfs = [ks_validation_pdf(nk) for nk in N_k_values]
+    spectra = [ks_validation_spectrum(nk, renormalize=renormalize)
+               for nk in N_k_values]
+    pdfs = [ks_validation_pdf(nk, renormalize=renormalize) for nk in N_k_values]
     energy_fraction = {}
+    renorm_factor = {}
     for nk in N_k_values:
         ks = KinematicSimulation(sigma=KSVALID_SIGMA, ell=KSVALID_ELL, U_h=0.0,
-                                 N_k=nk, seed=0, L=0.5, N_t=100)
+                                 N_k=nk, seed=0, L=0.5, N_t=100,
+                                 renormalize=renormalize)
         energy_fraction[nk] = ks.energy_fraction
+        renorm_factor[nk] = ks.renorm_factor
     return {"spectra": spectra, "pdfs": pdfs, "energy_fraction": energy_fraction,
+            "renorm_factor": renorm_factor, "renormalize": renormalize,
             "sigma": KSVALID_SIGMA, "ell": KSVALID_ELL}
 
 
@@ -702,12 +709,19 @@ WC_M_MG = (0.1, 1.0, 10.0)
 WC_Q_NC = (0.0, 0.6)
 
 
-def wc_params(N: int, m_mg: float, q_nC: float, N_t: int = 100) -> Params:
-    """Tip charge, constant E, still air, Q_s=0; q per thread set directly."""
+def wc_params(N: int, m_mg: float, q_nC: float, N_t: int = 100,
+              t_end: float | None = None) -> Params:
+    """Tip charge, constant E, still air, Q_s=0; q per thread set directly.
+
+    Stage B: rows with m = 10 mg use ``t_end = 40``; other rows keep Stage A
+    default ``t_end = 8``.
+    """
+    if t_end is None:
+        t_end = 40.0 if abs(m_mg - 10.0) < 1e-12 else 8.0
     P = Params(
         N=N, N_t=N_t, L=0.5, m=m_mg * 1e-6, Q_s=0.0, charge_model="tip",
         field_model="constant", E_constant=WC_E,
-        **_steady(t_end=8.0, t_w=0.1),
+        **_steady(t_end=t_end, t_w=0.1),
     )
     P.Q_t = q_nC * 1e-9
     return P

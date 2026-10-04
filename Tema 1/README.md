@@ -122,6 +122,24 @@ pipeline (`t_end=0.5`, `N_t=40`). It does **not** start the production sweep.
 `release_mode="clamped"` (Alg.2 line 4) holds node 0 fixed at `z0` in still air
 until steady, then releases at `t=0` into the configured flow.
 
+### `scripts/stage_b.py` — production sweep (Algorithm `alg:sweep`)
+
+Stage B grid: `N∈{1,2,4,8} × σ_w∈{0.15,0.30} × x∈{-4,-2,-1,0,1,2,4} × M=200`
+(= 11 200 runs), clamped release, `turb_renormalize=True`, `N_k=200`. Resume-safe
+(`sweep.csv` append; skips completed seeds). Progress every 10 min in
+`results/sweep_log.txt`.
+
+```bash
+python scripts/stage_b.py --smoke                 # local pipeline check
+python scripts/stage_b.py --ksvalid               # renormalized fig_ksvalid (N_k=200)
+python scripts/stage_b.py --tab-wc-m10            # m=10 mg rows, t_end=40 s
+python scripts/stage_b.py --cost-probe            # 1 point/N × M=5; print ETA
+python scripts/stage_b.py --sweep                 # full grid (wait for confirmation)
+```
+
+Outputs: `results/sweep.csv`, `results/tab_phase.csv`, `results/snapshots/*.npz`,
+`results/ml_samples/*.h5` (gitignored).
+
 ### `scripts/check_regression.py`
 
 Compares `results/*.csv` with `results/pre_stageA/*.csv` (max relative difference
