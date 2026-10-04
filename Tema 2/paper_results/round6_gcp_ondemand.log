@@ -1,0 +1,12 @@
+gcloud account: octavianradu79@gmail.com | project: authorship-verification | zone: us-central1-a | instance: poliphysics-tema2-r6
+machine: c2-standard-16 preemptible=false detach=true jobs=16
+Creating poliphysics-tema2-r6...
+Created [https://www.googleapis.com/compute/v1/projects/authorship-verification/zones/us-central1-a/instances/poliphysics-tema2-r6].
+WARNING: Some requests generated warnings:
+ - Disk size: '50 GB' is larger than image size: '10 GB'. You might need to resize the root repartition manually if the operating system does not support automatic resizing. See https://cloud.google.com/compute/docs/disks/add-persistent-disk#resize_pd for details.
+
+NAME                  ZONE           MACHINE_TYPE    PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP   STATUS
+poliphysics-tema2-r6  us-central1-a  c2-standard-16               10.128.0.39  34.59.40.160  RUNNING
+Waiting for RUNNING + SSH...
+Transferring Tema 2 package (no .venv / mmin cache)...
+Packed commit: 20f36fc20f9901d957f7f779418a14449185fa40

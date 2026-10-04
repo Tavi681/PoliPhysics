@@ -1,4 +1,4 @@
-# commit=0e4c75d684d5095d4c5ed5f7818a9188cbe68ecf date=2026-10-03T11:40:25 config=phase s_Bany=2.12818 dirty=true
+# commit=20f36fc20f9901d957f7f779418a14449185fa40 date=2026-10-04T08:26:21 config=phase s_Bany=2.12818 code_dirty=true
 seg,parent,x1,y1,x2,y2,broken,t_break,break_order,drone_x_break,drone_y_break
 0,0,0,0,0.5,0,False,,,,
 1,1,0.5,0,1,0,False,,,,
