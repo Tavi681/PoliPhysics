@@ -271,6 +271,14 @@ def do_sweep(workers: int, M: int, N_values, N_t: int, t_end: float,
         "ml_bytes": ml_size,
     }
     _save_meta(meta)
+    # Marker for cloud watchers (GCP scripts poll this file).
+    done_path = RESULTS / "sweep_DONE"
+    done_path.write_text(
+        f"finished={n_finished}\ntotal={total_grid}\n"
+        f"git={git_commit_hash()}\nml_bytes={ml_size}\n",
+        encoding="utf-8",
+    )
+    _log(f"wrote {done_path.name}")
 
 
 def _write_phase() -> None:
@@ -364,6 +372,11 @@ def do_cost_probe(workers: int) -> None:
         "workers": workers,
     }
     _save_meta(meta)
+    (RESULTS / "cost_probe_DONE").write_text(
+        f"eta_wall_h={eta / 3600:.4f}\ntotal_cpu_h={total_cpu / 3600:.4f}\n"
+        f"workers={workers}\n",
+        encoding="utf-8",
+    )
 
 
 # ---------------------------------------------------------------------------

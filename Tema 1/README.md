@@ -140,6 +140,41 @@ python scripts/stage_b.py --sweep                 # full grid (wait for confirma
 Outputs: `results/sweep.csv`, `results/tab_phase.csv`, `results/snapshots/*.npz`,
 `results/ml_samples/*.h5` (gitignored).
 
+### `scripts/run_stage_b_on_gcp.sh` — Stage B on GCP
+
+Same pattern as Tema 2 `run_round6_export_on_gcp.sh`: create VM → scp package →
+run → pull results → delete VM (unless `DETACH=true`). Resume-safe via packed
+`results/sweep.csv`. **Default `PREEMPTIBLE=false`** (on-demand) because Stage B is a
+long run; set `PREEMPTIBLE=true` only if you accept spot preemption.
+
+```bash
+# 1) cost probe (default MODE) — prints ETA, then wait for confirmation
+bash "Tema 1/scripts/run_stage_b_on_gcp.sh"
+
+# 2) full sweep, leave VM running (recommended for long jobs / laptop close)
+MODE=sweep DETACH=true bash "Tema 1/scripts/run_stage_b_on_gcp.sh"
+
+# Optional: MODE=prep|sweep|all|cost-probe
+#           MACHINE=c2-standard-16 JOBS=16 PREEMPTIBLE=false DISK_GB=100
+#           PULL_ML=true NO_HDF5=true INSTANCE=... ZONE=...
+```
+
+Status while detached (running / failed / done):
+
+```bash
+bash "Tema 1/scripts/check_stage_b_gcp.sh"
+```
+
+With `DETACH=true`, the script prints `gcloud` commands to check progress, pull
+`sweep.csv` / `tab_phase.csv` / `snapshots/`, and delete the VM. The VM is kept
+even if setup fails (so you can inspect logs). Image: Ubuntu 24.04 (Python ≥ 3.12).
+
+After a `sweep`/`all` finishes (even without `DETACH`), small artifacts are pulled
+automatically, then the script prints `du -sh` for `ml_samples/` and **leaves the
+VM up** so you can choose: pull locally (`PULL_ML=true` next time, or the printed
+`scp`), upload to GCS (`GCS_BUCKET=gs://...` or the printed `gsutil`), then delete
+the instance yourself. Cost-probe / prep still auto-delete the VM.
+
 ### `scripts/check_regression.py`
 
 Compares `results/*.csv` with `results/pre_stageA/*.csv` (max relative difference

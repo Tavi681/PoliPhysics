@@ -1,0 +1,45 @@
+stage_b: workers=16 git=
+=== Stage B cost probe (1 point/N, M=5) ===
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+  N=1 i=0 rise exit=17.571s wall=953.5s
+  N=1 i=1 fall exit=10.971s wall=602.6s
+  N=1 i=2 rise exit=12.521s wall=682.3s
+  N=1 i=3 fall exit=12.771s wall=699.6s
+  N=1 i=4 fall exit=8.001s wall=440.6s
+  N=2 i=0 fall exit=14.101s wall=1545.3s
+  N=2 i=1 rise exit=27.191s wall=2544.5s
+  N=2 i=2 fall exit=26.431s wall=2728.7s
+  N=2 i=3 fall exit=5.321s wall=666.3s
+  N=2 i=4 rise exit=14.991s wall=1287.4s
+  N=4 i=0 rise exit=25.321s wall=3822.0s
+  N=4 i=1 fall exit=6.871s wall=1945.5s
+  N=4 i=2 fall exit=1.911s wall=639.5s
+  N=4 i=3 rise exit=11.801s wall=2705.4s
+  N=4 i=4 fall exit=24.621s wall=3768.4s
+  N=8 i=0 fall exit=34.281s wall=11475.9s
+  N=8 i=1 fall exit=4.941s wall=2118.9s
+  N=8 i=2 fall exit=32.961s wall=10712.5s
+  N=8 i=3 fall exit=2.671s wall=1738.8s
+  N=8 i=4 fall exit=11.501s wall=4062.1s
+
+Cost probe wall (20 jobs): 198.9 min
+Mean wall/run: N=1:675.7s, N=2:1754.4s, N=4:2576.2s, N=8:6021.6s
+Full grid estimate (200×4×2×7 = 11200 runs, 16 workers):
+  total CPU ≈ 8577.3 h
+  wall ETA  ≈ 536.1 h
+Waiting for confirmation before launching --sweep.
