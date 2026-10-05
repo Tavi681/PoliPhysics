@@ -294,6 +294,13 @@ arrival).
 - **Light HDF5 pilot.** `paper_results/runs_round7/` plus
   `runs_round7_index.csv`; time series decimated to ≤50 frames.
 
+### Round-7b notes (A at 1%, brackets)
+
+- Criterion A now uses the same bisection `tol=0.01` as B. `MminConfig.assert_same_tol`
+  refuses mixed tolerances in one table. Each `m_min` reports `[s_lo, s_hi]`,
+  `n_bisect`, and `m/E_kin` to 4 significant digits.
+- Re-evaluation reuses `.cache/mmin` (extra A bisection steps only).
+
 Run the pytest suite:
 
 ```bash

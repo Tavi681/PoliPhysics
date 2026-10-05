@@ -139,3 +139,11 @@ def test_minimum_mass_smoke():
     r = minimum_mass(cfg, mm)
     assert r.m_min > 0
     assert r.s_min > 0
+
+
+def test_assert_same_tol():
+    ok = MminConfig(criterion="A", tol=0.01)
+    also = MminConfig(criterion="B_any", tol=0.01)
+    MminConfig.assert_same_tol(ok, also)
+    with pytest.raises(ValueError, match="same tol"):
+        MminConfig.assert_same_tol(ok, MminConfig(criterion="B_any", tol=0.08))

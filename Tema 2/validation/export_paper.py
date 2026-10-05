@@ -547,6 +547,12 @@ def export_mmin_monotone():
 
 _A_WORST = (0.5, 0.0)
 _MMIN_CRIT_KEYS = ("A", "Bany", "Bloc025", "Bloc050", "Bloc075")
+_MMIN_TOL = 0.01
+
+
+def _mmin_n_procs():
+    """Inner Alg.2 workers; default 1 when the outer export pool is wide."""
+    return max(1, int(os.environ.get("MMIN_N_PROCS", "1")))
 
 
 def _mmin_row_cols():
@@ -554,12 +560,15 @@ def _mmin_row_cols():
             "mA_min_g", "mBany_min_g", "mBloc025_min_g", "mBloc050_min_g",
             "mBloc075_min_g", "ratio_Bany", "ratio_Bloc025", "ratio_Bloc050",
             "ratio_Bloc075", "mA_over_Ekin_g_per_J",
+            "mBany_over_Ekin_g_per_J", "mBloc025_over_Ekin_g_per_J",
+            "mBloc050_over_Ekin_g_per_J", "mBloc075_over_Ekin_g_per_J",
             "n_broken_A", "n_broken_Bany", "n_broken_Bloc025",
             "n_broken_Bloc050", "n_broken_Bloc075",
             "worst_p_x", "worst_p_y"]
     for key in _MMIN_CRIT_KEYS:
         cols += [f"worst_p_x_{key}", f"worst_p_y_{key}",
-                 f"n_broken_{key}_at_Aworst", f"outcome_below_{key}"]
+                 f"n_broken_{key}_at_Aworst", f"outcome_below_{key}",
+                 f"s_lo_{key}", f"s_hi_{key}", f"n_bisect_{key}"]
     return cols
 
 
@@ -580,34 +589,30 @@ def _mmin_case(job):
     net = build_net(cfg)
     Ekin = 0.5 * M * v0 ** 2
     m_lower = Ekin / m.e_mat
-    # A: 8% bisection; B variants: scan then local bisection to 1%.
-    tol_A, tol_B = 0.08, 0.01
+    n_inner = _mmin_n_procs()
     cache = str(_MMIN_CACHE / f"{net_kind}_{mat}_M{M:g}_v{v0:g}_ns{int(n_s)}")
-    mmA = MminConfig(criterion="A", tol=tol_A, impact_points=pts, n_procs=1,
-                     cache_dir=cache)
+    mmA = MminConfig(criterion="A", tol=_MMIN_TOL, impact_points=pts,
+                     n_procs=n_inner, cache_dir=cache)
+    mm_any = MminConfig(criterion="B_any", tol=_MMIN_TOL, impact_points=pts,
+                        n_procs=n_inner, n_scan=24, cache_dir=cache)
+    mm_locs = {
+        frac: MminConfig(criterion="B_loc", tol=_MMIN_TOL, impact_points=pts,
+                         n_procs=n_inner, n_scan=24, R_max=frac * R,
+                         cache_dir=cache)
+        for frac in (0.25, 0.5, 0.75)
+    }
+    MminConfig.assert_same_tol(mmA, mm_any, *mm_locs.values())
     rA = minimum_mass(cfg, mmA)
-    mm_any = MminConfig(criterion="B_any", tol=tol_B, impact_points=pts,
-                        n_procs=1, n_scan=24, cache_dir=cache)
     r_any = minimum_mass(cfg, mm_any, s_cap=rA.s_min)
-    blocs = {}
-    for frac in (0.25, 0.5, 0.75):
-        mm = MminConfig(criterion="B_loc", tol=tol_B, impact_points=pts,
-                        n_procs=1, n_scan=24, R_max=frac * R,
-                        cache_dir=cache)
-        blocs[frac] = minimum_mass(cfg, mm, s_cap=rA.s_min)
+    blocs = {frac: minimum_mass(cfg, mm, s_cap=rA.s_min)
+             for frac, mm in mm_locs.items()}
 
     named = {
         "A": (mmA, rA),
         "Bany": (mm_any, r_any),
-        "Bloc025": (MminConfig(criterion="B_loc", tol=tol_B, impact_points=pts,
-                               n_procs=1, n_scan=24, R_max=0.25 * R,
-                               cache_dir=cache), blocs[0.25]),
-        "Bloc050": (MminConfig(criterion="B_loc", tol=tol_B, impact_points=pts,
-                               n_procs=1, n_scan=24, R_max=0.5 * R,
-                               cache_dir=cache), blocs[0.5]),
-        "Bloc075": (MminConfig(criterion="B_loc", tol=tol_B, impact_points=pts,
-                               n_procs=1, n_scan=24, R_max=0.75 * R,
-                               cache_dir=cache), blocs[0.75]),
+        "Bloc025": (mm_locs[0.25], blocs[0.25]),
+        "Bloc050": (mm_locs[0.5], blocs[0.5]),
+        "Bloc075": (mm_locs[0.75], blocs[0.75]),
     }
 
     extra = {}
@@ -625,6 +630,9 @@ def _mmin_case(job):
                        and abs(q[1] - wp[1]) < 1e-12), 0)
         info_lo = evaluate(cfg, float(s_lo), wp, mm, wp_idx)
         extra[f"outcome_below_{key}"] = info_lo.get("outcome", "")
+        extra[f"s_lo_{key}"] = f"{(rx.s_lo if rx.s_lo is not None else s_lo):.6g}"
+        extra[f"s_hi_{key}"] = f"{(rx.s_hi if rx.s_hi is not None else rx.s_min):.6g}"
+        extra[f"n_bisect_{key}"] = int(rx.n_bisect)
 
     def g(x):
         return 1e3 * x
@@ -647,7 +655,11 @@ def _mmin_case(job):
         "ratio_Bloc025": f"{ratio(blocs[0.25].m_min):.6g}",
         "ratio_Bloc050": f"{ratio(blocs[0.5].m_min):.6g}",
         "ratio_Bloc075": f"{ratio(blocs[0.75].m_min):.6g}",
-        "mA_over_Ekin_g_per_J": f"{(g(mA)/Ekin):.6g}",
+        "mA_over_Ekin_g_per_J": f"{(g(mA)/Ekin):.4g}",
+        "mBany_over_Ekin_g_per_J": f"{(g(r_any.m_min)/Ekin):.4g}",
+        "mBloc025_over_Ekin_g_per_J": f"{(g(blocs[0.25].m_min)/Ekin):.4g}",
+        "mBloc050_over_Ekin_g_per_J": f"{(g(blocs[0.5].m_min)/Ekin):.4g}",
+        "mBloc075_over_Ekin_g_per_J": f"{(g(blocs[0.75].m_min)/Ekin):.4g}",
         "n_broken_A": rA.n_failures,
         "n_broken_Bany": r_any.n_failures,
         "n_broken_Bloc025": blocs[0.25].n_failures,
@@ -795,11 +807,12 @@ def _s_bany_for(net_kind, mat, M=1.0, v0=20.0, n_s=10):
     pts = [(0.0, 0.0), (0.25, 0.0), (0.5, 0.0)]
     cfg = _mmin_cfg(mat, M, v0, net_kind=net_kind, n_s=n_s)
     cache = str(_MMIN_CACHE / f"{net_kind}_{mat}_M{M:g}_v{v0:g}_ns{n_s}")
-    mmA = MminConfig(criterion="A", tol=0.08, impact_points=pts, n_procs=1,
-                     cache_dir=cache)
+    mmA = MminConfig(criterion="A", tol=_MMIN_TOL, impact_points=pts,
+                     n_procs=_mmin_n_procs(), cache_dir=cache)
     rA = minimum_mass(cfg, mmA)
-    mmB = MminConfig(criterion="B_any", tol=0.01, impact_points=pts,
-                     n_procs=1, n_scan=24, cache_dir=cache)
+    mmB = MminConfig(criterion="B_any", tol=_MMIN_TOL, impact_points=pts,
+                     n_procs=_mmin_n_procs(), n_scan=24, cache_dir=cache)
+    MminConfig.assert_same_tol(mmA, mmB)
     rB = minimum_mass(cfg, mmB, s_cap=rA.s_min)
     return rB, rA
 

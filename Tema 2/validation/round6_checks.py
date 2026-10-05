@@ -26,7 +26,7 @@ def item1_star_ring_S():
     cfg = _mmin_cfg("S", 1.0, 15.0, net_kind="star+ring", n_s=10)
     m1 = build_net(cfg).net_mass(get_material("S").rho, 1.0)
     pts = [(0.0, 0.0), (0.25, 0.0), (0.5, 0.0)]
-    mmA = MminConfig(criterion="A", tol=0.08, impact_points=pts, n_procs=1)
+    mmA = MminConfig(criterion="A", tol=0.01, impact_points=pts, n_procs=1)
     rA = minimum_mass(cfg, mmA)
     mmB = MminConfig(criterion="B_any", tol=0.01, impact_points=pts,
                      n_procs=1, n_scan=24)
@@ -74,7 +74,7 @@ def item2_star_S():
     m1 = build_net(cfg).net_mass(m.rho, 1.0)
     Ekin = 0.5 * 1.0 * 15.0 ** 2
     pts = [(0.0, 0.0), (0.25, 0.0), (0.5, 0.0)]
-    mmA = MminConfig(criterion="A", tol=0.08, impact_points=pts, n_procs=1)
+    mmA = MminConfig(criterion="A", tol=0.01, impact_points=pts, n_procs=1)
     rA = minimum_mass(cfg, mmA)
     print(f"  mA={rA.m_min*1e3:.6g} g  worst={rA.worst_point}  "
           f"mA/Ekin={rA.m_min*1e3/Ekin:.6g} g/J")

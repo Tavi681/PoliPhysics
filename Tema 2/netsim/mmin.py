@@ -47,7 +47,7 @@ _VALID_CRITERIA = ("A", "B", "B_any", "B_loc")
 @dataclass
 class MminConfig:
     criterion: str = "A"              # A | B | B_any | B_loc
-    tol: float = 0.05                 # relative bisection tolerance on s
+    tol: float = 0.01                 # relative bisection tolerance on s
     impact_points: List[Tuple[float, float]] = field(
         default_factory=lambda: [(0.0, 0.0)])
     max_doublings: int = 24
@@ -70,6 +70,14 @@ class MminConfig:
         if self.n_scan < 5:
             raise ValueError("n_scan must be >= 5")
 
+    @staticmethod
+    def assert_same_tol(*configs: "MminConfig") -> None:
+        """All criteria that feed one table must share the same ``tol``."""
+        tols = {float(c.tol) for c in configs}
+        if len(tols) != 1:
+            raise ValueError(
+                f"all criteria in one table must use the same tol, got {tols}")
+
 
 @dataclass
 class MminResult:
@@ -89,6 +97,9 @@ class MminResult:
     scan_pattern: Optional[list] = None
     # Last failing scale at the worst point (just below the passing bracket).
     s_below: Optional[float] = None
+    s_lo: Optional[float] = None      # fail end of the final bracket
+    s_hi: Optional[float] = None      # pass end (= s_min)
+    n_bisect: int = 0                 # bisection steps at the worst point
 
 
 def analytical_s0(cfg: SimConfig) -> float:
@@ -307,7 +318,31 @@ def _bisect_bracket(cfg, point, mmincfg, point_idx, s_lo, s_hi, hi_info):
         else:
             s_lo = s_mid
         it += 1
-    return s_hi, hi_info, n_eval, s_lo
+    return s_hi, hi_info, n_eval, s_lo, it
+
+
+def _can_use_process_pool() -> bool:
+    import multiprocessing as mp
+    return not mp.current_process().daemon
+
+
+def _eval_scan(cfg, s_values, point, mmincfg, point_idx):
+    """Evaluate a list of scales; parallelize when ``n_procs`` allows."""
+    n = min(max(1, int(mmincfg.n_procs)), len(s_values))
+    if n <= 1 or len(s_values) <= 1:
+        return [evaluate(cfg, float(s), point, mmincfg, point_idx)
+                for s in s_values]
+    args = [(cfg, float(s), point, mmincfg, point_idx) for s in s_values]
+    if _can_use_process_pool():
+        import multiprocessing as mp
+        with mp.Pool(n) as pool:
+            return pool.starmap(evaluate, args)
+    # Daemon workers (outer ProcessPool) cannot spawn; threads still overlap
+    # cache I/O / numba if the GIL is released.
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=n) as pool:
+        return list(pool.map(
+            lambda a: evaluate(*a), args))
 
 
 def _minimum_mass_point_A(cfg, point, mmincfg, point_idx, s0) -> dict:
@@ -338,13 +373,14 @@ def _minimum_mass_point_A(cfg, point, mmincfg, point_idx, s0) -> dict:
             lo_info = evaluate(cfg, s_lo, point, mmincfg, point_idx)
             n_eval += 1
 
-    s_hi, hi_info, n_bis, s_lo = _bisect_bracket(
+    s_hi, hi_info, n_bis, s_lo, n_bisect = _bisect_bracket(
         cfg, point, mmincfg, point_idx, s_lo, s_hi, hi_info)
     n_eval += n_bis
     return {"point": tuple(point), "point_idx": point_idx, "s_min": s_hi,
             "info": hi_info, "evaluations": n_eval,
             "s_min_first_pass": s_hi, "s_min_all_pass": s_hi,
-            "scan_pattern": None, "s_below": float(s_lo)}
+            "scan_pattern": None, "s_below": float(s_lo),
+            "s_lo": float(s_lo), "s_hi": float(s_hi), "n_bisect": int(n_bisect)}
 
 
 def _minimum_mass_point_B(cfg, point, mmincfg, point_idx, s0) -> dict:
@@ -365,14 +401,11 @@ def _minimum_mass_point_B(cfg, point, mmincfg, point_idx, s0) -> dict:
         doublings += 1
 
     s_lo = 0.25 * s_hi
-    s_values = np.linspace(s_lo, s_hi, mmincfg.n_scan)
-    pattern = []
-    infos = []
-    for s in s_values:
-        info = evaluate(cfg, float(s), point, mmincfg, point_idx)
-        n_eval += 1
-        pattern.append(bool(info["passed"]))
-        infos.append(info)
+    s_values = [float(s) for s in np.linspace(s_lo, s_hi, mmincfg.n_scan)]
+    infos = _eval_scan(cfg, s_values, point, mmincfg, point_idx)
+    n_eval += len(infos)
+    pattern = [bool(info["passed"]) for info in infos]
+    for s, info in zip(s_values, infos):
         if not info["passed"]:
             logger.info(
                 "B-scan F at s=%.4g: reason=%s n_failed=%d R_d=%.4g "
@@ -398,7 +431,8 @@ def _minimum_mass_point_B(cfg, point, mmincfg, point_idx, s0) -> dict:
         return {"point": tuple(point), "point_idx": point_idx, "s_min": s_hi,
                 "info": info_hi, "evaluations": n_eval,
                 "s_min_first_pass": None, "s_min_all_pass": None,
-                "scan_pattern": pattern, "s_below": float(s_lo)}
+                "scan_pattern": pattern, "s_below": float(s_lo),
+                "s_lo": float(s_lo), "s_hi": float(s_hi), "n_bisect": 0}
 
     i_pass = next(i for i, ok in enumerate(pattern) if ok)
     s_pass = float(s_values[i_pass])
@@ -415,14 +449,16 @@ def _minimum_mass_point_B(cfg, point, mmincfg, point_idx, s0) -> dict:
         info_pass = infos[i_all]
         s_fail = float(s_values[i_all - 1]) if i_all > 0 else 0.5 * s_pass
 
-    s_bis, info_bis, n_bis, s_lo_b = _bisect_bracket(
+    s_bis, info_bis, n_bis, s_lo_b, n_bisect = _bisect_bracket(
         cfg, point, mmincfg, point_idx, s_fail, s_pass, info_pass)
     n_eval += n_bis
 
     return {"point": tuple(point), "point_idx": point_idx, "s_min": s_bis,
             "info": info_bis, "evaluations": n_eval,
             "s_min_first_pass": first_pass, "s_min_all_pass": all_pass,
-            "scan_pattern": pattern, "s_below": float(s_lo_b)}
+            "scan_pattern": pattern, "s_below": float(s_lo_b),
+            "s_lo": float(s_lo_b), "s_hi": float(s_bis),
+            "n_bisect": int(n_bisect)}
 
 
 def minimum_mass_point(args) -> dict:
@@ -449,7 +485,7 @@ def minimum_mass(cfg: SimConfig, mmincfg: MminConfig,
     tasks = [(cfg, p, mmincfg, i, s0)
              for i, p in enumerate(mmincfg.impact_points)]
 
-    if mmincfg.n_procs > 1 and len(tasks) > 1:
+    if mmincfg.n_procs > 1 and len(tasks) > 1 and _can_use_process_pool():
         import multiprocessing as mp
         with mp.Pool(mmincfg.n_procs) as pool:
             results = pool.map(minimum_mass_point, tasks)
@@ -460,7 +496,9 @@ def minimum_mass(cfg: SimConfig, mmincfg: MminConfig,
         for r in results:
             if r["s_min"] > s_cap:
                 r["s_below"] = float(r.get("s_below", 0.995 * s_cap))
+                r["s_lo"] = float(r.get("s_lo", r["s_below"]))
                 r["s_min"] = float(s_cap)
+                r["s_hi"] = float(s_cap)
                 r["info"] = evaluate(cfg, float(s_cap), r["point"], mmincfg,
                                      r["point_idx"])
 
@@ -486,6 +524,9 @@ def minimum_mass(cfg: SimConfig, mmincfg: MminConfig,
         s_min_all_pass=worst.get("s_min_all_pass"),
         scan_pattern=worst.get("scan_pattern"),
         s_below=worst.get("s_below"),
+        s_lo=worst.get("s_lo"),
+        s_hi=worst.get("s_hi", s_min),
+        n_bisect=int(worst.get("n_bisect") or 0),
     )
 
 
