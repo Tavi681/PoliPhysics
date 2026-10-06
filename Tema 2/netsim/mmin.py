@@ -5,11 +5,14 @@ net mass is linear in ``s``: ``m_net(s) = s * m_net(1)``. For a given impact
 point the acceptance criterion is a function of ``s``:
 
 * **A**: arrested and no thread fails;
-* **B_any** (single-use net): arrested, not perforated, ``n_failed < k_max``;
-* **B_loc** (repairable net): B_any, and every failure midpoint lies within
-  ``R_max`` of the **drone in-plane position at that failure time** (not of
-  the initial impact point ``p``);
+* **B_any** (single-use net): arrested, not perforated,
+  ``n_failed_threads < k_max``. ``k_max`` counts distinct parent edges, not
+  mesh segments (a radial that fragments into many segments is one thread);
+* **B_loc** (repairable net): B_any, and each failed thread is local: its
+  **first** segment failure lies within ``R_max`` of the drone in-plane
+  position at that instant (not of the initial impact point ``p``);
 * **B**: legacy alias for B_loc (same ``R_max`` as the config output).
+  ``n_failed_segments`` is kept as a diagnostic.
 
 Any A-pass is a B_any/B_loc pass, so ``m^B_min <= m^A_min`` is enforced by
 construction when the same ``s`` evaluations are reused.
@@ -39,7 +42,8 @@ logger = logging.getLogger("netsim.mmin")
 __all__ = ["MminConfig", "MminResult", "analytical_s0", "evaluate",
            "minimum_mass_point", "minimum_mass", "monotonicity_scan",
            "_criterion_pass", "_write_cache", "_read_cache",
-           "pass_from_info", "assert_criterion_nesting", "R_d_loc"]
+           "pass_from_info", "assert_criterion_nesting", "R_d_loc",
+           "attach_thread_failures", "R_d_thread_loc"]
 
 _VALID_CRITERIA = ("A", "B", "B_any", "B_loc")
 
@@ -85,12 +89,13 @@ class MminResult:
     s_min: float
     m_min: float
     worst_point: Tuple[float, float]
-    n_failures: int
+    n_failures: int                  # distinct failed threads (k_max units)
     broken_segments: List[int]
     broken_midpoints: list
     s0: float
     per_point: dict                   # point -> s_min
     evaluations: int
+    n_failed_segments: int = 0       # mesh fragments; diagnostic only
     # Criterion B only (optional diagnostics of non-monotonicity).
     s_min_first_pass: Optional[float] = None
     s_min_all_pass: Optional[float] = None
@@ -126,53 +131,113 @@ def R_d_loc(fail_mids, fail_drone_xy) -> float:
     return float(np.max(d))
 
 
+def attach_thread_failures(info, seg_parent=None) -> dict:
+    """Map segment failures to distinct parent threads (first break wins).
+
+    Old caches store ``fail_segs`` only; pass ``seg_parent`` (from the same
+    ``n_s`` discretization) to recover parents. ``n_failures`` in the raw
+    cache remains the segment count.
+    """
+    segs = [int(s) for s in (info.get("fail_segs") or [])]
+    parents = [int(p) for p in (info.get("fail_parents") or [])]
+    if segs and len(parents) != len(segs):
+        if seg_parent is not None:
+            sp = np.asarray(seg_parent)
+            if any(s < 0 or s >= sp.size for s in segs):
+                parents = []
+            else:
+                parents = [int(sp[s]) for s in segs]
+        else:
+            parents = []
+    if segs and len(parents) != len(segs):
+        # No mapping: treat each segment as its own thread (conservative).
+        parents = list(segs)
+    n_seg = len(segs) if segs else int(info.get("n_failures", 0))
+    first = {}
+    for i, p in enumerate(parents):
+        if p not in first:
+            first[p] = i
+    n_thr = len(first) if parents else n_seg
+    info["fail_parents"] = parents
+    info["n_failed_segments"] = n_seg
+    info["n_failed_threads"] = n_thr
+    info["thread_first_idx"] = first
+    return info
+
+
+def R_d_thread_loc(info) -> float:
+    """Max drone distance to each thread's *first* failure midpoint."""
+    first = info.get("thread_first_idx") or {}
+    mids = np.asarray(info.get("fail_mids", np.zeros((0, 3))), dtype=float)
+    dxy = np.asarray(info.get("fail_drone_xy", np.zeros((0, 2))), dtype=float)
+    if mids.ndim != 2:
+        mids = mids.reshape(-1, 3) if mids.size else np.zeros((0, 3))
+    if dxy.ndim != 2:
+        dxy = dxy.reshape(-1, 2) if dxy.size else np.zeros((0, 2))
+    if not first:
+        return R_d_loc(mids, dxy)
+    dists = []
+    for i in first.values():
+        if i >= mids.shape[0]:
+            continue
+        if i >= dxy.shape[0] or not np.all(np.isfinite(dxy[i])):
+            return float("nan")
+        dists.append(float(math.hypot(mids[i, 0] - dxy[i, 0],
+                                      mids[i, 1] - dxy[i, 1])))
+    return max(dists) if dists else 0.0
+
+
 def pass_from_info(info, criterion, R_max, k_max) -> Tuple[bool, str]:
     """Evaluate a criterion on a raw (cached) run outcome."""
     if not info.get("arrested", False):
         return False, f"not_arrested({info.get('outcome', 'unknown')})"
     outcome = str(info.get("outcome", ""))
-    n_fail = int(info.get("n_failures", 0))
+    if "n_failed_threads" not in info:
+        attach_thread_failures(info)
+    n_seg = int(info.get("n_failed_segments", info.get("n_failures", 0)))
+    n_thr = int(info.get("n_failed_threads", n_seg))
 
     if criterion == "A":
-        if n_fail != 0:
-            return False, f"n_failed={n_fail}"
+        if n_seg != 0:
+            return False, f"n_failed={n_seg}"
         return True, ""
 
     # B_any / B_loc / B: reject perforation.
     if outcome == "perforated":
         return False, "perforated"
-    if n_fail == 0:
+    if n_seg == 0:
         return True, ""
-    if n_fail >= k_max:
-        return False, f"n_failed={n_fail}>={k_max}"
+    if n_thr >= k_max:
+        return False, f"n_failed_threads={n_thr}>={k_max}"
 
     if criterion == "B_any":
         return True, ""
 
-    # B_loc (and legacy B): localization vs drone at each failure.
-    Rd = R_d_loc(info.get("fail_mids", np.zeros((0, 3))),
-                 info.get("fail_drone_xy", np.zeros((0, 2))))
+    # B_loc (and legacy B): each thread local at its first failure.
+    Rd = R_d_thread_loc(info)
     if not math.isfinite(Rd):
         # Fallback for old caches: R_d vs initial impact point.
         Rd = float(info.get("R_d", float("nan")))
         if not math.isfinite(Rd):
             return False, "R_d_unknown"
     if Rd > R_max:
-        return False, f"R_d_loc={Rd:.4g}>{R_max}"
+        return False, f"R_d_thread={Rd:.4g}>{R_max}"
     return True, ""
 
 
 def assert_criterion_nesting(info, R_max, k_max) -> None:
     """Enforce A ⇒ B_loc ⇒ B_any and (B ∧ n_failed==0) ⇒ A on one run."""
+    if "n_failed_threads" not in info:
+        attach_thread_failures(info)
     ok_a, _ = pass_from_info(info, "A", R_max, k_max)
     ok_bany, _ = pass_from_info(info, "B_any", R_max, k_max)
     ok_bloc, _ = pass_from_info(info, "B_loc", R_max, k_max)
-    n_fail = int(info.get("n_failures", 0))
+    n_seg = int(info.get("n_failed_segments", info.get("n_failures", 0)))
     if ok_a and not ok_bloc:
         raise AssertionError("A_pass but not B_loc_pass on the same run")
     if ok_bloc and not ok_bany:
         raise AssertionError("B_loc_pass but not B_any_pass on the same run")
-    if ok_bany and n_fail == 0 and not ok_a:
+    if ok_bany and n_seg == 0 and not ok_a:
         raise AssertionError(
             "B_pass with n_failed==0 but not A_pass on the same run")
 
@@ -192,21 +257,44 @@ def _criterion_pass(res, p, criterion, R_max, k_max) -> bool:
 def _info_from_result(res) -> dict:
     traj = res.trajectory
     mids = traj.failure_midpoints
-    segs = (list(np.asarray(traj.failures[:, 0], dtype=np.int64))
-            if traj.failures.size else [])
+    if traj.failures.size:
+        segs = list(np.asarray(traj.failures[:, 0], dtype=np.int64))
+        parents = list(np.asarray(traj.failures[:, 1], dtype=np.int64))
+    else:
+        segs, parents = [], []
     dxy = getattr(traj, "failure_drone_xy", None)
     if dxy is None or (hasattr(dxy, "size") and dxy.size == 0 and len(segs)):
         dxy = np.zeros((0, 2))
-    return {
+    info = {
         "arrested": bool(res.arrested),
         "n_failures": int(res.n_failures),
         "R_d": float(res.R_d),
         "outcome": str(res.outcome),
         "energy_error": float(res.energy_error),
         "fail_segs": segs,
+        "fail_parents": parents,
         "fail_mids": np.asarray(mids, dtype=float),
         "fail_drone_xy": np.asarray(dxy, dtype=float).reshape(-1, 2),
     }
+    return attach_thread_failures(info)
+
+
+_SEG_PARENT_MEMO: dict = {}
+
+
+def _seg_parent_of(cfg) -> np.ndarray:
+    from .discretize import discretize
+    nc = cfg.net
+    key = (nc.kind, int(cfg.numerics.n_s), int(nc.N),
+           tuple(getattr(nc, "radii", None) or ()))
+    cached = _SEG_PARENT_MEMO.get(key)
+    if cached is not None:
+        return cached
+    net = build_net(cfg)
+    disc = discretize(net, cfg.material.resolve(), int(cfg.numerics.n_s),
+                      area_scale=1.0)
+    _SEG_PARENT_MEMO[key] = disc.seg_parent
+    return disc.seg_parent
 
 
 def _cache_path(cache_dir, point_idx, s, criterion=None):
@@ -221,6 +309,8 @@ def _read_cache(path):
             a = h5["eval"].attrs
             dxy = (np.asarray(h5["fail_drone_xy"]) if "fail_drone_xy" in h5
                    else np.zeros((0, 2)))
+            parents = (list(np.asarray(h5["fail_parents"], dtype=np.int64))
+                       if "fail_parents" in h5 else [])
             return {
                 "arrested": bool(a["arrested"]),
                 "n_failures": int(a["n_failures"]),
@@ -230,6 +320,7 @@ def _read_cache(path):
                                  if "energy_error" in a else float("nan")),
                 "fail_segs": list(np.asarray(h5["fail_segs"])) if "fail_segs"
                 in h5 else [],
+                "fail_parents": parents,
                 "fail_mids": np.asarray(h5["fail_mids"]) if "fail_mids" in h5
                 else np.zeros((0, 3)),
                 "fail_drone_xy": np.asarray(dxy, dtype=float).reshape(-1, 2),
@@ -257,6 +348,10 @@ def _write_cache(path, info):
                 g.attrs["fail_reason"] = str(info["fail_reason"])
             h5.create_dataset("fail_segs",
                               data=np.asarray(info["fail_segs"], dtype=np.int64))
+            parents = info.get("fail_parents") or []
+            if len(parents):
+                h5.create_dataset("fail_parents",
+                                  data=np.asarray(parents, dtype=np.int64))
             h5.create_dataset("fail_mids",
                               data=np.asarray(info["fail_mids"], dtype=float))
             h5.create_dataset(
@@ -295,6 +390,8 @@ def evaluate(cfg: SimConfig, s: float, point, mmincfg: MminConfig,
         raw = _info_from_result(res)
         if cache_dir is not None:
             _write_cache(_cache_path(cache_dir, point_idx, s), raw)
+    else:
+        attach_thread_failures(raw, seg_parent=_seg_parent_of(cfg))
 
     assert_criterion_nesting(raw, R_max, k_max)
     ok, reason = pass_from_info(raw, mmincfg.criterion, R_max, k_max)
@@ -302,6 +399,7 @@ def evaluate(cfg: SimConfig, s: float, point, mmincfg: MminConfig,
     info["passed"] = bool(ok)
     info["fail_reason"] = reason
     info["R_d_loc"] = R_d_loc(info["fail_mids"], info["fail_drone_xy"])
+    info["R_d_thread"] = R_d_thread_loc(info)
     return info
 
 
@@ -393,7 +491,8 @@ def _minimum_mass_point_B(cfg, point, mmincfg, point_idx, s0) -> dict:
     while doublings < mmincfg.max_doublings:
         if info_hi["arrested"] and info_hi["passed"] and doublings >= 2:
             break
-        if info_hi["arrested"] and doublings >= 4 and info_hi["n_failures"] == 0:
+        if info_hi["arrested"] and doublings >= 4 and int(
+                info_hi.get("n_failed_segments", info_hi["n_failures"])) == 0:
             break
         s_hi *= 2.0
         info_hi = evaluate(cfg, s_hi, point, mmincfg, point_idx)
@@ -508,18 +607,21 @@ def minimum_mass(cfg: SimConfig, mmincfg: MminConfig,
     evals = sum(r["evaluations"] for r in results)
     info = worst["info"]
     mids = info["fail_mids"]
+    n_seg = int(info.get("n_failed_segments", info.get("n_failures", 0)))
+    n_thr = int(info.get("n_failed_threads", n_seg))
 
     return MminResult(
         criterion=mmincfg.criterion,
         s_min=s_min,
         m_min=s_min * m1,
         worst_point=worst["point"],
-        n_failures=info["n_failures"],
+        n_failures=n_thr,
         broken_segments=[int(x) for x in info["fail_segs"]],
         broken_midpoints=mids.tolist() if hasattr(mids, "tolist") else list(mids),
         s0=s0,
         per_point=per_point,
         evaluations=evals,
+        n_failed_segments=n_seg,
         s_min_first_pass=worst.get("s_min_first_pass"),
         s_min_all_pass=worst.get("s_min_all_pass"),
         scan_pattern=worst.get("scan_pattern"),

@@ -2,6 +2,8 @@
 
 import csv
 
+import pytest
+
 import validation.export_paper as ep
 
 
@@ -59,3 +61,16 @@ def test_params_used_columns(tmp_path, monkeypatch):
     # Must include the material parameters and the working values.
     for key in ("E0_S", "eps_b_D", "r_d", "k_c", "R_max", "k_max"):
         assert key in syms
+
+
+def test_scale_mmin_row_m_prop_M():
+    src = {"net": "star", "material": "S", "n_s": "40", "M": "1", "v0": "10",
+           "Ekin": "50", "m_lower_g": "1", "mA_min_g": "8", "mBany_min_g": "4",
+           "mBloc025_min_g": "8", "mBloc050_min_g": "8", "mBloc075_min_g": "5",
+           "s_lo_A": "0.8", "s_hi_A": "0.81", "m_source": "computed"}
+    row = ep._scale_mmin_row(src, 2.0, "scaled_m_prop_M from M=1 v0=10")
+    assert row["M"] == "2"
+    assert float(row["mA_min_g"]) == pytest.approx(16.0)
+    assert float(row["Ekin"]) == pytest.approx(100.0)
+    assert float(row["s_lo_A"]) == pytest.approx(1.6)
+    assert row["m_source"].startswith("scaled_m_prop_M")

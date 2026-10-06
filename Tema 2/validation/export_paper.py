@@ -48,6 +48,41 @@ _ALLOW_DIRTY = False
 _MMIN_CACHE = _ROOT / ".cache" / "mmin"
 
 
+def merge_tagged_mmin_caches(cache_root=None) -> int:
+    """Copy round-7b tagged dirs (…_ns40_B_any) into the untagged sibling."""
+    import shutil
+    root = Path(cache_root or _MMIN_CACHE)
+    if not root.is_dir():
+        return 0
+    n = 0
+    tags = ("_A", "_B_any", "_Bloc025", "_Bloc050", "_Bloc075")
+    for d in sorted(root.iterdir()):
+        if not d.is_dir():
+            continue
+        stem = None
+        for tag in tags:
+            if d.name.endswith(tag):
+                stem = d.name[:-len(tag)]
+                break
+        if stem is None:
+            continue
+        dst = root / stem
+        dst.mkdir(parents=True, exist_ok=True)
+        for p in d.glob("mmin_p*.h5"):
+            t = dst / p.name
+            if not t.exists():
+                shutil.copy2(p, t)
+                n += 1
+    return n
+
+
+def count_mmin_cache_h5(cache_root=None) -> int:
+    root = Path(cache_root or _MMIN_CACHE)
+    if not root.is_dir():
+        return 0
+    return sum(1 for p in root.rglob("mmin_p*.h5") if p.is_file())
+
+
 def _repo_root() -> Path:
     return _ROOT.parent if (_ROOT.parent / ".git").exists() else _ROOT
 
@@ -556,7 +591,7 @@ def _mmin_n_procs():
 
 
 def _mmin_row_cols():
-    cols = ["net", "material", "M", "v0", "Ekin", "m_lower_g",
+    cols = ["net", "material", "n_s", "M", "v0", "Ekin", "m_lower_g",
             "mA_min_g", "mBany_min_g", "mBloc025_min_g", "mBloc050_min_g",
             "mBloc075_min_g", "ratio_Bany", "ratio_Bloc025", "ratio_Bloc050",
             "ratio_Bloc075", "mA_over_Ekin_g_per_J",
@@ -564,7 +599,10 @@ def _mmin_row_cols():
             "mBloc050_over_Ekin_g_per_J", "mBloc075_over_Ekin_g_per_J",
             "n_broken_A", "n_broken_Bany", "n_broken_Bloc025",
             "n_broken_Bloc050", "n_broken_Bloc075",
-            "worst_p_x", "worst_p_y"]
+            "n_failed_segments_A", "n_failed_segments_Bany",
+            "n_failed_segments_Bloc025", "n_failed_segments_Bloc050",
+            "n_failed_segments_Bloc075",
+            "worst_p_x", "worst_p_y", "m_source"]
     for key in _MMIN_CRIT_KEYS:
         cols += [f"worst_p_x_{key}", f"worst_p_y_{key}",
                  f"n_broken_{key}_at_Aworst", f"outcome_below_{key}",
@@ -621,7 +659,8 @@ def _mmin_case(job):
         extra[f"worst_p_x_{key}"] = f"{wp[0]:.6g}"
         extra[f"worst_p_y_{key}"] = f"{wp[1]:.6g}"
         info_aw = evaluate(cfg, float(rx.s_min), _A_WORST, mm, 2)
-        extra[f"n_broken_{key}_at_Aworst"] = int(info_aw["n_failures"])
+        extra[f"n_broken_{key}_at_Aworst"] = int(
+            info_aw.get("n_failed_threads", info_aw.get("n_failures", 0)))
         s_lo = rx.s_below if rx.s_below is not None else 0.99 * rx.s_min
         if s_lo >= rx.s_min:
             s_lo = 0.99 * rx.s_min
@@ -665,8 +704,15 @@ def _mmin_case(job):
         "n_broken_Bloc025": blocs[0.25].n_failures,
         "n_broken_Bloc050": blocs[0.5].n_failures,
         "n_broken_Bloc075": blocs[0.75].n_failures,
+        "n_failed_segments_A": rA.n_failed_segments,
+        "n_failed_segments_Bany": r_any.n_failed_segments,
+        "n_failed_segments_Bloc025": blocs[0.25].n_failed_segments,
+        "n_failed_segments_Bloc050": blocs[0.5].n_failed_segments,
+        "n_failed_segments_Bloc075": blocs[0.75].n_failed_segments,
         "worst_p_x": f"{worst[0]:.6g}",
         "worst_p_y": f"{worst[1]:.6g}",
+        "n_s": str(int(n_s)),
+        "m_source": "computed",
     }
     row.update(extra)
     print(
@@ -678,8 +724,80 @@ def _mmin_case(job):
     return row
 
 
+_STAR40_COMPUTED = (
+    (1.0, 15.0),   # re-eval from cache
+    (0.25, 20.0),  # re-eval from cache; scale m ∝ M for other M at v0=20
+    (1.0, 10.0),   # only new production runs
+)
+
+
+def _scale_mmin_row(src, M_new, note):
+    """Fill a sibling M at the same v0 by m ∝ M (s and m_min scale with M)."""
+    M_src = float(src["M"])
+    fac = float(M_new) / M_src
+    row = dict(src)
+    row["M"] = f"{M_new:.6g}"
+    row["Ekin"] = f"{fac * float(src['Ekin']):.6g}"
+    for k in ("m_lower_g", "mA_min_g", "mBany_min_g", "mBloc025_min_g",
+              "mBloc050_min_g", "mBloc075_min_g"):
+        row[k] = f"{fac * float(src[k]):.6g}"
+    for key in _MMIN_CRIT_KEYS:
+        for pref in ("s_lo", "s_hi"):
+            col = f"{pref}_{key}"
+            if src.get(col) not in (None, ""):
+                row[col] = f"{fac * float(src[col]):.6g}"
+    row["m_source"] = note
+    return row
+
+
+def _assemble_star40(computed):
+    by = {(r["material"], float(r["M"]), float(r["v0"])): r
+          for r in computed}
+    out = []
+    plan = (
+        (15.0, 1.0, (0.25, 2.0), "scaled_m_prop_M from M=1 v0=15"),
+        (20.0, 0.25, (1.0, 2.0), "scaled_m_prop_M from M=0.25 v0=20"),
+        (10.0, 1.0, (0.25, 2.0), "scaled_m_prop_M from M=1 v0=10"),
+    )
+    for mat in ("S", "D"):
+        for v0, Msrc, others, note in plan:
+            src = by[(mat, Msrc, v0)]
+            out.append(src)
+            for M in others:
+                out.append(_scale_mmin_row(src, M, note))
+    out.sort(key=lambda r: (r["material"], float(r["M"]), float(r["v0"])))
+    return out
+
+
+def export_mmin_round7c(name="tab_mmin.csv", computed_star=None,
+                        computed_ring=None):
+    """Star n_s=40 (3 computed (M,v0) + m∝M fill) and star+ring n_s=10."""
+    n_copied = merge_tagged_mmin_caches()
+    if n_copied:
+        print(f"    merged {n_copied} tagged cache files into untagged dirs",
+              flush=True)
+    grid = [(0.25, 10.0), (0.25, 15.0), (0.25, 20.0),
+            (1.0, 10.0), (1.0, 15.0), (1.0, 20.0),
+            (2.0, 10.0), (2.0, 15.0), (2.0, 20.0)]
+    if computed_ring is None:
+        ring_jobs = [("star+ring", mat, M, v0, True, 10)
+                     for mat in ("S", "D") for M, v0 in grid]
+        computed_ring = _parallel_map(
+            _mmin_case, ring_jobs, desc="tab_mmin star+ring n_s=10")
+    if computed_star is None:
+        star_jobs = [("star", mat, M, v0, True, 40)
+                     for mat in ("S", "D") for M, v0 in _STAR40_COMPUTED]
+        computed_star = _parallel_map(
+            _mmin_case, star_jobs, desc="tab_mmin star n_s=40 keys")
+    star_rows = _assemble_star40(computed_star)
+    rows = list(star_rows) + list(computed_ring)
+    return _write(name, _mmin_row_cols(), rows, config="mmin")
+
+
 def export_mmin(full=False, n_s=None, nets=None, name="tab_mmin.csv"):
-    # Star and star+ring at eps_p = 0.1 eps_b; full (M,v0) grid with --full.
+    # Star n_s=40 + star+ring n_s=10 (round 7c) on --full.
+    if full and n_s is None and nets is None:
+        return export_mmin_round7c(name=name)
     if full:
         grid = [(0.25, 10.0), (0.25, 15.0), (0.25, 20.0),
                 (1.0, 10.0), (1.0, 15.0), (1.0, 20.0),

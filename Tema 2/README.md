@@ -301,6 +301,22 @@ arrival).
   `n_bisect`, and `m/E_kin` to 4 significant digits.
 - Re-evaluation reuses `.cache/mmin` (extra A bisection steps only).
 
+### Round-7c notes (thread-based B, n_s=40 star table)
+
+- **`k_max` counts distinct failed threads** (parent edges), not mesh segments.
+  A radial that fragments into 4–10 segments is one thread. `B_loc` treats a
+  thread as local if its **first** failure is within `R_max` of the drone.
+  `n_failed_segments_*` is kept as a diagnostic; `n_broken_*` is the thread count.
+- **Star table at `n_s=40`.** Computed keys only: `(M,v0)=(1,15)` and
+  `(0.25,20)` re-evaluated from cache, plus new `(1,10)` for S and D.
+  Other `M` at the same `v0` are filled by **`m ∝ M`** (verified at `n_s=10`:
+  `m/E` at fixed `v0` is identical for `M ∈ {0.25, 1, 2}`). Do not rerun
+  `M=1, v0=20`. Column `m_source` records `computed` vs the scale origin.
+- **Star+ring stays at `n_s=10`** (labelled `n_s` column), re-evaluated with
+  thread-based B.
+- **S `M=1 v0=15` at `n_s=10,40,80`:** `python -m validation.round7c check_s_ns`
+  reports `B_any` 40 vs 80 (1% gate).
+
 Run the pytest suite:
 
 ```bash
