@@ -1,5 +1,5 @@
-# commit=0e4c75d684d5095d4c5ed5f7818a9188cbe68ecf date=2026-10-03T11:40:25 config=test1_smith dirty=true
+# commit=432ac9cebd8013bd9d3bf7f6d10ecbd5bb56e30b date=2026-10-04T22:46:49 config=test1_smith code_dirty=false
 n_seg,eps_err_pct,cL_err_pct,cT_err_pct
-200,47.8,95.98,14.69
-400,100.8,60.33,85.16
-800,100.3,54.29,3002
+200,6.586,3.319,0.01797
+400,4.312,1.816,0.09108
+800,1.922,2.976,0.1367

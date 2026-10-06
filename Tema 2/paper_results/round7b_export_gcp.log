@@ -1,0 +1,445 @@
+=== round7b on-vm start 2026-10-05T20:56:51+00:00 commit=5345d35e61c1536d750939846fb168a8243bb77f dirty=false jobs=16 ===
+=== 7b wall estimate (measured r7 times, cache reuse) ===
+  cache files=9570  workers=16  A extra bisect~3
+  single-sim T10 S=1.46s D=77.8s  T40 S=6.50s D=535.4s
+  3.1 A+Bany n_s=40 from scratch: S=42.0 min  D=6.73 h
+  (a) tab_mmin n_s=10 36 rows  ~0.09 h
+  (b) 3.1 S/D n_s=10 vs 40     ~0.15 h
+  (c) reduced 3.2              ~1.01 h
+  total ~1.25 h  (24 h guard)
+=== 7b (a) tab_mmin n_s=10, 36 rows, tol=0.01 ===
+Exporting paper CSVs to /home/octav/tema2/paper_results (commit 5345d35e, jobs=16, code_dirty=false)
+    [tab_mmin.csv] 36 jobs × 16 workers
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star S M=2 v0=20 n_s=10 mA=31.55g A@(0.50,0.00) Bany@(0.25,0.00) nB=3 nB_Aworst=2
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star S M=1 v0=20 n_s=10 mA=15.89g A@(0.50,0.00) Bany@(0.25,0.00) nB=2 nB_Aworst=2
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star S M=2 v0=15 n_s=10 mA=18.15g A@(0.50,0.00) Bany@(0.25,0.00) nB=3 nB_Aworst=2
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star S M=1 v0=15 n_s=10 mA=9.076g A@(0.50,0.00) Bany@(0.25,0.00) nB=2 nB_Aworst=2
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star S M=0.25 v0=20 n_s=10 mA=4.004g A@(0.50,0.00) Bany@(0.25,0.00) nB=2 nB_Aworst=2
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star S M=2 v0=10 n_s=10 mA=8.007g A@(0.50,0.00) Bany@(0.25,0.00) nB=2 nB_Aworst=2
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star S M=0.25 v0=15 n_s=10 mA=2.269g A@(0.50,0.00) Bany@(0.25,0.00) nB=2 nB_Aworst=2
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star S M=1 v0=10 n_s=10 mA=4.034g A@(0.50,0.00) Bany@(0.25,0.00) nB=3 nB_Aworst=2
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09709 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=1 v0=15 n_s=10 mA=16.93g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=4
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star S M=0.25 v0=10 n_s=10 mA=1.008g A@(0.50,0.00) Bany@(0.25,0.00) nB=2 nB_Aworst=2
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=2 v0=15 n_s=10 mA=33.59g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=4
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=0.25 v0=20 n_s=10 mA=7.586g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=5
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star D M=0.25 v0=20 n_s=10 mA=4.517g A@(0.50,0.00) Bany@(0.50,0.00) nB=3 nB_Aworst=3
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star D M=1 v0=20 n_s=10 mA=18.07g A@(0.50,0.00) Bany@(0.50,0.00) nB=3 nB_Aworst=3
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=1 v0=20 n_s=10 mA=30.58g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=3
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star D M=2 v0=20 n_s=10 mA=36.14g A@(0.50,0.00) Bany@(0.50,0.00) nB=3 nB_Aworst=3
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star D M=0.25 v0=10 n_s=10 mA=1.109g A@(0.50,0.00) Bany@(0.50,0.00) nB=3 nB_Aworst=3
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star D M=1 v0=10 n_s=10 mA=4.436g A@(0.50,0.00) Bany@(0.50,0.00) nB=3 nB_Aworst=3
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star D M=2 v0=10 n_s=10 mA=8.872g A@(0.50,0.00) Bany@(0.50,0.00) nB=3 nB_Aworst=3
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=1 v0=10 n_s=10 mA=7.345g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=4
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=2 v0=20 n_s=10 mA=59.72g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=4
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=0.25 v0=15 n_s=10 mA=4.199g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=3
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=2 v0=10 n_s=10 mA=14.57g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=2
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star D M=2 v0=15 n_s=10 mA=20.08g A@(0.50,0.00) Bany@(0.50,0.00) nB=2 nB_Aworst=2
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.09968 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star D M=1 v0=15 n_s=10 mA=10.04g A@(0.50,0.00) Bany@(0.50,0.00) nB=2 nB_Aworst=2
+    [tab_mmin] star D M=0.25 v0=15 n_s=10 mA=2.511g A@(0.50,0.00) Bany@(0.50,0.00) nB=2 nB_Aworst=2
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=0.25 v0=10 n_s=10 mA=1.821g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=4
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=1 v0=20 n_s=10 mA=37.87g A@(0.50,0.00) Bany@(0.25,0.00) nB=2 nB_Aworst=2
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=2 v0=20 n_s=10 mA=75.74g A@(0.50,0.00) Bany@(0.25,0.00) nB=2 nB_Aworst=2
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=0.25 v0=20 n_s=10 mA=9.467g A@(0.50,0.00) Bany@(0.25,0.00) nB=2 nB_Aworst=2
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=0.25 v0=15 n_s=10 mA=5.143g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=2
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=2 v0=15 n_s=10 mA=41.14g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=2
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=0.25 v0=10 n_s=10 mA=2.272g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=2
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=1 v0=10 n_s=10 mA=9.089g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=2
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=2 v0=10 n_s=10 mA=18.18g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=2
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=1 v0=15 n_s=10 mA=20.57g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=2
+  [ok]   tab_mmin.csv           -> /home/octav/tema2/paper_results/tab_mmin.csv
+=== item 3.1: star S/D Alg.2 A & B_any at n_s=10 vs 40 ===
+  running S n_s=10 ...
+    mA=9.076g mBany=4.394g mA/E=0.08068 bracketA=[0.8921593656218738,0.8988673307769255] n_bisectA=7 cpu=0.2s
+  running S n_s=40 ...
+    mA=8.466g mBany=4.087g mA/E=0.07526 bracketA=[0.8317876792264087,0.8384956443814604] n_bisectA=6 cpu=103.4s
+  S: |mA_40/mA_10-1|=6.72%  |mB_40/mB_10-1|=6.97%
+  running D n_s=10 ...
+    mA=10.04g mBany=9.801g mA/E=0.08926 bracketA=[1.2837524414062504,1.291580200195313] n_bisectA=7 cpu=0.2s
+  running D n_s=40 ...
+    mA=10.16g mBany=10.06g mA/E=0.09035 bracketA=[1.2994079589843754,1.307235717773438] n_bisectA=7 cpu=1145.2s
+  D: |mA_40/mA_10-1|=1.21%  |mB_40/mB_10-1|=2.59%
+  GATE FAIL: n_s=40 differs by >3% → will run item 3.2
+=== item 3.2 (reduced): NOT the 18-row star@40 table ===
+  measured 3.1 A+B_any: S n_s=40 1.7 min, D n_s=40 19.1 min
+  estimate before start (16 workers): wave1(A) ~0.13 h  wave2(B) ~0.19 h  total ~0.32 h
+  jobs: star S/D n_s=40, A+B_any+B_loc×3, (M,v0)=(1,15) and (0.25,20); plus star S n_s=80 M=1 v0=15 A+B_any
+    [5 jobs × 5 workers]
+    [3.2] S n_s=40 M=1 v0=15 A m=8.466g m/E=0.07526 g/J [0.8317876792264087,0.8384956443814604] n_bisect=6 cpu=0.1s
+    [3.2] D n_s=40 M=1 v0=15 A m=10.16g m/E=0.09035 g/J [1.2994079589843754,1.307235717773438] n_bisect=7 cpu=0.1s
+    [3.2] S n_s=40 M=0.25 v0=20 A m=3.883g m/E=0.07766 g/J [0.3816086843762736,0.38459000222296325] n_bisect=7 cpu=104.9s
+    [3.2] S n_s=80 M=1 v0=15 A m=8.466g m/E=0.07526 g/J [0.8317876792264087,0.8384956443814604] n_bisect=6 cpu=287.4s
+    [3.2] D n_s=40 M=0.25 v0=20 A m=4.571g m/E=0.09143 g/J [0.5844726562500001,0.5879516601562501] n_bisect=7 cpu=2830.0s
+    [17 jobs × 16 workers]
+    [3.2] S n_s=40 M=1 v0=15 B_any m=4.087g m/E=0.03633 g/J [0.4013113066674398,0.4048111145744233] n_bisect=2 cpu=0.2s
+    [3.2] D n_s=40 M=1 v0=15 B_any m=10.06g m/E=0.08938 g/J [1.28511379076087,1.2932818868885874] n_bisect=3 cpu=0.2s
+    [3.2] D n_s=40 M=1 v0=15 Bloc050 m=10.12g m/E=0.08995 g/J [1.2932818868885874,1.3014499830163049] n_bisect=3 cpu=0.2s
+    [3.2] D n_s=40 M=1 v0=15 Bloc075 m=10.06g m/E=0.08938 g/J [1.28511379076087,1.2932818868885874] n_bisect=3 cpu=0.2s
+    [3.2] D n_s=40 M=1 v0=15 Bloc025 m=10.12g m/E=0.08995 g/J [1.2932818868885874,1.3014499830163049] n_bisect=3 cpu=71.4s
+    [3.2] S n_s=40 M=1 v0=15 Bloc075 m=4.782g m/E=0.04251 g/J [0.47014086217144835,0.47364067007843186] n_bisect=3 cpu=848.4s
+    [3.2] S n_s=40 M=1 v0=15 Bloc050 m=8.458g m/E=0.07518 g/J [0.8306210765907476,0.8376206924047145] n_bisect=2 cpu=1217.4s
+    [3.2] S n_s=40 M=1 v0=15 Bloc025 m=8.458g m/E=0.07518 g/J [0.8306210765907476,0.8376206924047145] n_bisect=2 cpu=1449.2s
+    [3.2] S n_s=40 M=0.25 v0=20 Bloc050 m=3.874g m/E=0.07748 g/J [0.38057170425568587,0.383682644617449] n_bisect=3 cpu=1620.5s
+    [3.2] S n_s=40 M=0.25 v0=20 Bloc025 m=3.874g m/E=0.07748 g/J [0.38057170425568587,0.383682644617449] n_bisect=3 cpu=1654.0s
+    [3.2] S n_s=40 M=0.25 v0=20 B_any m=1.848g m/E=0.03696 g/J [0.1814715211028475,0.18302699128372907] n_bisect=2 cpu=2734.5s
+    [3.2] S n_s=40 M=0.25 v0=20 Bloc075 m=2.188g m/E=0.04377 g/J [0.21517337502194772,0.21672884520282928] n_bisect=3 cpu=2804.7s
+    [3.2] S n_s=80 M=1 v0=15 B_any m=4.464g m/E=0.03968 g/J [0.43864259100859704,0.4421423989155805] n_bisect=3 cpu=5024.5s
+    [3.2] D n_s=40 M=0.25 v0=20 Bloc025 m=4.526g m/E=0.09051 g/J [0.5784222146739131,0.5820524796195653] n_bisect=3 cpu=20173.4s
+    [3.2] D n_s=40 M=0.25 v0=20 Bloc050 m=4.526g m/E=0.09051 g/J [0.5784222146739131,0.5820524796195653] n_bisect=3 cpu=20839.1s
+    [3.2] D n_s=40 M=0.25 v0=20 Bloc075 m=4.413g m/E=0.08825 g/J [0.5639011548913044,0.5675314198369565] n_bisect=3 cpu=21875.9s
+    [3.2] D n_s=40 M=0.25 v0=20 B_any m=4.413g m/E=0.08825 g/J [0.5639011548913044,0.5675314198369565] n_bisect=3 cpu=21978.1s
+=== m/E_kin at n_s=40: (1,15) E=112.5 J vs (0.25,20) E=50 J ===
+  S A: m/E (1,15)=0.07526  (0.25,20)=0.07766  |rel|=3.20%  NO
+  S B_any: m/E (1,15)=0.03633  (0.25,20)=0.03696  |rel|=1.73%  NO
+  S Bloc025: m/E (1,15)=0.07518  (0.25,20)=0.07748  |rel|=3.06%  NO
+  S Bloc050: m/E (1,15)=0.07518  (0.25,20)=0.07748  |rel|=3.06%  NO
+  S Bloc075: m/E (1,15)=0.04251  (0.25,20)=0.04377  |rel|=2.96%  NO
+  D A: m/E (1,15)=0.09035  (0.25,20)=0.09143  |rel|=1.20%  NO
+  D B_any: m/E (1,15)=0.08938  (0.25,20)=0.08825  |rel|=1.26%  NO
+  D Bloc025: m/E (1,15)=0.08995  (0.25,20)=0.09051  |rel|=0.63%  OK
+  D Bloc050: m/E (1,15)=0.08995  (0.25,20)=0.09051  |rel|=0.63%  OK
+  D Bloc075: m/E (1,15)=0.08938  (0.25,20)=0.08825  |rel|=1.26%  NO
+  SCALE: m/E_kin differs by >1% on at least one criterion; do not claim E_kin scaling for the n_s=40 table.
+=== n_s=40 vs 80, star S M=1 v0=15 A and B_any ===
+  A: m40=8.466g m80=8.466g |rel|=0.00%
+  B_any: m40=4.087g m80=4.464g |rel|=9.22%
+=== round7b on-vm done 2026-10-06T04:41:35+00:00 ===
+ n_s=40: (1,15) E=112.5 J vs (0.25,20) E=50 J ===
+  S A: m/E (1,15)=0.07526  (0.25,20)=0.07766  |rel|=3.20%  NO
+  S B_any: m/E (1,15)=0.03633  (0.25,20)=0.03696  |rel|=1.73%  NO
+  S Bloc025: m/E (1,15)=0.07518  (0.25,20)=0.07748  |rel|=3.06%  NO
+  S Bloc050: m/E (1,15)=0.07518  (0.25,20)=0.07748  |rel|=3.06%  NO
+  S Bloc075: m/E (1,15)=0.04251  (0.25,20)=0.04377  |rel|=2.96%  NO
+  D A: m/E (1,15)=0.09035  (0.25,20)=0.09143  |rel|=1.20%  NO
+  D B_any: m/E (1,15)=0.08938  (0.25,20)=0.08825  |rel|=1.26%  NO
+  D Bloc025: m/E (1,15)=0.08995  (0.25,20)=0.09051  |rel|=0.63%  OK
+  D Bloc050: m/E (1,15)=0.08995  (0.25,20)=0.09051  |rel|=0.63%  OK
+  D Bloc075: m/E (1,15)=0.08938  (0.25,20)=0.08825  |rel|=1.26%  NO
+  SCALE: m/E_kin differs by >1% on at least one criterion; do not claim E_kin scaling for the n_s=40 table.
+=== n_s=40 vs 80, star S M=1 v0=15 A and B_any ===
+  A: m40=8.466g m80=8.466g |rel|=0.00%
+  B_any: m40=4.087g m80=4.464g |rel|=9.22%
+=== round7b on-vm done 2026-10-06T04:41:35+00:00 ===
