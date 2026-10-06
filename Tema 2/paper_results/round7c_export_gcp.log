@@ -1,0 +1,1051 @@
+=== round7c on-vm start 2026-10-06T08:13:01+00:00 commit=e65b141a7ae3dc14a2a73f82b238e02af143212c dirty=false jobs=16 ===
+=== cached mmin .h5 files on VM: 6930 (path /home/octav/tema2/.cache/mmin) ===
+=== 7c wall estimate (cache reuse + 2 new M=1 v0=10 n_s=40) ===
+  cache files=7353  merged_tagged=423  workers=16
+  T40 S=6.50s D=535.4s
+  (check) S M=1 v0=15 n_s=10/40/80  ~0.10 h
+  (cache) star+ring n_s=10 + star keys  ~0.15 h
+  (new)   star S/D M=1 v0=10 n_s=40    ~6.88 h
+  total ~7.13 h  (24 h guard)
+=== 7c: star S M=1 v0=15 A+B_any at n_s=10, 40, 80 (thread B) ===
+  running S n_s=10 ...
+    mA=9.076g mBany=4.394g nB_thr=1 nB_seg=2 mB/E=0.03905 bracketB=[0.4316429751946301,0.4351427831016136] n_bisectB=3 cpu=0.2s
+  running S n_s=40 ...
+    mA=8.466g mBany=4.087g nB_thr=1 nB_seg=4 mB/E=0.03633 bracketB=[0.4013113066674398,0.4048111145744233] n_bisectB=2 cpu=14.5s
+  running S n_s=80 ...
+    mA=8.466g mBany=4.087g nB_thr=1 nB_seg=6 mB/E=0.03633 bracketB=[0.4013113066674398,0.4048111145744233] n_bisectB=2 cpu=4251.0s
+  B_any n_s=40 vs 80 |rel|=0.00%  OK
+=== 7c cache re-eval: star+ring n_s=10 + star n_s=40 (1,15)/(0.25,20) ===
+    [star+ring n_s=10] 18 jobs × 16 workers
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=1 v0=20 n_s=10 mA=30.58g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=1 v0=15 n_s=10 mA=16.93g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=0.25 v0=20 n_s=10 mA=7.586g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=0.25 v0=15 n_s=10 mA=4.199g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=2 v0=15 n_s=10 mA=33.59g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=2 v0=20 n_s=10 mA=59.72g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=2 v0=10 n_s=10 mA=14.57g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=1 v0=10 n_s=10 mA=7.345g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring S M=0.25 v0=10 n_s=10 mA=1.821g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=0.25 v0=20 n_s=10 mA=9.467g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=1 v0=20 n_s=10 mA=37.87g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=2 v0=20 n_s=10 mA=75.74g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=1 v0=15 n_s=10 mA=20.57g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=0.25 v0=15 n_s=10 mA=5.143g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=2 v0=15 n_s=10 mA=41.14g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+    [tab_mmin] star+ring D M=0.25 v0=10 n_s=10 mA=2.272g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring D M=1 v0=10 n_s=10 mA=9.089g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring D M=2 v0=10 n_s=10 mA=18.18g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [star n_s=40 cached keys] 4 jobs × 4 workers
+    [tab_mmin] star D M=0.25 v0=20 n_s=40 mA=4.571g A@(0.50,0.00) Bany@(0.50,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star D M=1 v0=15 n_s=40 mA=10.16g A@(0.50,0.00) Bany@(0.50,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star S M=1 v0=15 n_s=40 mA=8.466g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star S M=0.25 v0=20 n_s=40 mA=3.883g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+=== 7c new production: star S/D M=1 v0=10 n_s=40 (inner 16) ===
+  sequential S M=1 v0=10 n_s=40  MMIN_N_PROCS=16
+    [tab_mmin] star S M=1 v0=10 n_s=40 mA=3.673g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+  sequential D M=1 v0=10 n_s=40  MMIN_N_PROCS=16
+Process ForkPoolWorker-198:
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/pool.py", line 131, in worker
+    put((job, i, result))
+  File "/usr/lib/python3.10/multiprocessing/queues.py", line 377, in put
+    self._writer.send_bytes(obj)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 200, in send_bytes
+    self._send_bytes(m[offset:offset + size])
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 411, in _send_bytes
+    self._send(header + buf)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 368, in _send
+    n = write(self._handle, buf)
+BrokenPipeError: [Errno 32] Broken pipe
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/usr/lib/python3.10/multiprocessing/pool.py", line 136, in worker
+    put((job, i, (False, wrapped)))
+  File "/usr/lib/python3.10/multiprocessing/queues.py", line 377, in put
+    self._writer.send_bytes(obj)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 200, in send_bytes
+    self._send_bytes(m[offset:offset + size])
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 411, in _send_bytes
+    self._send(header + buf)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 368, in _send
+    n = write(self._handle, buf)
+BrokenPipeError: [Errno 32] Broken pipe
+Process ForkPoolWorker-199:
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/pool.py", line 131, in worker
+    put((job, i, result))
+  File "/usr/lib/python3.10/multiprocessing/queues.py", line 377, in put
+    self._writer.send_bytes(obj)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 200, in send_bytes
+    self._send_bytes(m[offset:offset + size])
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 411, in _send_bytes
+    self._send(header + buf)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 368, in _send
+    n = write(self._handle, buf)
+BrokenPipeError: [Errno 32] Broken pipe
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/usr/lib/python3.10/multiprocessing/pool.py", line 136, in worker
+    put((job, i, (False, wrapped)))
+  File "/usr/lib/python3.10/multiprocessing/queues.py", line 377, in put
+    self._writer.send_bytes(obj)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 200, in send_bytes
+    self._send_bytes(m[offset:offset + size])
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 411, in _send_bytes
+    self._send(header + buf)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 368, in _send
+    n = write(self._handle, buf)
+BrokenPipeError: [Errno 32] Broken pipe
+Terminated
+ng 2026-10-06T11:27:11+00:00
+[watch] D still running 2026-10-06T11:27:41+00:00
+[watch] D still running 2026-10-06T11:28:11+00:00
+[watch] D still running 2026-10-06T11:28:41+00:00
+[watch] D still running 2026-10-06T11:29:11+00:00
+[watch] D still running 2026-10-06T11:29:41+00:00
+[watch] D still running 2026-10-06T11:30:11+00:00
+[watch] D still running 2026-10-06T11:30:41+00:00
+[watch] D still running 2026-10-06T11:31:11+00:00
+[watch] D still running 2026-10-06T11:31:41+00:00
+[watch] D still running 2026-10-06T11:32:11+00:00
+[watch] D still running 2026-10-06T11:32:41+00:00
+[watch] D still running 2026-10-06T11:33:11+00:00
+[watch] D still running 2026-10-06T11:33:41+00:00
+[watch] D still running 2026-10-06T11:34:11+00:00
+[watch] D still running 2026-10-06T11:34:41+00:00
+[watch] D still running 2026-10-06T11:35:11+00:00
+[watch] D still running 2026-10-06T11:35:41+00:00
+[watch] D still running 2026-10-06T11:36:11+00:00
+[watch] D still running 2026-10-06T11:36:41+00:00
+[watch] D still running 2026-10-06T11:37:11+00:00
+[watch] D still running 2026-10-06T11:37:41+00:00
+[watch] D still running 2026-10-06T11:38:11+00:00
+[watch] D still running 2026-10-06T11:38:41+00:00
+[watch] D still running 2026-10-06T11:39:11+00:00
+[watch] D still running 2026-10-06T11:39:41+00:00
+[watch] D still running 2026-10-06T11:40:11+00:00
+[watch] D still running 2026-10-06T11:40:41+00:00
+[watch] D still running 2026-10-06T11:41:11+00:00
+[watch] D still running 2026-10-06T11:41:41+00:00
+[watch] D still running 2026-10-06T11:42:11+00:00
+[watch] D still running 2026-10-06T11:42:41+00:00
+[watch] D still running 2026-10-06T11:43:11+00:00
+[watch] D still running 2026-10-06T11:43:41+00:00
+[watch] D still running 2026-10-06T11:44:11+00:00
+[watch] D still running 2026-10-06T11:44:41+00:00
+[watch] D still running 2026-10-06T11:45:11+00:00
+[watch] D still running 2026-10-06T11:45:41+00:00
+[watch] D still running 2026-10-06T11:46:11+00:00
+[watch] D still running 2026-10-06T11:46:41+00:00
+[watch] D still running 2026-10-06T11:47:11+00:00
+[watch] D still running 2026-10-06T11:47:41+00:00
+[watch] D still running 2026-10-06T11:48:11+00:00
+[watch] D still running 2026-10-06T11:48:41+00:00
+[watch] D still running 2026-10-06T11:49:11+00:00
+    [tab_mmin] star S M=1 v0=10 n_s=40 mA=3.673g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+  sequential D M=1 v0=10 n_s=40  MMIN_N_PROCS=16
+=== S v0=10 finished; killing sequential parent 3197 to avoid duplicate D ===
+[watch] D still running 2026-10-06T11:49:41+00:00
+[watch] D still running 2026-10-06T11:50:11+00:00
+[watch] D still running 2026-10-06T11:50:41+00:00
+[watch] D still running 2026-10-06T11:51:11+00:00
+[watch] D still running 2026-10-06T11:51:41+00:00
+[watch] D still running 2026-10-06T11:52:11+00:00
+[watch] D still running 2026-10-06T11:52:41+00:00
+[watch] D still running 2026-10-06T11:53:11+00:00
+[watch] D still running 2026-10-06T11:53:41+00:00
+[watch] D still running 2026-10-06T11:54:11+00:00
+[watch] D still running 2026-10-06T11:54:41+00:00
+[watch] D still running 2026-10-06T11:55:11+00:00
+[watch] D still running 2026-10-06T11:55:41+00:00
+[watch] D still running 2026-10-06T11:56:11+00:00
+[watch] D still running 2026-10-06T11:56:41+00:00
+[watch] D still running 2026-10-06T11:57:11+00:00
+[watch] D still running 2026-10-06T11:57:41+00:00
+[watch] D still running 2026-10-06T11:58:11+00:00
+[watch] D still running 2026-10-06T11:58:41+00:00
+[watch] D still running 2026-10-06T11:59:11+00:00
+[watch] D still running 2026-10-06T11:59:41+00:00
+[watch] D still running 2026-10-06T12:00:11+00:00
+[watch] D still running 2026-10-06T12:00:41+00:00
+[watch] D still running 2026-10-06T12:01:11+00:00
+[watch] D still running 2026-10-06T12:01:41+00:00
+[watch] D still running 2026-10-06T12:02:11+00:00
+[watch] D still running 2026-10-06T12:02:41+00:00
+[watch] D still running 2026-10-06T12:03:11+00:00
+[watch] D still running 2026-10-06T12:03:41+00:00
+[watch] D still running 2026-10-06T12:04:11+00:00
+[watch] D still running 2026-10-06T12:04:41+00:00
+[watch] D still running 2026-10-06T12:05:11+00:00
+[watch] D still running 2026-10-06T12:05:41+00:00
+[watch] D still running 2026-10-06T12:06:11+00:00
+[watch] D still running 2026-10-06T12:06:41+00:00
+[watch] D still running 2026-10-06T12:07:11+00:00
+[watch] D still running 2026-10-06T12:07:41+00:00
+[watch] D still running 2026-10-06T12:08:11+00:00
+Process ForkPoolWorker-198:
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/pool.py", line 131, in worker
+    put((job, i, result))
+  File "/usr/lib/python3.10/multiprocessing/queues.py", line 377, in put
+    self._writer.send_bytes(obj)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 200, in send_bytes
+    self._send_bytes(m[offset:offset + size])
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 411, in _send_bytes
+    self._send(header + buf)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 368, in _send
+    n = write(self._handle, buf)
+BrokenPipeError: [Errno 32] Broken pipe
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/usr/lib/python3.10/multiprocessing/pool.py", line 136, in worker
+    put((job, i, (False, wrapped)))
+  File "/usr/lib/python3.10/multiprocessing/queues.py", line 377, in put
+    self._writer.send_bytes(obj)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 200, in send_bytes
+    self._send_bytes(m[offset:offset + size])
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 411, in _send_bytes
+    self._send(header + buf)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 368, in _send
+    n = write(self._handle, buf)
+BrokenPipeError: [Errno 32] Broken pipe
+[watch] D still running 2026-10-06T12:08:41+00:00
+Process ForkPoolWorker-199:
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/pool.py", line 131, in worker
+    put((job, i, result))
+  File "/usr/lib/python3.10/multiprocessing/queues.py", line 377, in put
+    self._writer.send_bytes(obj)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 200, in send_bytes
+    self._send_bytes(m[offset:offset + size])
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 411, in _send_bytes
+    self._send(header + buf)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 368, in _send
+    n = write(self._handle, buf)
+BrokenPipeError: [Errno 32] Broken pipe
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/usr/lib/python3.10/multiprocessing/pool.py", line 136, in worker
+    put((job, i, (False, wrapped)))
+  File "/usr/lib/python3.10/multiprocessing/queues.py", line 377, in put
+    self._writer.send_bytes(obj)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 200, in send_bytes
+    self._send_bytes(m[offset:offset + size])
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 411, in _send_bytes
+    self._send(header + buf)
+  File "/usr/lib/python3.10/multiprocessing/connection.py", line 368, in _send
+    n = write(self._handle, buf)
+BrokenPipeError: [Errno 32] Broken pipe
+[watch] D still running 2026-10-06T12:09:11+00:00
+[watch] D still running 2026-10-06T12:09:41+00:00
+[watch] D still running 2026-10-06T12:10:11+00:00
+[watch] D still running 2026-10-06T12:10:41+00:00
+[watch] D still running 2026-10-06T12:11:11+00:00
+[watch] D still running 2026-10-06T12:11:41+00:00
+[watch] D still running 2026-10-06T12:12:11+00:00
+[watch] D still running 2026-10-06T12:12:41+00:00
+[watch] D still running 2026-10-06T12:13:11+00:00
+[watch] D still running 2026-10-06T12:13:41+00:00
+[watch] D still running 2026-10-06T12:14:11+00:00
+[watch] D still running 2026-10-06T12:14:41+00:00
+[watch] D still running 2026-10-06T12:15:11+00:00
+[watch] D still running 2026-10-06T12:15:41+00:00
+[watch] D still running 2026-10-06T12:16:11+00:00
+[watch] D still running 2026-10-06T12:16:41+00:00
+[watch] D still running 2026-10-06T12:17:11+00:00
+[watch] D still running 2026-10-06T12:17:41+00:00
+[watch] D still running 2026-10-06T12:18:11+00:00
+[watch] D still running 2026-10-06T12:18:41+00:00
+[watch] D still running 2026-10-06T12:19:11+00:00
+[watch] D still running 2026-10-06T12:19:41+00:00
+[watch] D still running 2026-10-06T12:20:11+00:00
+[watch] D still running 2026-10-06T12:20:41+00:00
+[watch] D still running 2026-10-06T12:21:11+00:00
+[watch] D still running 2026-10-06T12:21:41+00:00
+[watch] D still running 2026-10-06T12:22:11+00:00
+[watch] D still running 2026-10-06T12:22:41+00:00
+[watch] D still running 2026-10-06T12:23:11+00:00
+[watch] D still running 2026-10-06T12:23:42+00:00
+[watch] D still running 2026-10-06T12:24:12+00:00
+[watch] D still running 2026-10-06T12:24:42+00:00
+[watch] D still running 2026-10-06T12:25:12+00:00
+[watch] D still running 2026-10-06T12:25:42+00:00
+[watch] D still running 2026-10-06T12:26:12+00:00
+[watch] D still running 2026-10-06T12:26:42+00:00
+[watch] D still running 2026-10-06T12:27:12+00:00
+[watch] D still running 2026-10-06T12:27:42+00:00
+[watch] D still running 2026-10-06T12:28:12+00:00
+[watch] D still running 2026-10-06T12:28:42+00:00
+[watch] D still running 2026-10-06T12:29:12+00:00
+[watch] D still running 2026-10-06T12:29:42+00:00
+[watch] D still running 2026-10-06T12:30:12+00:00
+[watch] D still running 2026-10-06T12:30:42+00:00
+[watch] D still running 2026-10-06T12:31:12+00:00
+[watch] D still running 2026-10-06T12:31:42+00:00
+[watch] D still running 2026-10-06T12:32:12+00:00
+[watch] D still running 2026-10-06T12:32:42+00:00
+[watch] D still running 2026-10-06T12:33:12+00:00
+[watch] D still running 2026-10-06T12:33:42+00:00
+[watch] D still running 2026-10-06T12:34:12+00:00
+[watch] D still running 2026-10-06T12:34:42+00:00
+[watch] D still running 2026-10-06T12:35:12+00:00
+[watch] D still running 2026-10-06T12:35:42+00:00
+[watch] D still running 2026-10-06T12:36:12+00:00
+[watch] D still running 2026-10-06T12:36:42+00:00
+[watch] D still running 2026-10-06T12:37:12+00:00
+[watch] D still running 2026-10-06T12:37:42+00:00
+[watch] D still running 2026-10-06T12:38:12+00:00
+[watch] D still running 2026-10-06T12:38:42+00:00
+[watch] D still running 2026-10-06T12:39:12+00:00
+[watch] D still running 2026-10-06T12:39:42+00:00
+[watch] D still running 2026-10-06T12:40:12+00:00
+[watch] D still running 2026-10-06T12:40:42+00:00
+[watch] D still running 2026-10-06T12:41:12+00:00
+[watch] D still running 2026-10-06T12:41:42+00:00
+[watch] D still running 2026-10-06T12:42:12+00:00
+[watch] D still running 2026-10-06T12:42:42+00:00
+[watch] D still running 2026-10-06T12:43:12+00:00
+[watch] D still running 2026-10-06T12:43:42+00:00
+[watch] D still running 2026-10-06T12:44:12+00:00
+[watch] D still running 2026-10-06T12:44:42+00:00
+[watch] D still running 2026-10-06T12:45:12+00:00
+[watch] D still running 2026-10-06T12:45:42+00:00
+[watch] D still running 2026-10-06T12:46:12+00:00
+[watch] D still running 2026-10-06T12:46:42+00:00
+[watch] D still running 2026-10-06T12:47:12+00:00
+[watch] D still running 2026-10-06T12:47:42+00:00
+[watch] D still running 2026-10-06T12:48:12+00:00
+[watch] D still running 2026-10-06T12:48:42+00:00
+[watch] D still running 2026-10-06T12:49:12+00:00
+[watch] D still running 2026-10-06T12:49:42+00:00
+[watch] D still running 2026-10-06T12:50:12+00:00
+[watch] D still running 2026-10-06T12:50:42+00:00
+[watch] D still running 2026-10-06T12:51:12+00:00
+[watch] D still running 2026-10-06T12:51:42+00:00
+[watch] D still running 2026-10-06T12:52:12+00:00
+[watch] D still running 2026-10-06T12:52:42+00:00
+[watch] D still running 2026-10-06T12:53:12+00:00
+[watch] D still running 2026-10-06T12:53:42+00:00
+[watch] D still running 2026-10-06T12:54:12+00:00
+[watch] D still running 2026-10-06T12:54:42+00:00
+[watch] D still running 2026-10-06T12:55:12+00:00
+[watch] D still running 2026-10-06T12:55:42+00:00
+[watch] D still running 2026-10-06T12:56:12+00:00
+[watch] D still running 2026-10-06T12:56:42+00:00
+[watch] D still running 2026-10-06T12:57:12+00:00
+[watch] D still running 2026-10-06T12:57:42+00:00
+[watch] D still running 2026-10-06T12:58:12+00:00
+[watch] D still running 2026-10-06T12:58:42+00:00
+[watch] D still running 2026-10-06T12:59:12+00:00
+[watch] D still running 2026-10-06T12:59:42+00:00
+[watch] D still running 2026-10-06T13:00:12+00:00
+[watch] D still running 2026-10-06T13:00:42+00:00
+[watch] D still running 2026-10-06T13:01:12+00:00
+[watch] D still running 2026-10-06T13:01:42+00:00
+[watch] D still running 2026-10-06T13:02:12+00:00
+[watch] D still running 2026-10-06T13:02:42+00:00
+[watch] D still running 2026-10-06T13:03:12+00:00
+[watch] D still running 2026-10-06T13:03:42+00:00
+[watch] D still running 2026-10-06T13:04:12+00:00
+[watch] D still running 2026-10-06T13:04:42+00:00
+[watch] D still running 2026-10-06T13:05:12+00:00
+[watch] D still running 2026-10-06T13:05:42+00:00
+[watch] D still running 2026-10-06T13:06:12+00:00
+[watch] D still running 2026-10-06T13:06:42+00:00
+[watch] D still running 2026-10-06T13:07:12+00:00
+[watch] D still running 2026-10-06T13:07:42+00:00
+[watch] D still running 2026-10-06T13:08:12+00:00
+[watch] D still running 2026-10-06T13:08:42+00:00
+[watch] D still running 2026-10-06T13:09:12+00:00
+[watch] D still running 2026-10-06T13:09:42+00:00
+[watch] D still running 2026-10-06T13:10:12+00:00
+[watch] D still running 2026-10-06T13:10:42+00:00
+[watch] D still running 2026-10-06T13:11:12+00:00
+[watch] D still running 2026-10-06T13:11:42+00:00
+[watch] D still running 2026-10-06T13:12:12+00:00
+[watch] D still running 2026-10-06T13:12:42+00:00
+[watch] D still running 2026-10-06T13:13:12+00:00
+[watch] D still running 2026-10-06T13:13:42+00:00
+[watch] D still running 2026-10-06T13:14:12+00:00
+[watch] D still running 2026-10-06T13:14:42+00:00
+[watch] D still running 2026-10-06T13:15:12+00:00
+[watch] D still running 2026-10-06T13:15:42+00:00
+[watch] D still running 2026-10-06T13:16:12+00:00
+[watch] D still running 2026-10-06T13:16:42+00:00
+[watch] D still running 2026-10-06T13:17:12+00:00
+[watch] D still running 2026-10-06T13:17:42+00:00
+[watch] D still running 2026-10-06T13:18:12+00:00
+[watch] D still running 2026-10-06T13:18:42+00:00
+[watch] D still running 2026-10-06T13:19:12+00:00
+[watch] D still running 2026-10-06T13:19:42+00:00
+[watch] D still running 2026-10-06T13:20:12+00:00
+[watch] D still running 2026-10-06T13:20:42+00:00
+[watch] D still running 2026-10-06T13:21:12+00:00
+[watch] D still running 2026-10-06T13:21:42+00:00
+[watch] D still running 2026-10-06T13:22:12+00:00
+[watch] D still running 2026-10-06T13:22:42+00:00
+[watch] D still running 2026-10-06T13:23:12+00:00
+[watch] D still running 2026-10-06T13:23:42+00:00
+[watch] D still running 2026-10-06T13:24:12+00:00
+[watch] D still running 2026-10-06T13:24:42+00:00
+[watch] D still running 2026-10-06T13:25:12+00:00
+[watch] D still running 2026-10-06T13:25:42+00:00
+[watch] D still running 2026-10-06T13:26:12+00:00
+[watch] D still running 2026-10-06T13:26:42+00:00
+[watch] D still running 2026-10-06T13:27:12+00:00
+[watch] D still running 2026-10-06T13:27:42+00:00
+[watch] D still running 2026-10-06T13:28:12+00:00
+[watch] D still running 2026-10-06T13:28:42+00:00
+[watch] D still running 2026-10-06T13:29:12+00:00
+[watch] D still running 2026-10-06T13:29:42+00:00
+[watch] D still running 2026-10-06T13:30:12+00:00
+[watch] D still running 2026-10-06T13:30:42+00:00
+[watch] D still running 2026-10-06T13:31:12+00:00
+[watch] D still running 2026-10-06T13:31:42+00:00
+[watch] D still running 2026-10-06T13:32:12+00:00
+[watch] D still running 2026-10-06T13:32:42+00:00
+[watch] D still running 2026-10-06T13:33:12+00:00
+[watch] D still running 2026-10-06T13:33:42+00:00
+[watch] D still running 2026-10-06T13:34:12+00:00
+[watch] D still running 2026-10-06T13:34:42+00:00
+[watch] D still running 2026-10-06T13:35:12+00:00
+[watch] D still running 2026-10-06T13:35:42+00:00
+[watch] D still running 2026-10-06T13:36:12+00:00
+[watch] D still running 2026-10-06T13:36:42+00:00
+[watch] D still running 2026-10-06T13:37:12+00:00
+[watch] D still running 2026-10-06T13:37:42+00:00
+[watch] D still running 2026-10-06T13:38:12+00:00
+[watch] D still running 2026-10-06T13:38:42+00:00
+[watch] D still running 2026-10-06T13:39:12+00:00
+[watch] D still running 2026-10-06T13:39:42+00:00
+[watch] D still running 2026-10-06T13:40:12+00:00
+[watch] D still running 2026-10-06T13:40:42+00:00
+[watch] D still running 2026-10-06T13:41:12+00:00
+[watch] D still running 2026-10-06T13:41:42+00:00
+[watch] D still running 2026-10-06T13:42:12+00:00
+[watch] D still running 2026-10-06T13:42:42+00:00
+[watch] D still running 2026-10-06T13:43:12+00:00
+[watch] D still running 2026-10-06T13:43:42+00:00
+[watch] D still running 2026-10-06T13:44:12+00:00
+[watch] D still running 2026-10-06T13:44:42+00:00
+[watch] D still running 2026-10-06T13:45:12+00:00
+[watch] D still running 2026-10-06T13:45:42+00:00
+[watch] D still running 2026-10-06T13:46:12+00:00
+[watch] D still running 2026-10-06T13:46:42+00:00
+[watch] D still running 2026-10-06T13:47:12+00:00
+[watch] D still running 2026-10-06T13:47:42+00:00
+[watch] D still running 2026-10-06T13:48:12+00:00
+[watch] D still running 2026-10-06T13:48:42+00:00
+[watch] D still running 2026-10-06T13:49:12+00:00
+[watch] D still running 2026-10-06T13:49:42+00:00
+[watch] D still running 2026-10-06T13:50:12+00:00
+[watch] D still running 2026-10-06T13:50:42+00:00
+[watch] D still running 2026-10-06T13:51:12+00:00
+[watch] D still running 2026-10-06T13:51:42+00:00
+[watch] D still running 2026-10-06T13:52:12+00:00
+[watch] D still running 2026-10-06T13:52:42+00:00
+[watch] D still running 2026-10-06T13:53:12+00:00
+[watch] D still running 2026-10-06T13:53:42+00:00
+[watch] D still running 2026-10-06T13:54:12+00:00
+[watch] D still running 2026-10-06T13:54:42+00:00
+[watch] D still running 2026-10-06T13:55:12+00:00
+[watch] D still running 2026-10-06T13:55:42+00:00
+[watch] D still running 2026-10-06T13:56:12+00:00
+[watch] D still running 2026-10-06T13:56:42+00:00
+[watch] D still running 2026-10-06T13:57:12+00:00
+[watch] D still running 2026-10-06T13:57:42+00:00
+[watch] D still running 2026-10-06T13:58:12+00:00
+[watch] D still running 2026-10-06T13:58:42+00:00
+[watch] D still running 2026-10-06T13:59:12+00:00
+[watch] D still running 2026-10-06T13:59:42+00:00
+[watch] D still running 2026-10-06T14:00:12+00:00
+[watch] D still running 2026-10-06T14:00:42+00:00
+[watch] D still running 2026-10-06T14:01:12+00:00
+[watch] D still running 2026-10-06T14:01:42+00:00
+[watch] D still running 2026-10-06T14:02:12+00:00
+[watch] D still running 2026-10-06T14:02:42+00:00
+[watch] D still running 2026-10-06T14:03:12+00:00
+[watch] D still running 2026-10-06T14:03:42+00:00
+[watch] D still running 2026-10-06T14:04:12+00:00
+[watch] D still running 2026-10-06T14:04:42+00:00
+[watch] D still running 2026-10-06T14:05:12+00:00
+[watch] D still running 2026-10-06T14:05:42+00:00
+[watch] D still running 2026-10-06T14:06:12+00:00
+[watch] D still running 2026-10-06T14:06:42+00:00
+[watch] D still running 2026-10-06T14:07:12+00:00
+[watch] D still running 2026-10-06T14:07:42+00:00
+[watch] D still running 2026-10-06T14:08:12+00:00
+[watch] D still running 2026-10-06T14:08:42+00:00
+[watch] D still running 2026-10-06T14:09:12+00:00
+[watch] D still running 2026-10-06T14:09:42+00:00
+[watch] D still running 2026-10-06T14:10:12+00:00
+[watch] D still running 2026-10-06T14:10:42+00:00
+[watch] D still running 2026-10-06T14:11:12+00:00
+[watch] D still running 2026-10-06T14:11:42+00:00
+[watch] D still running 2026-10-06T14:12:12+00:00
+[watch] D still running 2026-10-06T14:12:42+00:00
+[watch] D still running 2026-10-06T14:13:12+00:00
+[watch] D still running 2026-10-06T14:13:42+00:00
+[watch] D still running 2026-10-06T14:14:12+00:00
+[watch] D still running 2026-10-06T14:14:42+00:00
+[watch] D still running 2026-10-06T14:15:12+00:00
+[watch] D still running 2026-10-06T14:15:42+00:00
+[watch] D still running 2026-10-06T14:16:12+00:00
+[watch] D still running 2026-10-06T14:16:42+00:00
+[watch] D still running 2026-10-06T14:17:12+00:00
+[watch] D still running 2026-10-06T14:17:42+00:00
+[watch] D still running 2026-10-06T14:18:12+00:00
+[watch] D still running 2026-10-06T14:18:42+00:00
+[watch] D still running 2026-10-06T14:19:12+00:00
+[watch] D still running 2026-10-06T14:19:42+00:00
+[watch] D still running 2026-10-06T14:20:12+00:00
+[watch] D still running 2026-10-06T14:20:42+00:00
+[watch] D still running 2026-10-06T14:21:12+00:00
+[watch] D still running 2026-10-06T14:21:42+00:00
+[watch] D still running 2026-10-06T14:22:12+00:00
+[watch] D still running 2026-10-06T14:22:42+00:00
+[watch] D still running 2026-10-06T14:23:12+00:00
+[watch] D still running 2026-10-06T14:23:42+00:00
+[watch] D still running 2026-10-06T14:24:12+00:00
+[watch] D still running 2026-10-06T14:24:42+00:00
+[watch] D still running 2026-10-06T14:25:12+00:00
+[watch] D still running 2026-10-06T14:25:42+00:00
+[watch] D still running 2026-10-06T14:26:12+00:00
+[watch] D still running 2026-10-06T14:26:42+00:00
+[watch] D still running 2026-10-06T14:27:12+00:00
+[watch] D still running 2026-10-06T14:27:42+00:00
+[watch] D still running 2026-10-06T14:28:12+00:00
+[watch] D still running 2026-10-06T14:28:42+00:00
+[watch] D still running 2026-10-06T14:29:12+00:00
+[watch] D still running 2026-10-06T14:29:42+00:00
+[watch] D still running 2026-10-06T14:30:12+00:00
+[watch] D still running 2026-10-06T14:30:42+00:00
+[watch] D still running 2026-10-06T14:31:12+00:00
+[watch] D still running 2026-10-06T14:31:42+00:00
+[watch] D still running 2026-10-06T14:32:12+00:00
+[watch] D still running 2026-10-06T14:32:42+00:00
+[watch] D still running 2026-10-06T14:33:12+00:00
+[watch] D still running 2026-10-06T14:33:42+00:00
+[watch] D still running 2026-10-06T14:34:12+00:00
+[watch] D still running 2026-10-06T14:34:42+00:00
+[watch] D still running 2026-10-06T14:35:12+00:00
+[watch] D still running 2026-10-06T14:35:42+00:00
+[watch] D still running 2026-10-06T14:36:12+00:00
+[watch] D still running 2026-10-06T14:36:42+00:00
+[watch] D still running 2026-10-06T14:37:12+00:00
+[watch] D still running 2026-10-06T14:37:42+00:00
+[watch] D still running 2026-10-06T14:38:12+00:00
+[watch] D still running 2026-10-06T14:38:42+00:00
+[watch] D still running 2026-10-06T14:39:12+00:00
+[watch] D still running 2026-10-06T14:39:42+00:00
+[watch] D still running 2026-10-06T14:40:12+00:00
+[watch] D still running 2026-10-06T14:40:42+00:00
+[watch] D still running 2026-10-06T14:41:12+00:00
+[watch] D still running 2026-10-06T14:41:42+00:00
+[watch] D still running 2026-10-06T14:42:12+00:00
+[watch] D still running 2026-10-06T14:42:42+00:00
+[watch] D still running 2026-10-06T14:43:12+00:00
+[watch] D still running 2026-10-06T14:43:42+00:00
+[watch] D still running 2026-10-06T14:44:12+00:00
+[watch] D still running 2026-10-06T14:44:42+00:00
+[watch] D still running 2026-10-06T14:45:12+00:00
+[watch] D still running 2026-10-06T14:45:42+00:00
+[watch] D still running 2026-10-06T14:46:12+00:00
+[watch] D still running 2026-10-06T14:46:42+00:00
+[watch] D still running 2026-10-06T14:47:12+00:00
+[watch] D still running 2026-10-06T14:47:42+00:00
+[watch] D still running 2026-10-06T14:48:12+00:00
+[watch] D still running 2026-10-06T14:48:42+00:00
+[watch] D still running 2026-10-06T14:49:12+00:00
+[watch] D still running 2026-10-06T14:49:42+00:00
+[watch] D still running 2026-10-06T14:50:12+00:00
+[watch] D still running 2026-10-06T14:50:42+00:00
+[watch] D still running 2026-10-06T14:51:12+00:00
+[watch] D still running 2026-10-06T14:51:42+00:00
+[watch] D still running 2026-10-06T14:52:12+00:00
+[watch] D still running 2026-10-06T14:52:42+00:00
+[watch] D still running 2026-10-06T14:53:12+00:00
+[watch] D still running 2026-10-06T14:53:42+00:00
+[watch] D still running 2026-10-06T14:54:12+00:00
+[watch] D still running 2026-10-06T14:54:42+00:00
+[watch] D still running 2026-10-06T14:55:12+00:00
+[watch] D still running 2026-10-06T14:55:42+00:00
+[watch] D still running 2026-10-06T14:56:12+00:00
+[watch] D still running 2026-10-06T14:56:42+00:00
+[watch] D still running 2026-10-06T14:57:12+00:00
+[watch] D still running 2026-10-06T14:57:42+00:00
+[watch] D still running 2026-10-06T14:58:12+00:00
+[watch] D still running 2026-10-06T14:58:42+00:00
+[watch] D still running 2026-10-06T14:59:12+00:00
+[watch] D still running 2026-10-06T14:59:42+00:00
+[watch] D still running 2026-10-06T15:00:12+00:00
+[watch] D still running 2026-10-06T15:00:42+00:00
+[watch] D still running 2026-10-06T15:01:12+00:00
+[watch] D still running 2026-10-06T15:01:42+00:00
+[watch] D still running 2026-10-06T15:02:12+00:00
+[watch] D still running 2026-10-06T15:02:42+00:00
+[watch] D still running 2026-10-06T15:03:12+00:00
+[watch] D still running 2026-10-06T15:03:42+00:00
+[watch] D still running 2026-10-06T15:04:12+00:00
+[watch] D still running 2026-10-06T15:04:42+00:00
+[watch] D still running 2026-10-06T15:05:12+00:00
+[watch] D still running 2026-10-06T15:05:42+00:00
+[watch] D still running 2026-10-06T15:06:12+00:00
+[watch] D still running 2026-10-06T15:06:42+00:00
+[watch] D still running 2026-10-06T15:07:12+00:00
+[watch] D still running 2026-10-06T15:07:42+00:00
+[watch] D still running 2026-10-06T15:08:12+00:00
+[watch] D still running 2026-10-06T15:08:42+00:00
+[watch] D still running 2026-10-06T15:09:12+00:00
+[watch] D still running 2026-10-06T15:09:42+00:00
+[watch] D still running 2026-10-06T15:10:12+00:00
+[watch] D still running 2026-10-06T15:10:42+00:00
+[watch] D still running 2026-10-06T15:11:12+00:00
+[watch] D still running 2026-10-06T15:11:42+00:00
+[watch] D still running 2026-10-06T15:12:12+00:00
+[watch] D still running 2026-10-06T15:12:42+00:00
+[watch] D still running 2026-10-06T15:13:12+00:00
+[watch] D still running 2026-10-06T15:13:42+00:00
+[watch] D still running 2026-10-06T15:14:13+00:00
+[watch] D still running 2026-10-06T15:14:43+00:00
+[watch] D still running 2026-10-06T15:15:13+00:00
+[watch] D still running 2026-10-06T15:15:43+00:00
+[watch] D still running 2026-10-06T15:16:13+00:00
+[watch] D still running 2026-10-06T15:16:43+00:00
+[watch] D still running 2026-10-06T15:17:13+00:00
+[watch] D still running 2026-10-06T15:17:43+00:00
+[watch] D still running 2026-10-06T15:18:13+00:00
+[watch] D still running 2026-10-06T15:18:43+00:00
+[watch] D still running 2026-10-06T15:19:13+00:00
+[watch] D still running 2026-10-06T15:19:43+00:00
+[watch] D still running 2026-10-06T15:20:13+00:00
+[watch] D still running 2026-10-06T15:20:43+00:00
+[watch] D still running 2026-10-06T15:21:13+00:00
+[watch] D still running 2026-10-06T15:21:43+00:00
+[watch] D still running 2026-10-06T15:22:13+00:00
+[watch] D still running 2026-10-06T15:22:43+00:00
+[watch] D still running 2026-10-06T15:23:13+00:00
+[watch] D still running 2026-10-06T15:23:43+00:00
+[watch] D still running 2026-10-06T15:24:13+00:00
+[watch] D still running 2026-10-06T15:24:43+00:00
+[watch] D still running 2026-10-06T15:25:13+00:00
+[watch] D still running 2026-10-06T15:25:43+00:00
+[watch] D still running 2026-10-06T15:26:13+00:00
+[watch] D still running 2026-10-06T15:26:43+00:00
+[watch] D still running 2026-10-06T15:27:13+00:00
+[watch] D still running 2026-10-06T15:27:43+00:00
+[watch] D still running 2026-10-06T15:28:13+00:00
+[watch] D still running 2026-10-06T15:28:43+00:00
+[watch] D still running 2026-10-06T15:29:13+00:00
+[watch] D still running 2026-10-06T15:29:43+00:00
+[watch] D still running 2026-10-06T15:30:13+00:00
+[watch] D still running 2026-10-06T15:30:43+00:00
+[watch] D still running 2026-10-06T15:31:13+00:00
+[watch] D still running 2026-10-06T15:31:43+00:00
+[watch] D still running 2026-10-06T15:32:13+00:00
+[watch] D still running 2026-10-06T15:32:43+00:00
+[watch] D still running 2026-10-06T15:33:13+00:00
+[watch] D still running 2026-10-06T15:33:43+00:00
+[watch] D still running 2026-10-06T15:34:13+00:00
+[watch] D still running 2026-10-06T15:34:43+00:00
+[watch] D still running 2026-10-06T15:35:13+00:00
+[watch] D still running 2026-10-06T15:35:43+00:00
+[watch] D still running 2026-10-06T15:36:13+00:00
+[watch] D still running 2026-10-06T15:36:43+00:00
+[watch] D still running 2026-10-06T15:37:13+00:00
+[watch] D still running 2026-10-06T15:37:43+00:00
+[watch] D still running 2026-10-06T15:38:13+00:00
+[watch] D still running 2026-10-06T15:38:43+00:00
+[watch] D still running 2026-10-06T15:39:13+00:00
+[watch] D still running 2026-10-06T15:39:43+00:00
+[watch] D still running 2026-10-06T15:40:13+00:00
+[watch] D still running 2026-10-06T15:40:43+00:00
+[watch] D still running 2026-10-06T15:41:13+00:00
+[watch] D still running 2026-10-06T15:41:43+00:00
+[watch] D still running 2026-10-06T15:42:13+00:00
+[watch] D still running 2026-10-06T15:42:43+00:00
+[watch] D still running 2026-10-06T15:43:13+00:00
+[watch] D still running 2026-10-06T15:43:43+00:00
+[watch] D still running 2026-10-06T15:44:13+00:00
+[watch] D still running 2026-10-06T15:44:43+00:00
+[watch] D still running 2026-10-06T15:45:13+00:00
+[watch] D still running 2026-10-06T15:45:43+00:00
+[watch] D still running 2026-10-06T15:46:13+00:00
+[watch] D still running 2026-10-06T15:46:43+00:00
+[watch] D still running 2026-10-06T15:47:13+00:00
+[watch] D still running 2026-10-06T15:47:43+00:00
+[watch] D still running 2026-10-06T15:48:13+00:00
+[watch] D still running 2026-10-06T15:48:43+00:00
+[watch] D still running 2026-10-06T15:49:13+00:00
+[watch] D still running 2026-10-06T15:49:43+00:00
+[watch] D still running 2026-10-06T15:50:13+00:00
+[watch] D still running 2026-10-06T15:50:43+00:00
+[watch] D still running 2026-10-06T15:51:13+00:00
+[watch] D still running 2026-10-06T15:51:43+00:00
+[watch] D still running 2026-10-06T15:52:13+00:00
+[watch] D still running 2026-10-06T15:52:43+00:00
+[watch] D still running 2026-10-06T15:53:13+00:00
+[watch] D still running 2026-10-06T15:53:43+00:00
+[watch] D still running 2026-10-06T15:54:13+00:00
+[watch] D still running 2026-10-06T15:54:43+00:00
+[watch] D still running 2026-10-06T15:55:13+00:00
+[watch] D still running 2026-10-06T15:55:43+00:00
+[watch] D still running 2026-10-06T15:56:13+00:00
+[watch] D still running 2026-10-06T15:56:43+00:00
+[watch] D still running 2026-10-06T15:57:13+00:00
+[watch] D still running 2026-10-06T15:57:43+00:00
+[watch] D still running 2026-10-06T15:58:13+00:00
+[watch] D still running 2026-10-06T15:58:43+00:00
+[watch] D still running 2026-10-06T15:59:13+00:00
+[watch] D still running 2026-10-06T15:59:43+00:00
+[watch] D still running 2026-10-06T16:00:13+00:00
+[watch] D still running 2026-10-06T16:00:43+00:00
+[watch] D still running 2026-10-06T16:01:13+00:00
+[watch] D still running 2026-10-06T16:01:43+00:00
+[watch] D still running 2026-10-06T16:02:13+00:00
+[watch] D still running 2026-10-06T16:02:43+00:00
+[watch] D still running 2026-10-06T16:03:13+00:00
+[watch] D still running 2026-10-06T16:03:43+00:00
+[watch] D still running 2026-10-06T16:04:13+00:00
+[watch] D still running 2026-10-06T16:04:43+00:00
+[watch] D still running 2026-10-06T16:05:13+00:00
+[watch] D still running 2026-10-06T16:05:43+00:00
+[watch] D still running 2026-10-06T16:06:13+00:00
+[watch] D still running 2026-10-06T16:06:43+00:00
+[watch] D still running 2026-10-06T16:07:13+00:00
+[watch] D still running 2026-10-06T16:07:43+00:00
+[watch] D still running 2026-10-06T16:08:13+00:00
+[watch] D still running 2026-10-06T16:08:43+00:00
+[watch] D still running 2026-10-06T16:09:13+00:00
+[watch] D still running 2026-10-06T16:09:43+00:00
+[watch] D still running 2026-10-06T16:10:13+00:00
+[watch] D still running 2026-10-06T16:10:43+00:00
+[watch] D still running 2026-10-06T16:11:13+00:00
+[watch] D still running 2026-10-06T16:11:43+00:00
+[watch] D still running 2026-10-06T16:12:13+00:00
+[watch] D still running 2026-10-06T16:12:43+00:00
+[watch] D still running 2026-10-06T16:13:13+00:00
+[watch] D still running 2026-10-06T16:13:43+00:00
+[watch] D still running 2026-10-06T16:14:13+00:00
+[watch] D still running 2026-10-06T16:14:43+00:00
+[watch] D still running 2026-10-06T16:15:13+00:00
+[watch] D still running 2026-10-06T16:15:43+00:00
+[watch] D still running 2026-10-06T16:16:13+00:00
+[watch] D still running 2026-10-06T16:16:43+00:00
+[watch] D still running 2026-10-06T16:17:13+00:00
+[watch] D still running 2026-10-06T16:17:43+00:00
+[watch] D still running 2026-10-06T16:18:13+00:00
+[watch] D still running 2026-10-06T16:18:43+00:00
+[watch] D still running 2026-10-06T16:19:13+00:00
+[watch] D still running 2026-10-06T16:19:43+00:00
+[watch] D still running 2026-10-06T16:20:13+00:00
+[watch] D still running 2026-10-06T16:20:43+00:00
+[watch] D still running 2026-10-06T16:21:13+00:00
+[watch] D still running 2026-10-06T16:21:43+00:00
+[watch] D still running 2026-10-06T16:22:13+00:00
+[watch] D still running 2026-10-06T16:22:43+00:00
+[watch] D still running 2026-10-06T16:23:13+00:00
+[watch] D still running 2026-10-06T16:23:43+00:00
+[watch] D still running 2026-10-06T16:24:13+00:00
+[watch] D still running 2026-10-06T16:24:43+00:00
+[watch] D still running 2026-10-06T16:25:13+00:00
+[watch] D still running 2026-10-06T16:25:43+00:00
+[watch] D still running 2026-10-06T16:26:13+00:00
+[watch] D still running 2026-10-06T16:26:43+00:00
+[watch] D still running 2026-10-06T16:27:13+00:00
+[watch] D still running 2026-10-06T16:27:43+00:00
+[watch] D still running 2026-10-06T16:28:13+00:00
+[watch] D still running 2026-10-06T16:28:43+00:00
+[watch] D still running 2026-10-06T16:29:13+00:00
+[watch] D still running 2026-10-06T16:29:43+00:00
+[watch] D still running 2026-10-06T16:30:13+00:00
+[watch] D still running 2026-10-06T16:30:43+00:00
+[watch] D still running 2026-10-06T16:31:13+00:00
+[watch] D still running 2026-10-06T16:31:43+00:00
+[watch] D still running 2026-10-06T16:32:13+00:00
+[watch] D still running 2026-10-06T16:32:43+00:00
+[watch] D still running 2026-10-06T16:33:13+00:00
+[watch] D still running 2026-10-06T16:33:43+00:00
+[watch] D still running 2026-10-06T16:34:13+00:00
+[watch] D still running 2026-10-06T16:34:43+00:00
+[watch] D still running 2026-10-06T16:35:13+00:00
+[watch] D still running 2026-10-06T16:35:43+00:00
+[watch] D still running 2026-10-06T16:36:13+00:00
+[watch] D still running 2026-10-06T16:36:43+00:00
+[watch] D still running 2026-10-06T16:37:13+00:00
+[watch] D still running 2026-10-06T16:37:43+00:00
+[watch] D still running 2026-10-06T16:38:13+00:00
+[watch] D still running 2026-10-06T16:38:43+00:00
+[watch] D still running 2026-10-06T16:39:13+00:00
+[watch] D still running 2026-10-06T16:39:43+00:00
+[watch] D still running 2026-10-06T16:40:13+00:00
+[watch] D still running 2026-10-06T16:40:43+00:00
+[watch] D still running 2026-10-06T16:41:13+00:00
+[watch] D still running 2026-10-06T16:41:43+00:00
+[watch] D still running 2026-10-06T16:42:13+00:00
+[watch] D still running 2026-10-06T16:42:43+00:00
+[watch] D still running 2026-10-06T16:43:13+00:00
+[watch] D still running 2026-10-06T16:43:43+00:00
+[watch] D still running 2026-10-06T16:44:13+00:00
+[watch] D still running 2026-10-06T16:44:43+00:00
+[watch] D still running 2026-10-06T16:45:13+00:00
+[watch] D still running 2026-10-06T16:45:43+00:00
+[watch] D still running 2026-10-06T16:46:13+00:00
+[watch] D still running 2026-10-06T16:46:43+00:00
+[watch] D still running 2026-10-06T16:47:13+00:00
+[watch] D still running 2026-10-06T16:47:43+00:00
+[watch] D still running 2026-10-06T16:48:13+00:00
+[watch] D still running 2026-10-06T16:48:43+00:00
+[watch] D still running 2026-10-06T16:49:13+00:00
+[watch] D still running 2026-10-06T16:49:43+00:00
+[watch] D still running 2026-10-06T16:50:13+00:00
+[watch] D still running 2026-10-06T16:50:43+00:00
+[watch] D still running 2026-10-06T16:51:13+00:00
+[watch] D still running 2026-10-06T16:51:43+00:00
+[watch] D still running 2026-10-06T16:52:13+00:00
+[watch] D still running 2026-10-06T16:52:43+00:00
+[watch] D still running 2026-10-06T16:53:13+00:00
+[watch] D still running 2026-10-06T16:53:43+00:00
+[watch] D still running 2026-10-06T16:54:13+00:00
+[watch] D still running 2026-10-06T16:54:43+00:00
+[watch] D still running 2026-10-06T16:55:13+00:00
+[watch] D still running 2026-10-06T16:55:43+00:00
+[watch] D still running 2026-10-06T16:56:13+00:00
+[watch] D still running 2026-10-06T16:56:43+00:00
+[watch] D still running 2026-10-06T16:57:13+00:00
+[watch] D still running 2026-10-06T16:57:43+00:00
+[watch] D still running 2026-10-06T16:58:13+00:00
+[watch] D still running 2026-10-06T16:58:43+00:00
+[watch] D still running 2026-10-06T16:59:13+00:00
+[watch] D still running 2026-10-06T16:59:43+00:00
+[watch] D still running 2026-10-06T17:00:13+00:00
+[watch] D still running 2026-10-06T17:00:43+00:00
+[watch] D still running 2026-10-06T17:01:13+00:00
+[watch] D still running 2026-10-06T17:01:43+00:00
+[watch] D still running 2026-10-06T17:02:13+00:00
+[watch] D still running 2026-10-06T17:02:43+00:00
+[watch] D still running 2026-10-06T17:03:13+00:00
+[watch] D still running 2026-10-06T17:03:43+00:00
+[watch] D still running 2026-10-06T17:04:13+00:00
+[watch] D still running 2026-10-06T17:04:43+00:00
+[watch] D still running 2026-10-06T17:05:13+00:00
+[watch] D still running 2026-10-06T17:05:43+00:00
+[watch] D still running 2026-10-06T17:06:13+00:00
+[watch] D still running 2026-10-06T17:06:43+00:00
+[watch] D still running 2026-10-06T17:07:13+00:00
+[watch] D still running 2026-10-06T17:07:43+00:00
+[watch] D still running 2026-10-06T17:08:13+00:00
+[watch] D still running 2026-10-06T17:08:43+00:00
+[watch] D still running 2026-10-06T17:09:13+00:00
+[watch] D still running 2026-10-06T17:09:43+00:00
+[watch] D still running 2026-10-06T17:10:13+00:00
+[watch] D still running 2026-10-06T17:10:43+00:00
+[watch] D still running 2026-10-06T17:11:13+00:00
+[watch] D still running 2026-10-06T17:11:43+00:00
+[watch] D still running 2026-10-06T17:12:13+00:00
+[watch] D still running 2026-10-06T17:12:43+00:00
+[watch] D still running 2026-10-06T17:13:13+00:00
+[watch] D still running 2026-10-06T17:13:43+00:00
+[watch] D still running 2026-10-06T17:14:13+00:00
+[watch] D still running 2026-10-06T17:14:43+00:00
+[watch] D still running 2026-10-06T17:15:13+00:00
+[watch] D still running 2026-10-06T17:15:43+00:00
+[watch] D still running 2026-10-06T17:16:13+00:00
+[watch] D still running 2026-10-06T17:16:43+00:00
+[watch] D still running 2026-10-06T17:17:13+00:00
+[watch] D still running 2026-10-06T17:17:43+00:00
+[watch] D still running 2026-10-06T17:18:13+00:00
+[watch] D still running 2026-10-06T17:18:43+00:00
+[watch] D still running 2026-10-06T17:19:13+00:00
+[watch] D still running 2026-10-06T17:19:43+00:00
+[watch] D still running 2026-10-06T17:20:13+00:00
+[watch] D still running 2026-10-06T17:20:43+00:00
+[watch] D still running 2026-10-06T17:21:13+00:00
+[watch] D still running 2026-10-06T17:21:43+00:00
+[watch] D still running 2026-10-06T17:22:13+00:00
+[watch] D still running 2026-10-06T17:22:43+00:00
+[watch] D still running 2026-10-06T17:23:13+00:00
+[watch] D still running 2026-10-06T17:23:43+00:00
+[watch] D still running 2026-10-06T17:24:13+00:00
+[watch] D still running 2026-10-06T17:24:43+00:00
+[watch] D still running 2026-10-06T17:25:13+00:00
+[watch] D still running 2026-10-06T17:25:43+00:00
+    [tab_mmin] star D M=1 v0=10 n_s=40 mA=4.49g A@(0.50,0.00) Bany@(0.50,0.00) nB=1 nB_Aworst=1
+  wrote /home/octav/tema2/paper_results/_r7c_row_star_D_M1_v10_ns40.json
+[watch] D still running 2026-10-06T17:26:13+00:00
+=== D one_case exited 2026-10-06T17:26:13+00:00 ===
+=== D one_case exited 2026-10-06T17:26:13+00:00 ===
+=== resume S M=1 v0=10 n_s=40 from cache ===
+=== resume S M=1 v0=10 n_s=40 from cache ===
+=== one_case star S M=1 v0=10 n_s=40 MMIN_N_PROCS=8 ===
+=== one_case star S M=1 v0=10 n_s=40 MMIN_N_PROCS=8 ===
+    [tab_mmin] star S M=1 v0=10 n_s=40 mA=3.673g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star S M=1 v0=10 n_s=40 mA=3.673g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+  wrote /home/octav/tema2/paper_results/_r7c_row_star_S_M1_v10_ns40.json
+  wrote /home/octav/tema2/paper_results/_r7c_row_star_S_M1_v10_ns40.json
+=== 7c assemble: cache re-eval + load new v0=10 rows ===
+    [star+ring n_s=10] 18 jobs × 16 workers
+=== 7c assemble: cache re-eval + load new v0=10 rows ===
+    [star+ring n_s=10] 18 jobs × 16 workers
+    [tab_mmin] star+ring D M=1 v0=10 n_s=10 mA=9.089g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1    [tab_mmin] star+ring D M=1 v0=10 n_s=10 mA=9.089g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+
+    [tab_mmin] star+ring S M=2 v0=15 n_s=10 mA=33.59g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1    [tab_mmin] star+ring S M=2 v0=15 n_s=10 mA=33.59g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+
+    [tab_mmin] star+ring S M=2 v0=10 n_s=10 mA=14.57g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1    [tab_mmin] star+ring S M=2 v0=10 n_s=10 mA=14.57g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+
+    [tab_mmin] star+ring D M=1 v0=15 n_s=10 mA=20.57g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1    [tab_mmin] star+ring D M=1 v0=15 n_s=10 mA=20.57g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+
+    [tab_mmin] star+ring D M=0.25 v0=20 n_s=10 mA=9.467g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star+ring D M=0.25 v0=20 n_s=10 mA=9.467g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star+ring S M=0.25 v0=20 n_s=10 mA=7.586g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=0.25 v0=20 n_s=10 mA=7.586g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring D M=0.25 v0=10 n_s=10 mA=2.272g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring D M=0.25 v0=10 n_s=10 mA=2.272g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=1 v0=20 n_s=10 mA=30.58g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star+ring S M=1 v0=20 n_s=10 mA=30.58g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star+ring S M=0.25 v0=10 n_s=10 mA=1.821g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=0.25 v0=10 n_s=10 mA=1.821g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring D M=2 v0=10 n_s=10 mA=18.18g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring D M=2 v0=10 n_s=10 mA=18.18g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=0.25 v0=15 n_s=10 mA=4.199g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=0.25 v0=15 n_s=10 mA=4.199g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=1 v0=15 n_s=10 mA=16.93g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=1 v0=15 n_s=10 mA=16.93g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=2 v0=20 n_s=10 mA=59.72g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=2 v0=20 n_s=10 mA=59.72g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring D M=1 v0=20 n_s=10 mA=37.87g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1    [tab_mmin] star+ring D M=1 v0=20 n_s=10 mA=37.87g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+
+    [tab_mmin] star+ring D M=0.25 v0=15 n_s=10 mA=5.143g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star+ring D M=0.25 v0=15 n_s=10 mA=5.143g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star+ring S M=1 v0=10 n_s=10 mA=7.345g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring S M=1 v0=10 n_s=10 mA=7.345g A@(0.50,0.00) Bany@(0.25,0.00) nB=0 nB_Aworst=1
+    [tab_mmin] star+ring D M=2 v0=15 n_s=10 mA=41.14g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star+ring D M=2 v0=15 n_s=10 mA=41.14g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star+ring D M=2 v0=20 n_s=10 mA=75.74g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star+ring D M=2 v0=20 n_s=10 mA=75.74g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [star n_s=40 cached keys] 4 jobs × 4 workers
+    [star n_s=40 cached keys] 4 jobs × 4 workers
+    [tab_mmin] star D M=1 v0=15 n_s=40 mA=10.16g A@(0.50,0.00) Bany@(0.50,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star D M=1 v0=15 n_s=40 mA=10.16g A@(0.50,0.00) Bany@(0.50,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star D M=0.25 v0=20 n_s=40 mA=4.571g A@(0.50,0.00) Bany@(0.50,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star D M=0.25 v0=20 n_s=40 mA=4.571g A@(0.50,0.00) Bany@(0.50,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star S M=1 v0=15 n_s=40 mA=8.466g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star S M=1 v0=15 n_s=40 mA=8.466g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star S M=0.25 v0=20 n_s=40 mA=3.883g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+    [tab_mmin] star S M=0.25 v0=20 n_s=40 mA=3.883g A@(0.50,0.00) Bany@(0.25,0.00) nB=1 nB_Aworst=1
+  wrote /home/octav/tema2/paper_results/tab_mmin.csv
+  wrote /home/octav/tema2/paper_results/tab_mmin.csv
+=== round7c on-vm done 2026-10-06T17:26:17+00:00 ===
+=== round7c on-vm done 2026-10-06T17:26:17+00:00 ===
