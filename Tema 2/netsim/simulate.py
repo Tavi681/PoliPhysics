@@ -110,7 +110,8 @@ def build_net(cfg) -> Net:
     material = cfg.material.resolve()
     nc = cfg.net
     if nc.kind == "star":
-        return star(nc.N, nc.R, nc.eps_p, material=material, A_hat=nc.A_hat)
+        return star(nc.N, nc.R, nc.eps_p, material=material, A_hat=nc.A_hat,
+                    eps_p_thread0=getattr(nc, "eps_p_thread0", None))
     if nc.kind == "star_with_rings":
         return star_with_rings(nc.N, nc.R, nc.radii, nc.eps_p,
                                material=material, A_hat=nc.A_hat,

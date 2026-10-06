@@ -49,7 +49,16 @@ def run_case(n_s, mode, v0=15.0, t_end=0.2):
             "outcome": res.outcome, "cpu": cpu,
             "energy_error": res.energy_error,
             "drone_x_arrest": res.drone_x_arrest,
-            "drone_y_arrest": res.drone_y_arrest}
+            "drone_y_arrest": res.drone_y_arrest,
+            "m_net": res.m_net,
+            "Kd_arrest": float(res.trajectory.energy[-1, 0]),
+            "Knet_arrest": float(res.trajectory.energy[-1, 1]),
+            "Uel_arrest": float(res.trajectory.energy[-1, 2]),
+            "Ufail_arrest": float(res.trajectory.energy[-1, 3]),
+            "Ucontact_arrest": float(res.trajectory.energy[-1, 4]),
+            "energy_error_J": float(abs(
+                res.trajectory.energy[-1].sum() - res.trajectory.E0_total)),
+            }
 
 
 def main():

@@ -178,7 +178,19 @@ def export_params_used():
     for sym, val, unit, com in (
         ("r_d", 0.15, "m", "drone radius (working value; '?' in paper)"),
         ("k_c", 1e7, "N/m^1.5", "absolute penalty stiffness (working value)"),
-        ("k_c_factor", 8.0, "-", "relative-k_c factor for material D (round 4)"),
+        ("k_c_factor", 8.0, "-",
+         "D relative k_c: k_c = k_c_factor^2 (E0 A / l_s) / "
+         "((3/2) sqrt(delta_ref)); not 8e7 absolute"),
+        ("delta_ref", 0.01 * 0.15, "m",
+         "contact reference penetration = delta_ref_frac * r_d "
+         "(delta_ref_frac=0.01)"),
+        ("delta_ref_frac", 0.01, "-", "delta_ref / r_d"),
+        ("damping_qs", 400.0, "1/s",
+         "viscous damping per unit mass in quasi-static Tests 2/5 "
+         "(off-centre pull / hub F(w)); dynamic Alg.1/2 uses 0"),
+        ("dt_out_dyn", 5e-3, "s",
+         "output interval of Alg.2 / production dynamic runs "
+         "(item-1 diagnostics use 1e-4 s)"),
         ("R_max", 0.5, "m", "cascade radius (working value)"),
         ("k_max", 10, "-", "cascade failure count (working value)"),
         ("N", 8, "-", "reference number of radials"),
@@ -331,9 +343,18 @@ def export_conv():
                 "R_d": f"{c['R_d']:.6g}", "cpu_s": f"{c['cpu']:.4g}",
                 "drone_x_arrest": f"{c.get('drone_x_arrest', float('nan')):.6g}",
                 "drone_y_arrest": f"{c.get('drone_y_arrest', float('nan')):.6g}",
+                "m_net_g": f"{1e3 * c.get('m_net', float('nan')):.6g}",
+                "Kd_arrest_J": f"{c.get('Kd_arrest', float('nan')):.6g}",
+                "Knet_arrest_J": f"{c.get('Knet_arrest', float('nan')):.6g}",
+                "Uel_arrest_J": f"{c.get('Uel_arrest', float('nan')):.6g}",
+                "Ufail_arrest_J": f"{c.get('Ufail_arrest', float('nan')):.6g}",
+                "Ucontact_arrest_J": f"{c.get('Ucontact_arrest', float('nan')):.6g}",
+                "energy_error_J": f"{c.get('energy_error_J', float('nan')):.6g}",
             })
     cols = ["contact", "n_s", "wmax_over_R", "d_wmax_pct", "n_failed", "eta",
-            "d_eta_pct", "R_d", "cpu_s", "drone_x_arrest", "drone_y_arrest"]
+            "d_eta_pct", "R_d", "cpu_s", "drone_x_arrest", "drone_y_arrest",
+            "m_net_g", "Kd_arrest_J", "Knet_arrest_J", "Uel_arrest_J",
+            "Ufail_arrest_J", "Ucontact_arrest_J", "energy_error_J"]
     return _write("tab_conv.csv", cols, rows, config="test4_convergence")
 
 
@@ -463,6 +484,18 @@ def _etaa_case(job):
                 etaA_free_ref = f"{fr[3]:.6g}"
             except Exception:
                 pass
+    etaB_free_num = px_second = ""
+    if a > 0:
+        rb = run_offcentre(material_name=mat, a_over_R=a, eps_p_frac=ep_frac,
+                           n_s=20, continue_to_B=True,
+                           free_lateral_after_failures=1)
+        if rb["eta_B"] == rb["eta_B"]:
+            etaB_free_num = f"{rb['eta_B']:.6g}"
+        if rb.get("px_at_second_fail", float("nan")) == rb.get(
+                "px_at_second_fail", float("nan")):
+            pxs = rb.get("px_at_second_fail", float("nan"))
+            if pxs == pxs:
+                px_second = f"{pxs:.6g}"
     return {
         "net": "star", "material": mat, "ep_frac": f"{ep_frac:.6g}",
         "a_over_R": f"{a:.6g}",
@@ -473,6 +506,8 @@ def _etaa_case(job):
         "etaA_free_num": etaA_free_num,
         "etaA_free_ref": etaA_free_ref,
         "px_fail": px_fail,
+        "etaB_free_num": etaB_free_num,
+        "px_at_second_fail": px_second,
     }
 
 
@@ -485,7 +520,8 @@ def export_etaa():
     rows = _parallel_map(_etaa_case, jobs, desc="fig_etaa")
     cols = ["net", "material", "ep_frac", "a_over_R", "etaA_num", "etaB_num",
             "etaA_ref", "etaB_ref", "first_failure",
-            "etaA_free_num", "etaA_free_ref", "px_fail"]
+            "etaA_free_num", "etaA_free_ref", "px_fail",
+            "etaB_free_num", "px_at_second_fail"]
     return _write("fig_etaa.csv", cols, rows, config="offcentre")
 
 

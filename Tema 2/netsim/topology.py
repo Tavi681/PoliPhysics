@@ -104,7 +104,7 @@ def _q_from_prestress(material, eps_p: float, length: np.ndarray,
 
 
 def star(N: int, R: float, eps_p: float, *, material=None,
-         A_hat: float = 1e-6) -> Net:
+         A_hat: float = 1e-6, eps_p_thread0=None) -> Net:
     """Star with ``N`` radial threads and uniform prestress ``eps_p``.
 
     Hub at the origin; ``N`` anchors evenly spaced on the circle of radius ``R``
@@ -128,9 +128,15 @@ def star(N: int, R: float, eps_p: float, *, material=None,
         q = _q_from_prestress(material, eps_p, length, A_arr)
     else:
         q = np.zeros(N)
+    if eps_p_thread0 is not None:
+        rest[0] = length[0] / (1.0 + float(eps_p_thread0))
+        if material is not None:
+            q[0] = (material.sigma(float(eps_p_thread0)) * A_arr[0]
+                    / length[0])
     return Net(nodes=nodes, edges=edges, anchored=anchored, q=q,
                A_hat=A_arr, rest_length=rest, R=R,
-               meta={"kind": "star", "N": N, "eps_p": eps_p})
+               meta={"kind": "star", "N": N, "eps_p": eps_p,
+                     "eps_p_thread0": eps_p_thread0})
 
 
 def star_with_rings(N: int, R: float, radii, eps_p: float, *,

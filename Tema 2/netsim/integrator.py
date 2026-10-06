@@ -112,6 +112,8 @@ class Trajectory:
     drone_x_first_fail: float = float("nan")
     drone_y_first_fail: float = float("nan")
     t_perforate: float = float("nan")
+    uel_r0: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
+    uel_other: np.ndarray = field(default_factory=lambda: np.zeros(0))
 
 
 def compute_time_step(material, seg_rest, mass, drone, contact, C, *,
@@ -220,6 +222,18 @@ def integrate(disc, material, drone, numerics, contact, output,
         M_eff = float("nan")
         grip = GrippedState()
 
+    lock_xy = bool(getattr(drone, "lock_xy", False)) if drone_mode else False
+    extra_force_node = None
+    extra_force_vec = np.zeros(3)
+    fl_after = None
+    if kinematic is not None:
+        if getattr(kinematic, "extra_force_node", None) is not None:
+            extra_force_node = int(kinematic.extra_force_node)
+            extra_force_vec = np.asarray(
+                getattr(kinematic, "extra_force", (0.0, 0.0, 0.0)),
+                dtype=float).reshape(3)
+        fl_after = getattr(kinematic, "free_lateral_after_failures", None)
+
     r_d = drone.r_d
     # Resolve the penalty stiffness (absolute or relative to axial stiffness).
     k_c = resolve_k_c(contact, material, seg_A, seg_rest, r_d)
@@ -248,6 +262,9 @@ def integrate(disc, material, drone, numerics, contact, output,
         """Nodal and drone accelerations at the given state."""
         f = segment_forces(xc, seg_edges, seg_rest, seg_A, intactc, E0, b,
                            use_numba=use_numba)
+        if extra_force_node is not None:
+            f = f.copy()
+            f[extra_force_node] = f[extra_force_node] + extra_force_vec
         ce = 0.0
         fd = np.zeros(3)
         if drone_mode:
@@ -282,6 +299,9 @@ def integrate(disc, material, drone, numerics, contact, output,
         ad = np.zeros(3)
         if drone_mode:
             ad = fd / M_eff_c - damping * vdc + g_vec
+            if lock_xy:
+                ad[0] = 0.0
+                ad[1] = 0.0
         return a, ad, ce
 
     # Initial accelerations (a^0).
@@ -294,12 +314,17 @@ def integrate(disc, material, drone, numerics, contact, output,
     failure_mid = []
     failure_drone = []
 
-    from .energy import (elastic_energy, kinetic_energy_net,
-                         kinetic_energy_drone)
+    from .energy import (elastic_energy, elastic_energy_per_segment,
+                         kinetic_energy_net, kinetic_energy_drone)
 
     U_prestress = elastic_energy(x, seg_edges, seg_rest, seg_A, intact, material)
     U_failure = 0.0
     U_capture = 0.0
+    store_mesh = bool(getattr(numerics, "store_mesh", True))
+    energy_groups = bool(getattr(numerics, "energy_groups", False))
+    r0_mask = disc.seg_parent == 0
+    uel_r0_list = []
+    uel_other_list = []
 
     def record(t):
         exclude = None
@@ -319,11 +344,17 @@ def integrate(disc, material, drone, numerics, contact, output,
             uc = 0.0
         u_el = elastic_energy(x, seg_edges, seg_rest, seg_A, intact, material)
         t_list.append(t)
-        x_list.append(x.copy())
-        v_list.append(v.copy())
-        intact_list.append(intact.copy())
+        if store_mesh:
+            x_list.append(x.copy())
+            v_list.append(v.copy())
+            intact_list.append(intact.copy())
         drone_list.append(np.concatenate([xd, vd]))
         energy_list.append([ke_dr, ke_net, u_el, U_failure, uc, U_capture])
+        if energy_groups:
+            e_seg = elastic_energy_per_segment(
+                x, seg_edges, seg_rest, seg_A, intact, material)
+            uel_r0_list.append(np.asarray(e_seg[r0_mask], dtype=float).copy())
+            uel_other_list.append(float(np.sum(e_seg[~r0_mask])))
 
     # Initial frame.
     record(0.0)
@@ -361,6 +392,9 @@ def integrate(disc, material, drone, numerics, contact, output,
                             + 0.5 * a[base_free] * dt * dt)
         if drone_mode:
             xd_new = xd + vd * dt + 0.5 * ad * dt * dt
+            if lock_xy:
+                xd_new[0] = p3[0]
+                xd_new[1] = p3[1]
         else:
             xd_new = xd
             # Kinematic forcing of the driven node.
@@ -401,6 +435,9 @@ def integrate(disc, material, drone, numerics, contact, output,
                 v_com = (M_eff * vd + grip.mass * v[g]) / (M_eff + grip.mass)
                 M_eff = M_eff + grip.mass
                 vd = v_com.copy()
+                if lock_xy:
+                    vd[0] = 0.0
+                    vd[1] = 0.0
                 v[g] = vd.copy()
                 logger.info("gripped node %d at t=%.4g s (mass %.4g kg, "
                             "dE_cap=%.4g J)", g, t, grip.mass, U_capture)
@@ -481,6 +518,9 @@ def integrate(disc, material, drone, numerics, contact, output,
         v_new[base_free] = v[base_free] + 0.5 * (a[base_free] + a_new[base_free]) * dt
         if drone_mode:
             vd_new = vd + 0.5 * (ad + ad_new) * dt
+            if lock_xy:
+                vd_new[0] = 0.0
+                vd_new[1] = 0.0
             if grip.active:
                 v_new[grip.node] = vd_new
         else:
@@ -505,6 +545,19 @@ def integrate(disc, material, drone, numerics, contact, output,
         x, v, xd, vd, a, ad = x_new, v_new, xd_new, vd_new, a_new, ad_new
         t += dt
         steps += 1
+
+        if (fl_after is not None and not drone_mode and not free_lateral
+                and failures):
+            gap = max(1e-4, 10.0 * dt_cfl)
+            n_events = 0
+            t_ev = -1e99
+            for _s, _p, tf in failures:
+                if float(tf) > t_ev + gap:
+                    n_events += 1
+                    t_ev = float(tf)
+            if n_events >= int(fl_after):
+                free_lateral = True
+                base_free[forced_node] = True
 
         if drone_mode:
             min_drone_z = min(min_drone_z, xd[2])
@@ -618,6 +671,20 @@ def integrate(disc, material, drone, numerics, contact, output,
     # Assemble.
     t_arr = np.asarray(t_list)
     energy_arr = np.asarray(energy_list)
+    if store_mesh and x_list:
+        x_arr = np.asarray(x_list)
+        v_arr = np.asarray(v_list)
+        intact_arr = np.asarray(intact_list)
+    else:
+        x_arr = np.zeros((t_arr.size, 0, 3))
+        v_arr = np.zeros((t_arr.size, 0, 3))
+        intact_arr = np.zeros((t_arr.size, 0), dtype=bool)
+    if energy_groups and uel_r0_list:
+        uel_r0_arr = np.vstack(uel_r0_list)
+        uel_other_arr = np.asarray(uel_other_list, dtype=float)
+    else:
+        uel_r0_arr = np.zeros((0, 0))
+        uel_other_arr = np.zeros(0)
     E_tot = energy_arr.sum(axis=1)
     if E_norm > 0:
         energy_error = float(np.max(np.abs(E_tot - E0_total)) / E_norm)
@@ -637,9 +704,9 @@ def integrate(disc, material, drone, numerics, contact, output,
 
     return Trajectory(
         t=t_arr,
-        x=np.asarray(x_list),
-        v=np.asarray(v_list),
-        intact=np.asarray(intact_list),
+        x=x_arr,
+        v=v_arr,
+        intact=intact_arr,
         drone=np.asarray(drone_list),
         energy=energy_arr,
         failures=failures_arr,
@@ -664,4 +731,6 @@ def integrate(disc, material, drone, numerics, contact, output,
         drone_x_first_fail=drone_x_first_fail,
         drone_y_first_fail=drone_y_first_fail,
         t_perforate=t_perforate,
+        uel_r0=uel_r0_arr,
+        uel_other=uel_other_arr,
     )

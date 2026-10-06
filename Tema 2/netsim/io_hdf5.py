@@ -33,7 +33,8 @@ import subprocess
 
 import numpy as np
 
-__all__ = ["git_commit", "package_versions", "write_run", "select_light_frames"]
+__all__ = ["git_commit", "package_versions", "write_run", "select_light_frames",
+           "select_fail_dense_frames", "write_diagnostic"]
 
 
 def git_commit() -> str:
@@ -232,3 +233,78 @@ def write_run(path, net, disc, material, cfg, traj, *, eta, cascade,
         o.attrs["energy_error"] = traj.energy_error
         o.attrs["n_failures"] = int(traj.failures.shape[0])
         o.attrs["steps"] = traj.steps
+
+
+def select_fail_dense_frames(t, fail_times, dt_fine=1e-4, dt_coarse=5e-4,
+                             pre=0.005, post=0.010):
+    """Keep 0.1 ms frames near failures and 0.5 ms frames otherwise."""
+    t = np.asarray(t, dtype=float)
+    fail_times = np.asarray(fail_times, dtype=float).ravel()
+    n = t.size
+    if n == 0:
+        return np.zeros(0, dtype=int)
+    keep = np.zeros(n, dtype=bool)
+    last = -1e99
+    for i, ti in enumerate(t):
+        fine = bool(fail_times.size) and np.any(
+            (fail_times - pre <= ti) & (ti <= fail_times + post))
+        step = dt_fine if fine else dt_coarse
+        if ti - last >= 0.5 * step:
+            keep[i] = True
+            last = ti
+    keep[0] = True
+    keep[-1] = True
+    return np.nonzero(keep)[0]
+
+
+def write_diagnostic(path, cfg, traj, *, eta, extra=None, g1=None, g2=None,
+                     g3=None, disc=None):
+    """Compact HDF5: drone, energy, groups, failures; no full mesh."""
+    import h5py
+
+    fail_t = (traj.failures[:, 2] if traj.failures.size
+              else np.zeros(0))
+    idx = select_fail_dense_frames(traj.t, fail_t)
+
+    def _take(data):
+        arr = np.asarray(data)
+        if arr.ndim == 0 or arr.shape[0] != traj.t.size:
+            return arr
+        return arr[idx]
+
+    with h5py.File(path, "w") as h5:
+        p = h5.create_group("params")
+        p.attrs["git_commit"] = git_commit()
+        p.attrs["n_frames_full"] = int(traj.t.size)
+        p.attrs["n_frames_kept"] = int(idx.size)
+        p.attrs["lock_xy"] = bool(getattr(cfg.drone, "lock_xy", False))
+        p.attrs["contact_mode"] = cfg.contact.mode
+        p.attrs["n_s"] = cfg.numerics.n_s
+        p.attrs["dt_out"] = cfg.numerics.dt_out
+        if extra:
+            for k, val in extra.items():
+                try:
+                    p.attrs[k] = val
+                except (TypeError, ValueError):
+                    p.attrs[k] = str(val)
+        def ds(name, data):
+            data = np.asarray(data)
+            kw = dict(compression="gzip")
+            if data.ndim >= 2 and data.shape[0] > 0:
+                kw["chunks"] = _chunk_time(data.shape)
+            h5.create_dataset(name, data=data, **kw)
+        ds("t", _take(traj.t))
+        ds("drone", _take(traj.drone))
+        ds("energy", _take(traj.energy))
+        if g1 is not None:
+            ds("uel_g1", _take(g1))
+            ds("uel_g2", _take(g2))
+            ds("uel_g3", _take(g3))
+        h5.create_dataset("failures", data=traj.failures, compression="gzip")
+        o = h5.create_group("outcome")
+        o.attrs["arrested"] = bool(traj.arrested)
+        o.attrs["outcome"] = traj.outcome
+        o.attrs["w_max"] = traj.w_max
+        o.attrs["eta"] = float(eta)
+        o.attrs["energy_error"] = traj.energy_error
+        o.attrs["n_failures"] = int(traj.failures.shape[0])

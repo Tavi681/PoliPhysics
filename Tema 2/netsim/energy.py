@@ -25,7 +25,16 @@ import numpy as np
 
 from ._kernels import segment_strains
 
-__all__ = ["elastic_energy", "kinetic_energy_net", "kinetic_energy_drone"]
+__all__ = ["elastic_energy", "elastic_energy_per_segment",
+           "kinetic_energy_net", "kinetic_energy_drone"]
+
+
+def elastic_energy_per_segment(x, seg_edges, seg_rest, seg_A, intact,
+                               material) -> np.ndarray:
+    """Elastic strain energy of each intact segment [J]."""
+    eps, _ = segment_strains(x, seg_edges, seg_rest)
+    phi = material.Phi(eps)
+    return np.where(intact, seg_A * seg_rest * phi, 0.0)
 
 
 def elastic_energy(x, seg_edges, seg_rest, seg_A, intact, material) -> float:

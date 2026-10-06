@@ -62,6 +62,8 @@ class NetConfig:
     A_hat: float = 1e-6
     radii: Optional[list] = None  # for star_with_rings
     q_ratio: float = 1.0  # q_ring / q_radial for star_with_rings (FDM prestress)
+    # Optional prestress of coarse thread 0 (star only); others keep eps_p.
+    eps_p_thread0: Optional[float] = None
     # If True (default for paper nets), keep ring nodes at the prescribed
     # radii and set different radial force densities on the inner/outer
     # segments from ring-node equilibrium. If False, free FDM may pull the
@@ -84,6 +86,8 @@ class DroneConfig:
     v0: float = 15.0
     p: tuple = (0.5, 0.0)  # in-plane impact point (px, py)
     gravity: bool = False
+    # If True, zero in-plane drone force and velocity every step (z free).
+    lock_xy: bool = False
 
     def validate(self) -> None:
         if self.r_d <= 0:
@@ -133,6 +137,10 @@ class NumericsConfig:
     area_scale: float = 1.0
     seed: Optional[int] = None
     use_numba: bool = True
+    # Compact diagnostic output (round 8): skip full mesh; record per-segment
+    # elastic energy on radial 0 plus the rest lumped.
+    store_mesh: bool = True
+    energy_groups: bool = False
 
     def validate(self) -> None:
         if self.n_s < 1:
@@ -176,6 +184,12 @@ class KinematicConfig:
     amplitude: float = 0.0  # constant velocity or displacement magnitude
     func: Optional[Callable[[float], float]] = None  # overrides amplitude
     free_lateral: bool = False
+    # After this many time-separated failure events, switch to free_lateral
+    # (criterion-B free-in-plane). None = never switch.
+    free_lateral_after_failures: Optional[int] = None
+    # Constant extra force [N] applied to ``extra_force_node`` (hub = 0).
+    extra_force_node: Optional[int] = None
+    extra_force: tuple = (0.0, 0.0, 0.0)
 
     def value(self, t: float) -> float:
         if self.func is not None:
@@ -262,5 +276,7 @@ def load_config(path: str) -> SimConfig:
         cfg.drone.p = tuple(cfg.drone.p)
     if isinstance(cfg.kinematic.direction, list):
         cfg.kinematic.direction = tuple(cfg.kinematic.direction)
+    if isinstance(cfg.kinematic.extra_force, list):
+        cfg.kinematic.extra_force = tuple(cfg.kinematic.extra_force)
     cfg.validate()
     return cfg

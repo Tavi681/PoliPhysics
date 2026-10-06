@@ -70,7 +70,8 @@ def _thread_segment_order(disc, N):
 
 
 def run_junction_sim(name="S", N=4, ep_frac=0.1, e1_frac=None, L=2.0,
-                     n_seg=400, cells=5, A_hat=1e-6, d_frac=0.02):
+                     n_seg=400, cells=5, A_hat=1e-6, d_frac=0.02,
+                     return_res=False):
     ref_mat = getattr(riemann, name)
     material = get_material(name)
     ep = ep_frac * material.eps_b
@@ -151,7 +152,7 @@ def run_junction_sim(name="S", N=4, ep_frac=0.1, e1_frac=None, L=2.0,
     j2w = junction_linear_2d(material, N, ep, variant="with")
     j2o = junction_linear_2d(material, N, ep, variant="wo")
 
-    return {
+    out = {
         "N": N, "material": name, "ep_frac": ep_frac, "ep": ep, "e1": e1,
         "T0_sim": T0_sim, "T0_ref": T0_ref, "T0_lin": T0_lin,
         "T0_2d_with": j2w["T0"], "T0_2d_wo": j2o["T0"],
@@ -167,6 +168,11 @@ def run_junction_sim(name="S", N=4, ep_frac=0.1, e1_frac=None, L=2.0,
         "SN": S_N(N), "SN2d_with": j2w["SN2d"], "SN2d_wo": j2o["SN2d"],
         "strains": strains,
     }
+    if return_res:
+        out["result"] = res
+        out["disc"] = disc
+        out["seg_order"] = seg_order
+    return out
 
 
 def best_variant(name="S", ep_frac=0.3, Ns=(3, 4, 5, 6, 8, 12, 16), L=3.0,

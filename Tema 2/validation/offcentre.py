@@ -62,7 +62,8 @@ def _absorbed(traj, i, m_net, e_mat):
 
 def run_offcentre(material_name="S", a_over_R=0.5, eps_p_frac=0.0,
                   mode="gripped", N=8, R=1.0, n_s=20, speed=0.3, A_hat=1e-6,
-                  damping=400.0, continue_to_B=True, free_lateral=False):
+                  damping=400.0, continue_to_B=True, free_lateral=False,
+                  free_lateral_after_failures=None):
     """Quasi-static off-centre pull. Returns eta_A, eta_B and failure kinds.
 
     With ``continue_to_B=True`` the run does not stop at first failure: the
@@ -73,6 +74,10 @@ def run_offcentre(material_name="S", a_over_R=0.5, eps_p_frac=0.0,
     With ``free_lateral=True`` only the vertical component of the gripped node
     is prescribed; the in-plane coordinates are free (matches
     ``ref/offc_free.py``). Then only criterion A is computed.
+
+    With ``free_lateral_after_failures=1`` the point is held until the first
+    failure event, then the in-plane force is released while the vertical
+    displacement continues (criterion B, free in the plane).
     """
     material = get_material(material_name)
     eps_p = eps_p_frac * material.eps_b
@@ -91,14 +96,19 @@ def run_offcentre(material_name="S", a_over_R=0.5, eps_p_frac=0.0,
         kinematic=KinematicConfig(enabled=True, node=pnode, mode="displacement",
                                   direction=(0.0, 0.0, -1.0),
                                   free_lateral=free_lateral,
+                                  free_lateral_after_failures=free_lateral_after_failures,
                                   func=lambda t, s=speed: s * t),
     )
     material = cfg.material.resolve()
     net = build_net(cfg)
-    # Free-lateral runs only need first failure (offc_free is criterion A only).
+    # Free-lateral-from-t=0 runs only need first failure (offc_free is A).
+    # free_lateral_after_failures needs the post-redistribution failure for B.
     # Fixed continue_to_B needs the post-redistribution failure for eta_B; keep
     # enough clustered events for outer-first cascades (not just 2).
-    if free_lateral or not continue_to_B:
+    if free_lateral_after_failures:
+        stop_on_failure = False
+        stop_after = 12
+    elif free_lateral or not continue_to_B:
         stop_on_failure = True
         stop_after = None
     else:
@@ -113,6 +123,7 @@ def run_offcentre(material_name="S", a_over_R=0.5, eps_p_frac=0.0,
     empty = {
         "eta_ff": float("nan"), "eta_A": float("nan"), "eta_B": float("nan"),
         "eta_A_free": float("nan"), "px_fail": float("nan"),
+        "px_at_second_fail": float("nan"),
         "first_kind": "none", "second_kind": "none",
         "t_first": float("nan"), "t_second": float("nan"),
         "result": res,
@@ -142,7 +153,10 @@ def run_offcentre(material_name="S", a_over_R=0.5, eps_p_frac=0.0,
     eta_B = float("nan")
     second_kind = "none"
     t_second = float("nan")
-    if (not free_lateral) and continue_to_B and fails.shape[0] >= 2:
+    px_at_second_fail = float("nan")
+    want_B = (continue_to_B and fails.shape[0] >= 2
+              and (not free_lateral or free_lateral_after_failures))
+    if want_B:
         # Time-clustered failure events (gap 0.1 ms), matching ref/offc.py:
         # eta_B is cumulative absorbed work at the next failure *after*
         # re-equilibration. Elastic unload after the first break is counted by
@@ -174,12 +188,15 @@ def run_offcentre(material_name="S", a_over_R=0.5, eps_p_frac=0.0,
             parentB = int(fails[jB, 1])
             second_kind = _classify_failure(
                 disc, int(fails[jB, 0]), parentB, mids[jB], a_over_R, R)
+            if traj.x.ndim == 3 and traj.x.shape[1] > pnode:
+                px_at_second_fail = float(traj.x[iB, pnode, 0])
             break
 
     return {
         "eta_ff": eta_A, "eta_A": eta_A, "eta_B": eta_B,
         "eta_A_free": eta_A if free_lateral else float("nan"),
         "px_fail": px_fail,
+        "px_at_second_fail": px_at_second_fail,
         "first_kind": first_kind, "second_kind": second_kind,
         "t_first": t_first, "t_second": t_second,
         "seg_idx": seg0, "parent": parent0, "result": res,
