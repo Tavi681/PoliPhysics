@@ -1,0 +1,1 @@
+Round-8 CSVs stamped `code_dirty=true` differ from commit `a6c4705` only by the picklable pilot worker in `validation/round8.py` and GCP launcher/supervisor script fixes; that diff does not change the physics.

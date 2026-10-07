@@ -1048,12 +1048,15 @@ def _one_pilot_run(mat="S"):
                 steps=res.trajectory.steps)
 
 
+def _pilot_copy_work(_=None):
+    """Picklable worker for the 8-vs-16 throughput test."""
+    return _one_pilot_run("S")
+
+
 def _timed_copies(n_copies, n_workers):
-    def _work(_):
-        return _one_pilot_run("S")
     t0 = time.time()
     with ProcessPoolExecutor(max_workers=n_workers) as pool:
-        list(pool.map(_work, range(n_copies)))
+        list(pool.map(_pilot_copy_work, range(n_copies)))
     wall = time.time() - t0
     rph = 3600.0 * n_copies / wall if wall > 0 else float("nan")
     return dict(n_copies=n_copies, n_workers=n_workers, wall_s=wall,

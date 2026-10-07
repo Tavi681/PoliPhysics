@@ -7,7 +7,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO="$(cd "${ROOT}/.." && pwd)"
 SHARD="${SHARD:-pilot}"
-INSTANCE="${INSTANCE:-poliphysics-tema2-r8-${SHARD}}"
+# GCP names must be [a-z][-a-z0-9]*; keep SHARD as A/B/C/D for Python.
+INSTANCE="${INSTANCE:-poliphysics-tema2-r8-$(printf '%s' "${SHARD}" | tr '[:upper:]' '[:lower:]')}"
 ZONE="${ZONE:-us-central1-a}"
 MACHINE="${MACHINE:-c2-standard-16}"
 PREEMPTIBLE="${PREEMPTIBLE:-false}"
