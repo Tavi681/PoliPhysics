@@ -85,6 +85,11 @@ class Params:
     # Release mode: "free" (default) or "clamped" (hold node 0 fixed at z0 in
     # still air until steady, then release at t=0 into the configured flow).
     release_mode: str = "free"  # Alg.2 line 4 (opt-in)
+    # Optional override for clamped phase 1: if set (>0), hold the spider fixed
+    # in still air for exactly this many seconds (stop_on_steady=False), instead
+    # of the default Alg.1 steady-window test. Default None preserves historical
+    # clamp-to-steady behaviour (commit 507637e).
+    clamp_relax_time: float | None = None
 
     # --- Numerical options ----------------------------------------------
     lag_tangent: bool = True  # lag RFT node tangent in the Jacobian (documented default)

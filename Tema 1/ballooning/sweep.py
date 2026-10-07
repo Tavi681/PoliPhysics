@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -280,8 +281,14 @@ def shard_assignment(points: list[SweepPoint], num_shards: int,
 
 def sweep_params(pt: SweepPoint, N_t: int = SWEEP_N_T, t_end: float = SWEEP_T_END,
                  output_dt: float = SWEEP_OUTPUT_DT,
-                 dt_max: float = SWEEP_DT_MAX) -> Params:
-    """Params for one Stage B realization (clamped release into turbulence)."""
+                 dt_max: float = SWEEP_DT_MAX,
+                 clamp_relax_time: float | None = None) -> Params:
+    """Params for one Stage B realization (clamped release into turbulence).
+
+    ``clamp_relax_time`` is optional: when set (>0), phase 1 holds the spider
+    for that fixed still-air duration instead of the default steady-window stop.
+    Default ``None`` preserves commit 507637e clamp-to-steady behaviour.
+    """
     fbar = pt.Fbar_l
     P = Params(
         N=pt.N, N_t=N_t, L=0.5, m=SWEEP_M_KG, Q_s=0.0, charge_model="tip",
@@ -294,6 +301,7 @@ def sweep_params(pt: SweepPoint, N_t: int = SWEEP_N_T, t_end: float = SWEEP_T_EN
         use_alg2_stopping=True, stop_on_steady=False,
         adaptive_dt=True, dt0=1e-4, dt_max=dt_max, output_dt=output_dt,
         delta=1e-6, t_w=0.05,
+        clamp_relax_time=clamp_relax_time,
     )
     P.Q_t = charge_for_lift_ratio(P, SWEEP_E, fbar)
     return P
@@ -320,26 +328,65 @@ def _subsample_indices(t: np.ndarray, dt: float) -> np.ndarray:
 
 
 def _trajectory_observables(P: Params, traj) -> dict:
-    """Time averages of R/L and theta_L after release; min d_min over the run."""
+    """Time averages of R/L and theta_L after release; min d_min over the run.
+
+    Vectorized over frames (same numerics as the per-frame loop for N>=1).
+    """
     topo = Topology(P)
-    R_over_L = []
-    theta_L = []
-    dmin = []
-    for k in range(len(traj.t)):
-        X = traj.x[k]
-        R_over_L.append(observables.tip_radius(topo, X) / P.L)
-        theta_L.append(observables.tip_angle(topo, X))
-        d = observables.min_interthread_distance(topo, X)
-        if math.isfinite(d):
-            dmin.append(d)
-    R = np.asarray(R_over_L, dtype=float)
-    th = np.asarray(theta_L, dtype=float)
+    X = np.asarray(traj.x, dtype=float)
+    if X.ndim != 3 or X.shape[0] == 0:
+        return {
+            "R_over_L_mean": float("nan"),
+            "R_over_L_std": float("nan"),
+            "theta_L_mean": float("nan"),
+            "dmin_min_um": float("nan"),
+        }
+    tips = np.asarray(topo.tip_nodes, dtype=int)
+    axis_xy = X[:, 0, :2]
+    tip_xy = X[:, tips, :2]
+    R = np.linalg.norm(tip_xy - axis_xy[:, None, :], axis=-1).mean(axis=1) / P.L
+
+    th = np.empty(X.shape[0], dtype=float)
+    for k in range(X.shape[0]):
+        th[k] = observables.tip_angle(topo, X[k])
+
+    if topo.N < 2:
+        dmin_um = float("nan")
+    else:
+        dmin = np.full(X.shape[0], np.inf)
+        for ja in range(topo.N):
+            na = np.asarray(topo.thread_nodes[ja][2:], dtype=int)
+            if na.size == 0:
+                continue
+            for jb in range(ja + 1, topo.N):
+                nb = np.asarray(topo.thread_nodes[jb][2:], dtype=int)
+                if nb.size == 0:
+                    continue
+                A = X[:, na, :]
+                B = X[:, nb, :]
+                d = np.linalg.norm(A[:, :, None, :] - B[:, None, :, :], axis=-1)
+                dmin = np.minimum(dmin, d.reshape(X.shape[0], -1).min(axis=1))
+        finite = dmin[np.isfinite(dmin)]
+        dmin_um = float(np.min(finite) * 1e6) if finite.size else float("nan")
     return {
-        "R_over_L_mean": float(np.mean(R)) if len(R) else float("nan"),
-        "R_over_L_std": float(np.std(R)) if len(R) else float("nan"),
-        "theta_L_mean": float(np.mean(th)) if len(th) else float("nan"),
-        "dmin_min_um": (float(np.min(dmin)) * 1e6) if dmin else float("nan"),
+        "R_over_L_mean": float(np.mean(R)),
+        "R_over_L_std": float(np.std(R)),
+        "theta_L_mean": float(np.mean(th)),
+        "dmin_min_um": dmin_um,
     }
+
+
+def _parse_solver_fail(msg: str) -> tuple[float | None, float | None]:
+    import re
+
+    t_fail = dt_fail = None
+    m = re.search(r"at t=([\d.eE+-]+)", msg)
+    if m:
+        t_fail = float(m.group(1))
+    m = re.search(r"dt=([\d.eE+-]+)", msg)
+    if m:
+        dt_fail = float(m.group(1))
+    return t_fail, dt_fail
 
 
 def run_sweep_job(spec: dict) -> dict:
@@ -355,10 +402,60 @@ def run_sweep_job(spec: dict) -> dict:
     t_end = float(spec.get("t_end", SWEEP_T_END))
     output_dt = float(spec.get("output_dt", SWEEP_OUTPUT_DT))
     dt_max = float(spec.get("dt_max", SWEEP_DT_MAX))
-    P = sweep_params(pt, N_t=N_t, t_end=t_end, output_dt=output_dt, dt_max=dt_max)
+    crt = spec.get("clamp_relax_time", None)
+    clamp_relax_time = float(crt) if crt not in (None, "", False) else None
+    P = sweep_params(pt, N_t=N_t, t_end=t_end, output_dt=output_dt, dt_max=dt_max,
+                     clamp_relax_time=clamp_relax_time)
 
     t0 = time.perf_counter()
-    traj = simulate(P)
+    traj = None
+    fail_msg = ""
+    try:
+        traj = simulate(P)
+    except Exception as exc:
+        fail_msg = f"{type(exc).__name__}: {exc}"
+        t_fail, dt_fail = _parse_solver_fail(fail_msg)
+        wall = time.perf_counter() - t0
+        hdf5_path = ""
+        if spec.get("write_hdf5"):
+            from pathlib import Path
+            from .io_hdf5 import write_ml_hdf5_solver_fail
+
+            out_dir = Path(spec["hdf5_dir"])
+            out_dir.mkdir(parents=True, exist_ok=True)
+            h5 = out_dir / (
+                f"N{pt.N}_sw{pt.sigma_w:.2f}_x{pt.x:+d}_i{pt.i:04d}.h5"
+            )
+            write_ml_hdf5_solver_fail(
+                str(h5), P, t_fail=t_fail, dt_fail=dt_fail, message=fail_msg,
+            )
+            hdf5_path = str(h5)
+        return {
+            "N": pt.N,
+            "N_t": N_t,
+            "sigma_w": pt.sigma_w,
+            "ell": SWEEP_ELL,
+            "x": pt.x,
+            "Fbar_l": pt.Fbar_l,
+            "q_nC": P.Q_t * 1e9,
+            "seed": pt.seed,
+            "split": pt.split,
+            "outcome": "solver_fail",
+            "exit_time": float(t_fail) if t_fail is not None else float("nan"),
+            "R_over_L_mean": float("nan"),
+            "R_over_L_std": float("nan"),
+            "theta_L_mean": float("nan"),
+            "dmin_min_um": float("nan"),
+            "entangled": False,
+            "newton_failures": -1,
+            "wall_time_s": wall,
+            "hdf5_path": hdf5_path,
+            "i": pt.i,
+            "renorm_factor": float(P.turb.get("renorm_factor", 1.0)),
+            "solver_fail_t": t_fail,
+            "solver_fail_dt": dt_fail,
+            "solver_fail_message": fail_msg,
+        }
     wall = time.perf_counter() - t0
 
     obs = _trajectory_observables(P, traj)
@@ -367,6 +464,11 @@ def run_sweep_job(spec: dict) -> dict:
     exit_time = traj.outcome.get("exit_time")
     if exit_time is None:
         exit_time = float(traj.t[-1])
+    topo = Topology(P)
+    R_release = float(observables.tip_radius(topo, traj.x[0]) / P.L)
+
+    from .io_hdf5 import git_provenance
+    prov = git_provenance()
 
     row = {
         "N": pt.N,
@@ -380,6 +482,7 @@ def run_sweep_job(spec: dict) -> dict:
         "split": pt.split,
         "outcome": status,
         "exit_time": float(exit_time),
+        "R_over_L_release": R_release,
         "R_over_L_mean": obs["R_over_L_mean"],
         "R_over_L_std": obs["R_over_L_std"],
         "theta_L_mean": obs["theta_L_mean"],
@@ -388,6 +491,10 @@ def run_sweep_job(spec: dict) -> dict:
         "newton_failures": int(diag.get("newton_failures", 0)),
         "wall_time_s": wall,
         "hdf5_path": "",
+        "git_commit": prov["commit"],
+        "git_dirty": bool(prov["dirty"]),
+        "clamp_relax_time": clamp_relax_time if clamp_relax_time else "",
+        "phase1_t_exit": traj.outcome.get("phase1_t_exit", ""),
         # extras (not in the B3 sweep.csv header, kept for callers/aggregation)
         "i": pt.i,
         "renorm_factor": float(P.turb.get("renorm_factor", 1.0)),
@@ -469,6 +576,87 @@ def aggregate_phase(rows: list[dict]) -> list[dict]:
             "mean_exit_time": mean_exit,
         })
     return out
+
+
+_H5_NAME = re.compile(
+    r"^N(?P<N>\d+)_sw(?P<sw>[\d.]+)_x(?P<x>[+-]?\d+)_i(?P<i>\d+)\.h5$"
+)
+
+
+def production_point_lookup() -> dict[tuple, SweepPoint]:
+    return {(p.N, p.sigma_w, p.x, p.i): p for p in iter_production_points()}
+
+
+def sweep_row_from_hdf5(path: Path | str, *, pt: SweepPoint | None = None) -> dict:
+    """Rebuild one ``sweep.csv`` row from an ML HDF5 file (source of truth)."""
+    import h5py
+    from .integrator import Trajectory
+
+    path = Path(path)
+    m = _H5_NAME.match(path.name)
+    if m is None:
+        raise ValueError(f"unexpected HDF5 name: {path.name}")
+    N = int(m.group("N"))
+    sigma_w = float(m.group("sw"))
+    x = int(m.group("x"))
+    i = int(m.group("i"))
+    if pt is None:
+        pt = production_point_lookup().get((N, sigma_w, x, i))
+        if pt is None:
+            pt = SweepPoint(N=N, sigma_w=sigma_w, x=x, i=i)
+
+    with h5py.File(path, "r") as f:
+        N_t = int(f["params"].attrs.get("N_t", SWEEP_N_T))
+        q_t = float(f["params"].attrs.get("Q_t", 0.0))
+        t = np.asarray(f["t"][:], dtype=float)
+        xtr = np.asarray(f["x"][:], dtype=float)
+        vtr = np.asarray(f["v"][:], dtype=float)
+        twist = np.asarray(f["twist"][:], dtype=float)
+        charge = np.asarray(f["charge"][:], dtype=float)
+        edges = np.asarray(f["topology/edges"][:])
+        thread_id = np.asarray(f["topology/thread_id"][:])
+        oc = f["outcome"]
+        status = str(oc.attrs.get("status", "timeout"))
+        exit_time = oc.attrs.get("exit_time", -1.0)
+        if exit_time is not None and float(exit_time) < 0:
+            exit_time = float(t[-1]) if t.size else float("nan")
+        else:
+            exit_time = float(exit_time)
+        entangled = bool(oc.attrs.get("entangled", False))
+        nf = int(oc.attrs.get("newton_failures", 0))
+
+    traj = Trajectory(
+        t=t, x=xtr, v=vtr, theta=twist,
+        edges=edges, thread_id=thread_id, q_node=charge,
+        outcome={"status": status, "exit_time": exit_time, "entangled": entangled,
+                 "diag": {"newton_failures": nf}},
+    )
+    P = sweep_params(pt, N_t=N_t)
+    obs = _trajectory_observables(P, traj)
+    valid = pt.Fbar_l > 0.0
+    return {
+        "N": pt.N,
+        "N_t": N_t,
+        "sigma_w": pt.sigma_w,
+        "ell": SWEEP_ELL,
+        "x": pt.x,
+        "Fbar_l": pt.Fbar_l,
+        "q_nC": q_t * 1e9,
+        "seed": pt.seed,
+        "split": pt.split,
+        "outcome": status,
+        "exit_time": exit_time,
+        "R_over_L_mean": obs["R_over_L_mean"],
+        "R_over_L_std": obs["R_over_L_std"],
+        "theta_L_mean": obs["theta_L_mean"],
+        "dmin_min_um": obs["dmin_min_um"],
+        "entangled": entangled,
+        "newton_failures": nf,
+        "wall_time_s": "",
+        "hdf5_path": str(path.resolve()),
+        "valid": valid,
+        "i": pt.i,
+    }
 
 
 def is_snapshot_point(pt: SweepPoint) -> bool:

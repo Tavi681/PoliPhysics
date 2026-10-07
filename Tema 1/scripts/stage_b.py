@@ -235,7 +235,8 @@ def do_tab_wc_m10(workers: int) -> None:
 # Sweep runner (resume-safe, sharded, progress every 10 min)
 # ---------------------------------------------------------------------------
 def _job_spec(pt: SB.SweepPoint, N_t: int, t_end: float, output_dt: float,
-              dt_max: float, write_hdf5: bool, smoke: bool) -> dict:
+              dt_max: float, write_hdf5: bool, smoke: bool,
+              clamp_relax_time: float | None = None) -> dict:
     snap = SB.is_snapshot_point(pt)
     return {
         "N": pt.N, "sigma_w": pt.sigma_w, "x": pt.x, "i": pt.i,
@@ -245,6 +246,7 @@ def _job_spec(pt: SB.SweepPoint, N_t: int, t_end: float, output_dt: float,
         "hdf5_dir": str(ML_DIR),
         "snapshot": snap,
         "snapshot_dir": str(SNAP_DIR),
+        "clamp_relax_time": clamp_relax_time,
     }
 
 
@@ -256,14 +258,16 @@ def _select_points(production: bool, M: int, N_values) -> list[SB.SweepPoint]:
 
 def _pending_specs(points: list[SB.SweepPoint], done: set[tuple],
                    N_t: int, t_end: float, output_dt: float, dt_max: float,
-                   write_hdf5: bool, smoke: bool) -> list[dict]:
+                   write_hdf5: bool, smoke: bool,
+                   clamp_relax_time: float | None = None) -> list[dict]:
     specs = []
     for pt in points:
         key = (pt.N, pt.sigma_w, pt.x, pt.i)
         if key in done:
             continue
         specs.append(_job_spec(pt, N_t, t_end, output_dt, dt_max,
-                               write_hdf5, smoke))
+                               write_hdf5, smoke,
+                               clamp_relax_time=clamp_relax_time))
     return specs
 
 
@@ -276,7 +280,8 @@ def sweep_csv_path(shard: int, num_shards: int) -> Path:
 def do_sweep(workers: int, production: bool, M: int, N_values,
              N_t: int, t_end: float, output_dt: float, dt_max: float,
              write_hdf5: bool, shard: int = 0, num_shards: int = 1,
-             smoke: bool = False, csv_path: Path | None = None) -> None:
+             smoke: bool = False, csv_path: Path | None = None,
+             clamp_relax_time: float | None = None) -> None:
     RESULTS.mkdir(parents=True, exist_ok=True)
     SNAP_DIR.mkdir(parents=True, exist_ok=True)
     if write_hdf5:
@@ -290,12 +295,14 @@ def do_sweep(workers: int, production: bool, M: int, N_values,
 
     done = _load_done_keys(csv_path)
     specs = _pending_specs(points, done, N_t, t_end, output_dt, dt_max,
-                           write_hdf5, smoke)
+                           write_hdf5, smoke,
+                           clamp_relax_time=clamp_relax_time)
     total_grid = len(points)
     n_done0 = total_grid - len(specs)
     _log(f"sweep start: pending={len(specs)} already_done={n_done0} "
          f"total={total_grid} workers={workers} production={production} "
          f"M={M} N_t={N_t} t_end={t_end} dt_max={dt_max} "
+         f"clamp_relax_time={clamp_relax_time} "
          f"shard={shard}/{num_shards} csv={csv_path.name}")
 
     if not specs:
@@ -311,10 +318,36 @@ def do_sweep(workers: int, production: bool, M: int, N_values,
     with ProcessPoolExecutor(max_workers=workers) as pool:
         futures = {pool.submit(SB.run_sweep_job, s): s for s in specs}
         for fut in as_completed(futures):
-            row = fut.result()
+            spec = futures[fut]
+            try:
+                row = fut.result()
+            except Exception as exc:
+                _log(f"job failed (pool): N={spec.get('N')} x={spec.get('x')} "
+                     f"i={spec.get('i')} err={exc!r}")
+                row = {
+                    "N": spec["N"], "N_t": N_t, "sigma_w": spec["sigma_w"],
+                    "ell": SB.SWEEP_ELL, "x": spec["x"],
+                    "Fbar_l": SB.SweepPoint(
+                        int(spec["N"]), float(spec["sigma_w"]),
+                        int(spec["x"]), int(spec["i"]),
+                        split=str(spec.get("split", "main")),
+                    ).Fbar_l,
+                    "q_nC": "", "seed": SB.sweep_seed(
+                        int(spec["N"]), float(spec["sigma_w"]),
+                        int(spec["x"]), int(spec["i"]),
+                    ),
+                    "split": spec.get("split", "main"),
+                    "outcome": "solver_fail",
+                    "exit_time": "", "R_over_L_mean": "", "R_over_L_std": "",
+                    "theta_L_mean": "", "dmin_min_um": "", "entangled": "false",
+                    "newton_failures": "", "wall_time_s": "", "hdf5_path": "",
+                }
             _append_sweep_row(row, csv_path)
             n_finished += 1
-            wall_acc += float(row["wall_time_s"])
+            try:
+                wall_acc += float(row["wall_time_s"])
+            except (TypeError, ValueError):
+                pass
             now = time.perf_counter()
             if now - last_progress >= 600.0 or n_finished == len(specs):
                 elapsed = now - t_start
@@ -1255,6 +1288,9 @@ def main() -> int:
     ap.add_argument("--no-hdf5", action="store_true")
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--num-shards", type=int, default=1)
+    ap.add_argument("--clamp-relax-time", type=float, default=None,
+                    help="optional fixed still-air clamp duration [s] before "
+                         "release (default: None = Alg.1 steady-window stop)")
     ap.add_argument("--skip-prep", action="store_true",
                     help="with --b0: skip tab_wc m=10 rerun")
     ns = ap.parse_args()
@@ -1289,7 +1325,8 @@ def main() -> int:
                  N_values=ns.N, N_t=ns.N_t, t_end=ns.t_end,
                  output_dt=ns.output_dt, dt_max=dt_max,
                  write_hdf5=not ns.no_hdf5, shard=ns.shard,
-                 num_shards=ns.num_shards, smoke=False)
+                 num_shards=ns.num_shards, smoke=False,
+                 clamp_relax_time=ns.clamp_relax_time)
     return rc
 
 

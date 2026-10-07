@@ -325,9 +325,10 @@ def _simulate_clamped_release(P: Params, field=None, progress: bool = False) -> 
     steady, then release at t=0 into the configured flow.
 
     Phase 1 pins the spider's 3 position DOFs (Dirichlet) with ZeroFlow and runs to
-    the steady-state test. Phase 2 restarts from that clamped steady shape (at rest),
-    releases node 0, switches on the configured flow, and applies the run's stopping
-    rules with t reset to 0.
+    the steady-state test (default), or for a fixed duration when
+    ``P.clamp_relax_time`` is set (>0). Phase 2 restarts from that clamped shape
+    (at rest), releases node 0, switches on the configured flow, and applies the
+    run's stopping rules with t reset to 0.
     """
     from dataclasses import replace
     from .fields import ZeroFlow
@@ -335,14 +336,21 @@ def _simulate_clamped_release(P: Params, field=None, progress: bool = False) -> 
     if field is None:
         field = make_field(P)
 
-    # --- Phase 1: clamped, still air, run to steady ---
-    P1 = replace(P, flow_model="zero", release_mode="free",
-                 use_alg2_stopping=False, stop_on_steady=True)
+    # --- Phase 1: clamped, still air ---
+    relax_t = P.clamp_relax_time
+    if relax_t is not None and float(relax_t) > 0.0:
+        # Fixed-duration still-air clamp (opt-in; default path unchanged).
+        P1 = replace(P, flow_model="zero", release_mode="free",
+                     use_alg2_stopping=False, stop_on_steady=False,
+                     t_end=float(relax_t))
+    else:
+        P1 = replace(P, flow_model="zero", release_mode="free",
+                     use_alg2_stopping=False, stop_on_steady=True)
     xi0, xi_dot0, topo = initial_state(P1)
     traj1 = simulate(P1, field=field, flow=ZeroFlow(), xi0=xi0,
                      xi_dot0=xi_dot0, fixed_dofs=[0, 1, 2], progress=progress)
 
-    # clamped steady shape -> full DOF vector, released from rest
+    # clamped shape -> full DOF vector, released from rest
     X_rel = traj1.x[-1]
     theta_rel = traj1.theta[-1]
     xi_release = np.concatenate([X_rel.reshape(-1), theta_rel])
@@ -358,6 +366,9 @@ def _simulate_clamped_release(P: Params, field=None, progress: bool = False) -> 
     traj2.outcome["clamped_release"] = True
     traj2.outcome["phase1_steady"] = bool(traj1.outcome.get("steady_state", False))
     traj2.outcome["phase1_t_exit"] = float(traj1.t[-1])
+    traj2.outcome["clamp_relax_time"] = (
+        float(relax_t) if relax_t is not None and float(relax_t) > 0.0 else None
+    )
     return traj2
 
 
