@@ -125,11 +125,18 @@ def run_junction_sim(name="S", N=4, ep_frac=0.1, e1_frac=None, L=2.0,
             if int(s) == int(hub_seg):
                 t_hub_fail = float(tf)
                 break
-    if clip_before_fail and t_hub_fail < t_hi:
-        t_hi = min(t_hi, t_hub_fail)
+    if clip_before_fail:
+        # The default Test-3 window starts 0.6 L/c after arrival, which is
+        # after hub break at finite amplitude. Sample the junction state at
+        # `cells` once it has arrived, and stop before the hub fails.
+        dt_cell = (cells / max(n_seg, 1)) * L / c_inc
+        t_lo = tarr + 3.0 * dt_cell
+        t_hi = tarr + 0.35 * win_hi_scale * L / c_inc
+        if np.isfinite(t_hub_fail):
+            t_hi = min(t_hi, t_hub_fail - dt_cell)
         if t_hi <= t_lo:
-            t_lo = tarr + 0.05 * L / c_inc
-            t_hi = t_hub_fail
+            t_lo = tarr + dt_cell
+            t_hi = t_hub_fail if np.isfinite(t_hub_fail) else t_lo + dt_cell
     win = (traj.t >= t_lo) & (traj.t <= t_hi) & np.isfinite(traj.t)
     if clip_before_fail and np.isfinite(t_hub_fail):
         win = win & (traj.t < t_hub_fail)

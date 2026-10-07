@@ -120,7 +120,7 @@ def _strain_along_thread0(res, disc, order, n_sample=41):
 
 def diagnose_4b(shard="local"):
     """S, N=8, e1=0.6 eps_b: plateau, sign, first failure."""
-    run_id = "diag_fa_S_N8_e0.6"
+    run_id = "diag2_fa_S_N8_e0.6"
     cached = _load_run(shard, run_id)
     if cached is not None:
         return cached
@@ -254,10 +254,13 @@ def _fa_break_or_slack(job):
             lo, p_lo = mid, p
         if hi - lo < 0.005 * max(hi, 1e-6):
             break
+    # Amplitudes and ratios from the last intact probe; eps1_frac is the
+    # first amplitude that meets the target (hub break or slack).
+    meas = p_lo if p_lo is not None else p_hi
     rec = dict(
         material=name, N=N, mode=mode, eps1_frac=hi, n_seg=n_seg,
-        n_slack=p_hi["n_slack"], dTmax=p_hi["dTmax"], T0=p_hi["T0"],
-        dTopp=p_hi["dTopp"], Tnear=p_hi.get("Tnear"),
+        n_slack=meas["n_slack"], dTmax=meas["dTmax"], T0=meas["T0"],
+        dTopp=meas["dTopp"], Tnear=meas.get("Tnear"),
         reached=bool(p_hi[target]), cpu_s=time.time() - t0, run_id=run_id,
         piston_n_seg=PISTON_N,
     )
@@ -297,7 +300,7 @@ def item4b(shard="local", n_seg=400):
             for mode in ("break", "slack"):
                 jobs.append(dict(
                     material=mat, N=N, mode=mode, n_seg=n_seg, L=4.0,
-                    run_id=f"fa8b_{mode}_{mat}_N{N}_n{n_seg}_p{PISTON_N}",
+                    run_id=f"fa8b2_{mode}_{mat}_N{N}_n{n_seg}_p{PISTON_N}",
                 ))
     rows_b = _pool_jobs(shard, jobs, _fa_break_or_slack, "fa_bisect")
     jobs_a = []
@@ -305,7 +308,7 @@ def item4b(shard="local", n_seg=400):
         for e1 in (0.2, 0.3, 0.4, 0.6, 0.8):
             jobs_a.append(dict(
                 N=N, e1_frac=e1, n_seg=n_seg, L=4.0,
-                run_id=f"fa8b_amp_S_N{N}_e{e1}_n{n_seg}_p{PISTON_N}",
+                run_id=f"fa8b2_amp_S_N{N}_e{e1}_n{n_seg}_p{PISTON_N}",
             ))
     rows_a = _pool_jobs(shard, jobs_a, _fa_amp_one, "fa_amp")
     fields = ["kind", "material", "N", "mode", "eps1_frac", "e1_frac",
@@ -958,14 +961,18 @@ def merge_shards():
     return report
 
 
-def run_local():
+def run_local(items=None):
     OUT.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     print(f"=== round8b local jobs={N_JOBS} commit={_COMMIT} "
           f"dirty={_code_dirty()} ===", flush=True)
-    item4b("local")
-    item4a_rewrite_and_diag("local")
-    item3_timeouts("local")
+    want = set(items or ("4b", "4a", "timeout"))
+    if "4b" in want:
+        item4b("local")
+    if "4a" in want:
+        item4a_rewrite_and_diag("local")
+    if "timeout" in want:
+        item3_timeouts("local")
     print(f"=== round8b local done in {time.time() - t0:.0f}s ===", flush=True)
 
 
@@ -990,12 +997,15 @@ def main():
     ap.add_argument("--local", action="store_true")
     ap.add_argument("--shard", default="")
     ap.add_argument("--merge", action="store_true")
+    ap.add_argument("--items", default="",
+                    help="comma list of local items: 4b,4a,timeout")
     args = ap.parse_args()
     if args.merge:
         merge_shards()
         return
     if args.local or args.shard == "local":
-        run_local()
+        items = [x.strip() for x in args.items.split(",") if x.strip()] or None
+        run_local(items)
         return
     if not args.shard:
         raise SystemExit("need --local, --shard A|B|C|D, or --merge")

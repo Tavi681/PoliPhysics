@@ -102,20 +102,21 @@ CACHE_ARGS=()
 if [[ -d "${ROOT}/.cache/mmin" ]]; then
   CACHE_ARGS+=(.cache/mmin)
 fi
-tar -C "${ROOT}" -czf "${TAR}" \
+COPYFILE_DISABLE=1 tar --disable-copyfile -C "${ROOT}" -czf "${TAR}" \
   --exclude='.venv' --exclude='__pycache__' --exclude='.pytest_cache' \
   --exclude='paper_results/*.h5' \
   --exclude='paper_results/fig_phase_maps/*.h5' \
   --exclude='paper_results/runs_round7/*.h5' \
   --exclude='*.egg-info' --exclude='._*' \
   netsim validation tests configs ref scripts pyproject.toml paper_results \
-  COMMIT CODE_DIRTY README.md "${CACHE_ARGS[@]+"${CACHE_ARGS[@]}"}"
+  COMMIT CODE_DIRTY README.md "${CACHE_ARGS[@]+"${CACHE_ARGS[@]}"}" \
+  2>/dev/null
 
 gcloud compute scp "${TAR}" "${INSTANCE}:/tmp/tema2.tgz" --zone="${ZONE}"
 gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="
   set -euo pipefail
   mkdir -p ${REMOTE_DIR}
-  tar -C ${REMOTE_DIR} -xzf /tmp/tema2.tgz
+  tar -C ${REMOTE_DIR} -xzf /tmp/tema2.tgz 2>/dev/null
   rm -f /tmp/tema2.tgz
   chmod +x ${REMOTE_DIR}/scripts/run_round8b_on_vm.sh
   echo cache_h5=\$(find ${REMOTE_DIR}/.cache/mmin -name 'mmin_p*.h5' 2>/dev/null | wc -l)

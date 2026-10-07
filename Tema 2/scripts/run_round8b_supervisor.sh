@@ -9,6 +9,7 @@ PROJECT="${PROJECT:-authorship-verification}"
 MACHINE_VCPU=16
 LAUNCH="${ROOT}/scripts/run_round8b_export_on_gcp.sh"
 LOG="${ROOT}/paper_results/round8b_supervisor.log"
+export COPYFILE_DISABLE=1
 mkdir -p "${ROOT}/paper_results"
 exec > >(tee -a "${LOG}") 2>&1
 
