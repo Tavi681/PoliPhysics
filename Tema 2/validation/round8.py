@@ -602,6 +602,21 @@ def _Et(mat, eps):
     return mat.E0 + 3.0 * mat.b * eps ** 2
 
 
+def energy_T_frac(material, eps0, ep, dT):
+    """Transmitted energy fraction with incident impedance at ε0, not εp.
+
+    Incident flux ~ Tinc² / Z(ε0); neighbour j ~ ΔT_j² / Z(εp). With
+    Z ∝ ρ c_tan, Z(ε0)/Z(εp) = r = sqrt(E_t(ε0)/E_t(εp)), so
+
+        T_frac = r * sum_{j=1}^{N-1} (ΔT_j / Tinc)².
+    """
+    r = np.sqrt(_Et(material, eps0) / _Et(material, ep)) if ep > 0 else 1.0
+    dT = np.asarray(dT, dtype=float)
+    if dT.size < 2:
+        return float("nan")
+    return float(r * np.sum(dT[1:] ** 2))
+
+
 def _nl_preds(material, N, eps0, ep):
     r = np.sqrt(_Et(material, eps0) / _Et(material, ep)) if ep > 0 else 1.0
     s = S_N(N)
@@ -619,7 +634,7 @@ def _nl_preds(material, N, eps0, ep):
 
 
 def run_junction_nl(name="S", N=8, eps0_frac=0.33, L=4.0, n_seg=400,
-                    d_frac=1e-3):
+                    d_frac=1e-3, win_hi_scale=1.0):
     material = get_material(name)
     ref_mat = getattr(riemann, name)
     ep = 0.1 * material.eps_b
@@ -654,8 +669,8 @@ def run_junction_nl(name="S", N=8, eps0_frac=0.33, L=4.0, n_seg=400,
     disc = discretize(net, material, n_seg, r_d=1.0, warn_ratio=1e9)
     order = _thread_segment_order(disc, N)
     from validation.test3_junction import WIN_LO, WIN_HI
-    win = ((res.trajectory.t >= (tarr + WIN_LO * L / c_inc))
-           & (res.trajectory.t <= (tarr + WIN_HI * L / c_inc)))
+    win = ((res.trajectory.t >= (tarr + WIN_LO * win_hi_scale * L / c_inc))
+           & (res.trajectory.t <= (tarr + WIN_HI * win_hi_scale * L / c_inc)))
     frames = np.nonzero(win)[0]
     if frames.size == 0:
         frames = np.array([res.trajectory.t.size - 1])
@@ -672,24 +687,14 @@ def run_junction_nl(name="S", N=8, eps0_frac=0.33, L=4.0, n_seg=400,
     Tinc = float(material.sigma(e1) - material.sigma(eps0))
     dT = np.array([(material.sigma(strains[k]) - material.sigma(
         eps0 if k == 0 else ep)) / Tinc for k in range(N)])
-    # Transmitted energy: excess elastic+KE on threads 1..N-1 vs incident
-    # excess on thread 0 in the pre-arrival window.
-    pre = res.trajectory.t < 0.5 * tarr
-    post = win
-    E_thr = np.zeros(N)
-    E_inc = 0.0
-    # Approximate with tension-velocity at the measurement cell.
     pred = _nl_preds(material, N, eps0, ep)
-    T_num = float("nan")
-    if Tinc != 0:
-        # Energy transmission from amplitude form using measured T0, r.
-        r = pred["r"]
-        T0 = float(dT[0])
-        T_num = T0 * (2.0 - T0) * r if r == r else float("nan")
+    T_num = energy_T_frac(material, eps0, ep, dT) if Tinc != 0 else float("nan")
     return dict(
         N=N, material=name, eps0_frac=eps0_frac, n_seg=n_seg,
+        d_frac=d_frac, win_hi_scale=win_hi_scale,
         T0_Tinc=float(dT[0]), dTmax_Tinc=float(dT[1:].max()),
-        T_frac=T_num, **{f"pred_{k}": v for k, v in pred.items()},
+        T_frac=T_num, dT=dT.tolist(),
+        **{f"pred_{k}": v for k, v in pred.items()},
         strains=strains.tolist(),
     )
 
@@ -701,7 +706,9 @@ def _run_jnl_one(job):
         return cached
     t0 = time.time()
     r = run_junction_nl(job["material"], N=job["N"], eps0_frac=job["eps0_frac"],
-                        L=job.get("L", 4.0), n_seg=job["n_seg"])
+                        L=job.get("L", 4.0), n_seg=job["n_seg"],
+                        d_frac=job.get("d_frac", 1e-3),
+                        win_hi_scale=job.get("win_hi_scale", 1.0))
     r["cpu_s"] = time.time() - t0
     r["run_id"] = run_id
     _save_run(shard, run_id, r)

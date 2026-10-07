@@ -190,6 +190,10 @@ class KinematicConfig:
     # Constant extra force [N] applied to ``extra_force_node`` (hub = 0).
     extra_force_node: Optional[int] = None
     extra_force: tuple = (0.0, 0.0, 0.0)
+    # Do not fail the first ``piston_n_seg`` segments walking inward from the
+    # driven node. Those segments are the actuator, not the specimen; without
+    # this a launch with ε₁ close to ε_b breaks at the driven end.
+    piston_n_seg: int = 0
 
     def value(self, t: float) -> float:
         if self.func is not None:

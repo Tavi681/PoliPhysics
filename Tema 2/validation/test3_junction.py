@@ -71,7 +71,8 @@ def _thread_segment_order(disc, N):
 
 def run_junction_sim(name="S", N=4, ep_frac=0.1, e1_frac=None, L=2.0,
                      n_seg=400, cells=5, A_hat=1e-6, d_frac=0.02,
-                     return_res=False):
+                     return_res=False, piston_n_seg=0, clip_before_fail=False,
+                     win_hi_scale=1.0, use_numba=False):
     ref_mat = getattr(riemann, name)
     material = get_material(name)
     ep = ep_frac * material.eps_b
@@ -94,11 +95,12 @@ def run_junction_sim(name="S", N=4, ep_frac=0.1, e1_frac=None, L=2.0,
         net=NetConfig(kind="star", N=N, R=L, eps_p=ep, A_hat=A_hat),
         drone=DroneConfig(M=1.0, r_d=1.0, v0=0.0),
         numerics=NumericsConfig(n_s=n_seg, C=0.4, t_end=0.0, dt_out=1e-6,
-                                use_numba=False),
+                                use_numba=bool(use_numba)),
         contact=ContactConfig(mode="frictionless", k_c=1e7),
         output=OutputConfig(hdf5=None, R_max=1e9, k_max=10 ** 9),
         kinematic=KinematicConfig(enabled=True, node=anchor0, mode="velocity",
-                                  direction=(1.0, 0.0, 0.0), amplitude=v1),
+                                  direction=(1.0, 0.0, 0.0), amplitude=v1,
+                                  piston_n_seg=int(piston_n_seg or 0)),
     )
     # Measurement window: after the hub settles to the steady junction state,
     # but before reflections from the far anchors return (~2 L/c after arrival).
@@ -114,7 +116,23 @@ def run_junction_sim(name="S", N=4, ep_frac=0.1, e1_frac=None, L=2.0,
 
     # Strain per thread `cells` segments from the hub, averaged over the last
     # frames of the measurement window (steady junction state after arrival).
-    win = (traj.t >= (tarr + WIN_LO * L / c_inc)) & (traj.t <= (tarr + WIN_HI * L / c_inc))
+    t_lo = tarr + WIN_LO * win_hi_scale * L / c_inc
+    t_hi = tarr + WIN_HI * win_hi_scale * L / c_inc
+    t_hub_fail = float("inf")
+    hub_seg = seg_order[0][0]
+    if traj.failures.size:
+        for s, _p, tf in traj.failures:
+            if int(s) == int(hub_seg):
+                t_hub_fail = float(tf)
+                break
+    if clip_before_fail and t_hub_fail < t_hi:
+        t_hi = min(t_hi, t_hub_fail)
+        if t_hi <= t_lo:
+            t_lo = tarr + 0.05 * L / c_inc
+            t_hi = t_hub_fail
+    win = (traj.t >= t_lo) & (traj.t <= t_hi) & np.isfinite(traj.t)
+    if clip_before_fail and np.isfinite(t_hub_fail):
+        win = win & (traj.t < t_hub_fail)
     frames = np.nonzero(win)[0]
     if frames.size == 0:
         frames = np.array([traj.t.size - 1])

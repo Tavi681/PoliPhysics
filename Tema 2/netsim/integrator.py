@@ -149,6 +149,31 @@ def _contact_energy(x, xd, r_d, k_c, active, seg_edges=None, intact=None,
     return e
 
 
+def _piston_segment_mask(seg_edges, forced_node, n_seg):
+    """Segments within ``n_seg`` hops of the driven node along the thread."""
+    mask = np.zeros(len(seg_edges), dtype=bool)
+    if n_seg <= 0 or forced_node < 0:
+        return mask
+    node = int(forced_node)
+    used = set()
+    for _ in range(int(n_seg)):
+        found = None
+        nxt = None
+        for s, (i, j) in enumerate(seg_edges):
+            if s in used:
+                continue
+            if i == node or j == node:
+                found = s
+                nxt = int(j if i == node else i)
+                break
+        if found is None:
+            break
+        mask[found] = True
+        used.add(found)
+        node = nxt
+    return mask
+
+
 def integrate(disc, material, drone, numerics, contact, output,
               kinematic=None, *, net_R=1.0, impact_point=None,
               stop_on_failure=False, stop_after_n_failures=None):
@@ -233,6 +258,11 @@ def integrate(disc, material, drone, numerics, contact, output,
                 getattr(kinematic, "extra_force", (0.0, 0.0, 0.0)),
                 dtype=float).reshape(3)
         fl_after = getattr(kinematic, "free_lateral_after_failures", None)
+    piston = np.zeros(disc.n_seg, dtype=bool)
+    if kinematic is not None and not drone_mode:
+        piston = _piston_segment_mask(
+            seg_edges, forced_node,
+            int(getattr(kinematic, "piston_n_seg", 0) or 0))
 
     r_d = drone.r_d
     # Resolve the penalty stiffness (absolute or relative to axial stiffness).
@@ -477,7 +507,7 @@ def integrate(disc, material, drone, numerics, contact, output,
         # Book failure energy at the interpolated crossing eps = eps_b (not at
         # the overshot eps_new). For stiff D the CFL step can jump well past
         # eps_b in one dt; booking Phi(eps_new) then leaves a late-run residual.
-        failed = intact & (eps_new >= eps_b)
+        failed = intact & (eps_new >= eps_b) & ~piston
         any_failed = bool(np.any(failed))
         if any_failed:
             for s in np.nonzero(failed)[0]:
