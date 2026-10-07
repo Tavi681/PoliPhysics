@@ -36,7 +36,9 @@ C2_USE=$(gcloud compute regions describe us-central1 --project="${PROJECT}" \
   --format='json' | python3 -c "import sys,json; d=json.load(sys.stdin);
 print(next(q['usage'] for q in d['quotas'] if q['metric']=='C2_CPUS'))")
 FREE=$(python3 -c "print(max(0, int(float(${C2_LIMIT})) - int(float(${C2_USE}))))")
-MAX_PAR=$(python3 -c "print(max(1, min(4, int(${FREE})//${MACHINE_VCPU})))")
+# Tema 1 C2 is in europe-west4; us-central1 leftover is 100. Do not shrink
+# MAX_PAR when our own r8b VMs are already counted in usage.
+MAX_PAR=$(python3 -c "print(max(1, min(4, int(float(${C2_LIMIT}))//${MACHINE_VCPU})))")
 echo "C2 limit=${C2_LIMIT} usage=${C2_USE} free=${FREE} max parallel=${MAX_PAR}"
 if (( MAX_PAR < 4 )); then
   echo "Quota does not allow all 4 shards at once; queueing (cap ${MAX_PAR})."
