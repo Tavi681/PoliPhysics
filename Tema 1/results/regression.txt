@@ -1,0 +1,57 @@
+Stage B regression R1–R3  old_commit=4ae88b1
+old_dir=/mnt/pd/tema1/old
+new_dir=/mnt/pd/tema1/new
+R1 produce_results: PASS
+
+=== R2  old vs new (same VM), tol 1e-12 ===
+[OK]    fig_collapse.csv: max_rel=0.00e+00
+[OK]    fig_invariance.csv: max_rel=0.00e+00
+[OK]    fig_invariance_t.csv: max_rel=0.00e+00
+[OK]    fig_invariant.csv: max_rel=0.00e+00
+[OK]    fig_shapes.csv: max_rel=0.00e+00
+[OK]    fig_test1.csv: max_rel=0.00e+00
+[OK]    tab_conv.csv: max_rel=0.00e+00
+[OK]    tab_steady.csv: max_rel=0.00e+00
+[OK]    tab_valid.csv: max_rel=0.00e+00
+[OK]    tab_vt.csv: max_rel=0.00e+00
+R2 VERDICT: PASS
+
+=== R3  cloud new vs baseline_mac, tol 1e-6 ===
+[MISSING] ._fig_collapse.csv: not in /mnt/pd/tema1/new/results
+[MISSING] ._fig_invariance.csv: not in /mnt/pd/tema1/new/results
+[MISSING] ._fig_invariance_t.csv: not in /mnt/pd/tema1/new/results
+[MISSING] ._fig_invariant.csv: not in /mnt/pd/tema1/new/results
+[MISSING] ._fig_shapes.csv: not in /mnt/pd/tema1/new/results
+[MISSING] ._fig_test1.csv: not in /mnt/pd/tema1/new/results
+[MISSING] ._tab_conv.csv: not in /mnt/pd/tema1/new/results
+[MISSING] ._tab_steady.csv: not in /mnt/pd/tema1/new/results
+[MISSING] ._tab_valid.csv: not in /mnt/pd/tema1/new/results
+[MISSING] ._tab_vt.csv: not in /mnt/pd/tema1/new/results
+[FAIL]  fig_collapse.csv: row 18 col 'theta_L': 0.1077709544 vs 0.10777111 (rel 1.44e-06)  (file=fig_collapse.csv, row=18, col=theta_L)
+[FAIL]  fig_invariance.csv: row 730 col 'x_rel': 5.431125369e-19 vs -3.978524314e-16 (rel 7.34e+02)  (file=fig_invariance.csv, row=730, col=x_rel)
+[OK]    fig_invariance_t.csv: max_rel=0.00e+00
+[OK]    fig_invariant.csv: max_rel=1.00e-09
+[FAIL]  fig_shapes.csv: row 605 col 'x': -5.039226755e-17 vs -4.908504201e-16 (rel 8.74e+00)  (file=fig_shapes.csv, row=605, col=x)
+[OK]    fig_test1.csv: max_rel=0.00e+00
+[OK]    tab_conv.csv: max_rel=1.50e-10
+[OK]    tab_steady.csv: max_rel=7.46e-10
+[OK]    tab_valid.csv: max_rel=1.60e-09
+[OK]    tab_vt.csv: max_rel=0.00e+00
+R3 VERDICT: FAIL
+
+OVERALL: FAIL
+R3 FAIL locations (file, row, col):
+  (._fig_collapse.csv, None, None)  missing in current
+  (._fig_invariance.csv, None, None)  missing in current
+  (._fig_invariance_t.csv, None, None)  missing in current
+  (._fig_invariant.csv, None, None)  missing in current
+  (._fig_shapes.csv, None, None)  missing in current
+  (._fig_test1.csv, None, None)  missing in current
+  (._tab_conv.csv, None, None)  missing in current
+  (._tab_steady.csv, None, None)  missing in current
+  (._tab_valid.csv, None, None)  missing in current
+  (._tab_vt.csv, None, None)  missing in current
+  (fig_collapse.csv, 18, theta_L)  row 18 col 'theta_L': 0.1077709544 vs 0.10777111 (rel 1.44e-06)
+  (fig_invariance.csv, 730, x_rel)  row 730 col 'x_rel': 5.431125369e-19 vs -3.978524314e-16 (rel 7.34e+02)
+  (fig_shapes.csv, 605, x)  row 605 col 'x': -5.039226755e-17 vs -4.908504201e-16 (rel 8.74e+00)
+Stop further work (do not launch B1/B2).

@@ -33,6 +33,11 @@ gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="
   cat ${REMOTE_BASE}/deploy_gate.txt 2>/dev/null
   echo '=== disks / mount ==='
   df -h /mnt/pd 2>/dev/null || echo '(no /mnt/pd)'
+  echo '=== systemd ==='
+  systemctl is-active tema1-sweep.service 2>/dev/null
+  systemctl show tema1-sweep.service -p ActiveState,SubState,MainPID,NRestarts,ExecMainStartTimestamp --no-pager 2>/dev/null
+  echo linger=\$(loginctl show-user octav -p Linger --value 2>/dev/null)
+  systemctl is-enabled apt-daily-upgrade.timer apt-daily.timer unattended-upgrades.service 2>/dev/null
   echo '=== tmux ==='
   tmux list-sessions 2>/dev/null || echo '(no tmux)'
   echo '=== pids ==='
@@ -68,7 +73,7 @@ gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="
   tail -n 10 ${REMOTE_NEW}/results/sweep_log.txt 2>/dev/null
   tail -n 10 ${REMOTE_DIR}/results/sweep_log.txt 2>/dev/null
   echo '=== sweep.csv rows ==='
-  for f in ${REMOTE_NEW}/results/sweep.csv ${REMOTE_NEW}/results/sweep_shard_00.csv ${REMOTE_DIR}/results/sweep.csv; do
+  for f in ${REMOTE_NEW}/results/sweep.csv ${REMOTE_NEW}/results/sweep_shard_00.csv ${REMOTE_NEW}/results/sweep_shard_01.csv ${REMOTE_DIR}/results/sweep.csv; do
     if [[ -f \$f ]]; then
       echo \$f: \$((\$(wc -l < \$f) - 1)) data rows
     fi

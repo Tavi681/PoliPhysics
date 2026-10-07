@@ -25,7 +25,8 @@ PALETTE = {
     "neutral": "#CFCECE", "dark": "#4D4D4D", "teal": "#42949E", "violet": "#9A4D8E",
 }
 N_STYLE = {1: (PALETTE["dark"], "D"), 2: (PALETTE["blue_main"], "o"),
-           4: (PALETTE["teal"], "s"), 8: (PALETTE["violet"], "^")}
+           4: (PALETTE["teal"], "s"), 8: (PALETTE["violet"], "^"),
+           3: (PALETTE["red_strong"], "v"), 6: (PALETTE["green_3"], "P")}
 
 plt.rcParams.update({
     "font.family": ["Arial", "Helvetica", "DejaVu Sans", "sans-serif"],
@@ -218,5 +219,106 @@ if have("fig_ksvalid.csv", "fig_ksvalid_pdf.csv"):
     ax[1].legend(loc="upper left", bbox_to_anchor=(0.62, 1.0), fontsize=11)
     panel_label(ax[0], "(a)"); panel_label(ax[1], "(b)")
     save(fig, "fig_ksvalid")
+
+# ------------------------------------------------------- Fig. phase (Stage B)
+def P_dd(x, a=1.0, p0=0.25):
+    """Eq. (eq:Pdd) in the scaled variable x = U0 h / K; a = K/K_eff, p0 = effective z0/h."""
+    x = np.asarray(x, float) * a
+    with np.errstate(all="ignore"):
+        v = (1 - np.exp(-x * p0)) / (1 - np.exp(-x))
+    return np.where(np.abs(x) < 1e-9, p0, v)
+
+
+def fit_phase(d):
+    """Maximum-likelihood fit of (a, p0) to all valid grid points (timeouts excluded)."""
+    from scipy.optimize import minimize
+    u, n, x = d.n_up.values, (d.n_up + d.n_down).values, d.x.values
+
+    def nll(v):
+        p = np.clip(P_dd(x, v[0], v[1]), 1e-12, 1 - 1e-12)
+        return -(u * np.log(p) + (n - u) * np.log(1 - p)).sum()
+    r = minimize(nll, [3.0, 0.3], bounds=[(0.5, 30), (0.05, 0.9)])
+    p = P_dd(x, *r.x)
+    chi2 = ((u - n * p) ** 2 / (n * p * (1 - p) + 1e-12)).sum()
+    return r.x, chi2, len(d) - 2
+
+
+if have("tab_phase.csv"):
+    d = pd.read_csv(f"{R}/tab_phase.csv")
+    (a_fit, p0_fit), chi2, dof = fit_phase(d)
+    print(f"phase fit: a = {a_fit:.3f}, p0 = {p0_fit:.3f}, chi2 = {chi2:.1f} / {dof}")
+    with open(os.path.join(O, "fig_phase_fit.txt"), "w") as f:
+        f.write(f"a={a_fit:.4f}\np0={p0_fit:.4f}\nchi2={chi2:.2f}\ndof={dof}\n")
+    fig, ax = plt.subplots(1, 2, figsize=(11, 4.2))
+    for N in sorted(d.N.unique()):
+        col, mk = N_STYLE.get(N, (PALETTE["red_2"], "v"))
+        for sw, fill in [(0.15, "white"), (0.22, PALETTE["neutral"]), (0.30, col)]:
+            x = d[(d.N == N) & np.isclose(d.sigma_w, sw)]
+            if x.empty:
+                continue
+            err = [np.maximum(0.0, x.P - x.P_lo), np.maximum(0.0, x.P_hi - x.P)]
+            lab = f"$N={N}$" if sw == 0.30 or (N in (3, 6)) else None
+            if sw == 0.30:
+                ax[0].errorbar(x.Fbar_l, x.P, yerr=err, fmt=mk + "-", color=col, mfc=fill, mew=1.6,
+                               ms=7, lw=1.4, capsize=2.5, label=lab)
+            ax[1].errorbar(x.x + 0.06 * (np.log2(N) - 1.5), x.P, yerr=err, fmt=mk, color=col, mfc=fill,
+                           mew=1.6, ms=7, capsize=2.5, label=lab if sw == 0.30 else None)
+    ax[0].axvline(1, ls="--", color=PALETTE["dark"], lw=1.3)
+    ax[0].set(xlabel=r"$\bar F_l$", ylabel="take-off probability $P$", ylim=(-0.03, 1.05),
+              title=r"$\sigma_w=0.30$ m/s")
+    ax[0].legend(loc="lower right", fontsize=11)
+    xx = np.linspace(-4.3, 4.3, 400)
+    ax[1].plot(xx, P_dd(xx), "--", color=PALETTE["red_strong"], lw=2, label=r"Eq. (Pdd), $K=\sigma_w\ell$")
+    ax[1].plot(xx, P_dd(xx, a_fit, p0_fit), "-", color=PALETTE["dark"], lw=2,
+               label=rf"fit: $K=\sigma_w\ell/{a_fit:.1f}$, $p_0={p0_fit:.2f}$")
+    ax[1].set(xlabel=r"$x=w_s(\bar F_l-1)\,h/K$", ylim=(-0.03, 1.05))
+    h, l = ax[1].get_legend_handles_labels()
+    ax[1].legend(h[:2], l[:2], loc="upper left", fontsize=10.5)
+    panel_label(ax[0], "(a)"); panel_label(ax[1], "(b)")
+    save(fig, "fig_phase")
+
+# ---------------------------------------------------- Fig. snapshot (Stage B)
+import glob
+snaps = sorted(glob.glob(os.path.join(R, "snapshots", "*.npz")))
+if snaps and have("sweep.csv"):
+    ke_ = ke
+    fig, ax = plt.subplots(1, 2, figsize=(11, 4.4), gridspec_kw={"width_ratios": [1.25, 1]})
+    # (a) side view of one realization, three instants, nodes coloured by w
+    z = None
+    for f in snaps:
+        zz = np.load(f, allow_pickle=True)
+        if str(zz["outcome"]) == "rise":
+            z = zz
+            break
+    if z is None:
+        z = np.load(snaps[0], allow_pickle=True)
+    t, X, U = z["t"], z["positions"], z["u"]
+    idx = np.linspace(0, len(t) - 1, 4).round().astype(int)[1:]
+    wmax = np.abs(U[idx, :, 2]).max()
+    off = 0.0
+    for k in idx:
+        x0 = X[k, 0]
+        sc = ax[0].scatter(X[k, :, 0] - x0[0] + off, X[k, :, 2], c=U[k, :, 2], cmap="RdBu_r",
+                           vmin=-wmax, vmax=wmax, s=6, lw=0)
+        ax[0].plot(off, x0[2], "o", color="black", ms=5)
+        ax[0].text(off, X[k, :, 2].max() + 0.06, f"$t={t[k]:.1f}$ s", ha="center", fontsize=11)
+        off += 0.45
+    ztop = max(X[k, :, 2].max() for k in idx)
+    ax[0].set_ylim(top=ztop + 0.2)
+    ax[0].set(xlabel=r"$x-x_0$ (m), snapshots offset by 0.45 m", ylabel="$z$ (m)")
+    cb = fig.colorbar(sc, ax=ax[0], fraction=0.05, pad=0.02)
+    cb.set_label("$w$ at the nodes (m/s)")
+    # (b) distribution of the run-averaged opening, N = 4, sigma = 0.30, x = 0
+    sw = pd.read_csv(f"{R}/sweep.csv")
+    sel = sw[(sw.N == 4) & np.isclose(sw.sigma_w, 0.30) & (sw.x == 0) & sw.valid]
+    q = m * g / (4 * E)
+    R_still = (S_N(4) * ke_ * q / (E * L**2) / 4) ** (1 / 3)   # Eq. (opening), tau = 1 -> g = 1
+    ax[1].hist(sel.R_over_L_mean, bins=25, density=True, color=PALETTE["blue_secondary"], alpha=0.8,
+               edgecolor="white", label=f"turbulence, $M={len(sel)}$")
+    ax[1].axvline(R_still, color=PALETTE["red_strong"], ls="--", lw=2, label="still air, Eq. (opening)")
+    ax[1].set(xlabel=r"run-averaged $R/L$", ylabel="PDF")
+    ax[1].legend(loc="upper right", fontsize=10.5)
+    panel_label(ax[0], "(a)", x=-0.12); panel_label(ax[1], "(b)")
+    save(fig, "fig_snapshot")
 
 print("done:", sorted(os.listdir(O)))

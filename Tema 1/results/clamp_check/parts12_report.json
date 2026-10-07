@@ -1,0 +1,85 @@
+{
+  "duration": [
+    {
+      "N": 2,
+      "sigma_w": 0.3,
+      "x": 0,
+      "phase1_t_exit": 0.05100000000000001,
+      "status": "steady",
+      "steady_state": true,
+      "R_over_L_at_stop": 0.06587205816811062,
+      "theta_L_at_stop": 0.18109105489525668,
+      "wall_s": 2.39071754203178,
+      "delta": 1e-06,
+      "t_w": 0.05,
+      "t_end_cap": 60.0
+    },
+    {
+      "N": 4,
+      "sigma_w": 0.3,
+      "x": 0,
+      "phase1_t_exit": 0.05100000000000001,
+      "status": "steady",
+      "steady_state": true,
+      "R_over_L_at_stop": 0.07294643702845112,
+      "theta_L_at_stop": 0.27727066405443296,
+      "wall_s": 5.13812716701068,
+      "delta": 1e-06,
+      "t_w": 0.05,
+      "t_end_cap": 60.0
+    },
+    {
+      "N": 8,
+      "sigma_w": 0.3,
+      "x": 0,
+      "phase1_t_exit": 0.05100000000000001,
+      "status": "steady",
+      "steady_state": true,
+      "R_over_L_at_stop": 0.07388372406738877,
+      "theta_L_at_stop": 0.38406511157881873,
+      "wall_s": 10.731373958988115,
+      "delta": 1e-06,
+      "t_w": 0.05,
+      "t_end_cap": 60.0
+    }
+  ],
+  "summary_10s": [
+    {
+      "N": 2,
+      "R_over_L_asym": 0.09283557153374375,
+      "t_99pct": 0.5810000000000003,
+      "RL_an": 0.09294256787874355,
+      "Lambda": 0.003211470915309872,
+      "S_N": 1.0,
+      "rel_err_vs_an_pct": 0.11512092622553331,
+      "frame0_from_opening": 0.065872058
+    },
+    {
+      "N": 4,
+      "R_over_L_asym": 0.11517156578431678,
+      "t_99pct": 1.1210000000000007,
+      "RL_an": 0.1154015025859263,
+      "Lambda": 0.001605735457654936,
+      "S_N": 3.82842712474619,
+      "rel_err_vs_an_pct": 0.19924940010058126,
+      "frame0_from_opening": 0.072946437
+    },
+    {
+      "N": 8,
+      "R_over_L_asym": 0.1268297170639006,
+      "t_99pct": 1.381000000000001,
+      "RL_an": 0.13107464757875642,
+      "Lambda": 0.000802867728827468,
+      "S_N": 11.219463384836484,
+      "rel_err_vs_an_pct": 3.238559548523874,
+      "frame0_from_opening": 0.073883723
+    }
+  ],
+  "criterion": {
+    "quantity": "zdot_0 (spider vertical velocity)",
+    "test": "|zdot_0^n - zdot_0^{n-1}| / max(|zdot_0^n|, 1) < delta",
+    "delta": 1e-06,
+    "t_w_min_s": 0.05,
+    "t_end_max_s": 60.0
+  }
+}

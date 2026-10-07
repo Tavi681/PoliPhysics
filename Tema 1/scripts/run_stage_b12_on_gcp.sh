@@ -22,6 +22,7 @@ MACHINE="${MACHINE:-c2-standard-32}"
 PREEMPTIBLE=false
 DETACH="${DETACH:-true}"
 CALIBRATE="${CALIBRATE:-false}"
+START_SWEEP="${START_SWEEP:-true}"
 JOBS="${JOBS:-32}"
 DISK_GB="${DISK_GB:-50}"
 PD_NAME="${PD_NAME:-poliphysics-tema1-b12-s${SHARD}-pd}"
@@ -144,6 +145,13 @@ gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="
   sudo mount \${DEVICE} /mnt/pd || true
   sudo mkdir -p ${REMOTE_DIR}
   sudo chown -R \$(whoami):\$(whoami) /mnt/pd
+  UUID=\$(sudo blkid -s UUID -o value \${DEVICE} || true)
+  if [[ -n \${UUID} ]] && ! grep -q '/mnt/pd' /etc/fstab; then
+    echo \"UUID=\${UUID} /mnt/pd ext4 defaults,nofail 0 2\" | sudo tee -a /etc/fstab
+  fi
+  sudo systemctl stop apt-daily.timer apt-daily-upgrade.timer unattended-upgrades.service || true
+  sudo systemctl mask apt-daily.timer apt-daily-upgrade.timer unattended-upgrades.service
+  sudo loginctl enable-linger \$(whoami)
 "
 
 gcloud compute scp "${TAR}" "${INSTANCE}:/tmp/tema1.tgz" --zone="${ZONE}"
@@ -166,13 +174,10 @@ gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="
   fi
 "
 
-echo "Ensuring GCS prefix ${GCS_BUCKET} exists..."
+echo "Checking GCS prefix ${GCS_BUCKET} (object write; bucket create is done locally)..."
 gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="
   set -euo pipefail
-  BUCKET=\$(echo ${GCS_BUCKET} | sed -E 's#gs://([^/]+).*#\\1#')
-  if ! gsutil ls -b gs://\${BUCKET} >/dev/null 2>&1; then
-    gsutil mb -p ${EXPECTED_PROJECT} -l us-central1 gs://\${BUCKET}
-  fi
+  echo gate-write | gsutil cp - ${GCS_BUCKET}/_write_test_${SHARD}.txt
 "
 
 CAL_CMD=""
@@ -180,7 +185,7 @@ if [[ "${CALIBRATE}" == "true" ]]; then
   CAL_CMD="python -u scripts/stage_b.py --calibrate --workers ${JOBS}; "
 fi
 
-echo "Installing venv and starting shard ${SHARD}/${NUM_SHARDS} under tmux..."
+echo "Installing venv and starting shard ${SHARD}/${NUM_SHARDS} as systemd unit tema1-sweep..."
 gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="
   set -euo pipefail
   export PYTHONUNBUFFERED=1
@@ -199,28 +204,57 @@ if p['commit'] != '${DEPLOY_COMMIT}' or p['dirty']:
     raise SystemExit('ABORT: git_provenance dirty or hash mismatch')
 print('GATE_OK dirty=False commit=${DEPLOY_COMMIT}')
 PY
+  if [[ '${START_SWEEP:-true}' != 'true' ]]; then
+    echo 'START_SWEEP=false: deploy+gate only, not starting sweep'
+    exit 0
+  fi
   : > ${REMOTE_BASE}/stageb.log
   tmux kill-session -t stageb 2>/dev/null || true
-  tmux new -d -s stageb -n sweep
-  tmux send-keys -t stageb:sweep \"
-    set -euo pipefail
-    source ${REMOTE_BASE}/venv/bin/activate
-    export PYTHONUNBUFFERED=1
-    cd ${REMOTE_DIR}
-    (
-      while true; do
-        sleep 600
-        gsutil -m rsync -r ${REMOTE_DIR}/results ${GCS_BUCKET}/shard-${SHARD}/ || true
-      done
-    ) >/dev/null 2>&1 &
-    echo \\\$! > ${REMOTE_BASE}/rsync.pid
-    ${CAL_CMD}
-    python -u scripts/stage_b.py --sweep --workers ${JOBS} \\
-      --shard ${SHARD} --num-shards ${NUM_SHARDS}
+  cat > ${REMOTE_BASE}/run_sweep.sh <<'EOS'
+#!/bin/bash
+set -euo pipefail
+export PYTHONUNBUFFERED=1
+cd ${REMOTE_DIR}
+source ${REMOTE_BASE}/venv/bin/activate
+${CAL_CMD}
+(
+  while true; do
+    sleep 600
     gsutil -m rsync -r ${REMOTE_DIR}/results ${GCS_BUCKET}/shard-${SHARD}/ || true
-    echo SWEEP_DONE
-  \" C-m
-  echo TMUX=stageb SHARD=${SHARD}/${NUM_SHARDS}
+  done
+) >/dev/null 2>&1 &
+echo \$! > ${REMOTE_BASE}/rsync.pid
+exec python -u scripts/stage_b.py --sweep --workers ${JOBS} \\
+  --shard ${SHARD} --num-shards ${NUM_SHARDS}
+EOS
+  # The heredoc above is expanded locally via the SSH double-quoted command.
+  chmod +x ${REMOTE_BASE}/run_sweep.sh
+  sudo tee /etc/systemd/system/tema1-sweep.service >/dev/null <<EOF
+[Unit]
+Description=Tema 1 B1/B2 production sweep
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/mnt/pd
+
+[Service]
+Type=simple
+User=\$(whoami)
+Group=\$(whoami)
+WorkingDirectory=${REMOTE_DIR}
+Environment=PYTHONUNBUFFERED=1
+ExecStart=${REMOTE_BASE}/run_sweep.sh
+Restart=no
+KillMode=mixed
+TimeoutStopSec=60
+StandardOutput=append:${REMOTE_BASE}/stageb.log
+StandardError=append:${REMOTE_BASE}/stageb.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now tema1-sweep.service
+  echo SYSTEMD=tema1-sweep SHARD=${SHARD}/${NUM_SHARDS}
 "
 
 echo "DETACH=${DETACH}: B1/B2 shard ${SHARD} running on ${INSTANCE}."

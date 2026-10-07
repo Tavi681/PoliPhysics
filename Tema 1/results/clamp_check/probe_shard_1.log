@@ -1,0 +1,11 @@
+PROBE shard=1/2 n=4 clamp_relax_time=3.0 workers=28
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+  probe N=4 x=0 i=1 rise wall=1399.5s R_rel=1.1517e-01 phase1=3.00099999999998
+  probe N=4 x=0 i=3 fall wall=338.3s R_rel=1.1517e-01 phase1=3.00099999999998
+  probe N=8 x=0 i=1 fall wall=2159.3s R_rel=1.3038e-01 phase1=3.00099999999998
+  probe N=8 x=0 i=3 fall wall=1581.8s R_rel=1.3038e-01 phase1=3.00099999999998
+PROBE summary: mean_by_n={4: 868.906436566, 8: 1870.5558930020002} pending=334 proj_wall_h=4.87 (workers=28)
+PROBE_OK

@@ -1,0 +1,69 @@
+Stage B Mac checks report
+=========================
+
+1. tab_wc m=10 mg (t_end=40 s)
+------------------------------
+Reran 8 rows; overwrote m=10 in results/tab_wc.csv.
+N=1 q=0:   wc_num=2.179867e+01  analytic=2.170229e+01  err=0.444%
+           V(t_end)=-2.179867e+01  |dV/dt|=2.090e-03  status=steady  t=18.83 s
+N=1 q=0.6: wc_num=2.081075e+01  analytic=2.071871e+01  err=0.444%
+           V(t_end)=-2.081075e+01  |dV/dt|=1.995e-03  status=steady  t=18.83 s
+N=2 q=0:   wc=1.133693e+01  err=0.475%  V=-1.133693e+01  |dV/dt|=1.032e-03  t=10.63 s
+N=2 q=0.6: wc=1.025903e+01  err=0.015%  V=-1.025903e+01  |dV/dt|=9.334e-04  t=10.58 s
+N=4 q=0:   wc=5.784721e+00  err=0.494%  V=-5.784721e+00  |dV/dt|=4.885e-04  t=5.89 s
+N=4 q=0.6: wc=4.683767e+00  err=0.615%  V=-4.683767e+00  |dV/dt|=3.951e-04  t=5.83 s
+N=8 q=0:   wc=2.922475e+00  err=0.509%  V=-2.922475e+00  |dV/dt|=2.062e-04  t=3.26 s
+N=8 q=0.6: wc=1.820857e+00  err=1.758%  V=-1.820857e+00  |dV/dt|=1.264e-04  t=3.71 s
+(Previous N=1 q=0 was 21.20 / 2.3% error; now 21.80 / 0.44%.)
+
+2. Entanglement
+---------------
+Criterion (integrator._entangled): entangled iff
+  min_interthread_distance(FINAL xi) < entangle_contact_factor * r
+  (default factor=2 → 2r = 0.6 um). Evaluated ONLY at exit, not along the run.
+dmin_min_um is the min over saved output frames.
+
+valid runs with finite dmin: 6200  (N=1 has no inter-thread distance)
+dmin_min < 0.6 um: 3
+entangled=True among valid: 0
+
+Five smallest dmin (GCS HDF5 recompute):
+  N=8 sw=0.30 x=-1  dmin=0.4953 um  t_closest=0.091 s  nodes=(104,154)  entangled_end=False  t_end=3.26 s
+  N=8 sw=0.30 x=-1  dmin=0.5274 um  t_closest=0.081 s  nodes=(103,153)  entangled_end=False  t_end=5.25 s
+  N=8 sw=0.15 x=-1  dmin=0.5949 um  t_closest=0.071 s  nodes=(53,153)   entangled_end=False  t_end=6.84 s
+  N=8 sw=0.15 x=-2  dmin=0.6315 um  t_closest=0.141 s  nodes=(54,104)   entangled_end=False  t_end=4.28 s
+  N=8 sw=0.30 x=0   dmin=0.6553 um  t_closest=0.041 s  nodes=(253,353)  entangled_end=False  t_end=6.43 s
+Closest approach is early (~0.04–0.14 s); threads separate before exit, so entangled stays False.
+
+3. wall_time_s
+--------------
+Filled from sweep_shard_00/01.csv: 6121 rows; remaining 2466 left blank (NaN).
+
+4. Opening baseline (frame 0 = clamped still-air state)
+-------------------------------------------------------
+N=2,4,8; sigma_w=0.30; x=0; M=200 each. R0/L std=0 because phase-1 clamp is
+deterministic (no turbulence seed).
+
+  N  R0/L mean±std          run-averaged R/L mean±std
+  2  6.587e-02 ± 0          1.174e-01 ± 1.004e-02
+  4  7.295e-02 ± 0          1.652e-01 ± 1.823e-02
+  8  7.388e-02 ± 0          2.319e-01 ± 4.472e-02
+See results/opening_baseline.csv.
+
+5. Tracer study (N_k=200, renormalized, ell=1, U_h=1; M=2000)
+-------------------------------------------------------------
+(a) Lagrangian ACF of w; T_L = ∫ R_L(τ) dτ; K_L=σ_w² T_L; a=σ_w·ell/K_L
+  sigma_w=0.15  first_zero: T_L=1.725  K_L=0.0388  a=3.865
+                to_20s:     T_L=1.154  K_L=0.0260  a=5.778
+  sigma_w=0.30  first_zero: T_L=1.097  K_L=0.0987  a=3.039
+                to_20s:     T_L=0.677  K_L=0.0610  a=4.921
+  → results/tracer_TL.csv
+
+(b) dz/dt = w + U0, U0=x K/h, K=σ_w·ell; Wilson CI on P; fit
+  P(x)=(e^{-a x p0}-1)/(e^{-a x}-1)  [eq:Pdd with free a, p0]
+  sigma_w=0.15: fit (a,p0)=(4.195, 0.338)   theory (1, 0.25)
+  sigma_w=0.30: fit (a,p0)=(4.122, 0.357)   theory (1, 0.25)
+  At x=0, P≈0.34–0.36 (not 0.25); fitted a≈4 matches order of a from T_L.
+  → results/tracer_phase.csv
+
+Script: scripts/stage_b_checks.py
