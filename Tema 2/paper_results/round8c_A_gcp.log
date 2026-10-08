@@ -1,0 +1,130 @@
+=== round8c on-vm start 2026-10-08T13:54:53Z shard=A commit=a351fff3b5b3926019be55ad0b69741921ecea2a dirty=true jobs=16 ===
+  shard A: 49 jobs  CPU~13.78 h  wall~0.86 h (16 workers)  starD40=12
+  shard B: 49 jobs  CPU~13.73 h  wall~0.86 h (16 workers)  starD40=12
+  shard C: 49 jobs  CPU~13.72 h  wall~0.86 h (16 workers)  starD40=11
+  shard D: 50 jobs  CPU~13.77 h  wall~0.86 h (16 workers)  starD40=11
+jobs=197 post_arrest=187 slow=10  proj wall=0.86 h
+  shard A: 49 jobs  CPU~13.78 h  wall~0.86 h (16 workers)  starD40=12
+  shard B: 49 jobs  CPU~13.73 h  wall~0.86 h (16 workers)  starD40=12
+  shard C: 49 jobs  CPU~13.72 h  wall~0.86 h (16 workers)  starD40=11
+  shard D: 50 jobs  CPU~13.77 h  wall~0.86 h (16 workers)  starD40=11
+jobs=197 post_arrest=187 slow=10  proj wall=0.86 h
+=== round8c shard=A jobs=49 workers=16 commit=a351fff3b5b3926019be55ad0b69741921ecea2a dirty=true ===
+projected shard wall 0.86 h
+[A] resume 0/49 pending=49
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+[progress] 0/49 elapsed=0.00h remain~0.86h cpu_left~13.78h
+  pa_starpring_D_v10_ns10_a0.80_s0.133857 out=arrested t_arr=0.07514 cpu=412s
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_starpring_D_v10_ns10_a0.60_s0.622222 out=arrested t_arr=0.0201 cpu=427s
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_starpring_D_v10_ns10_a0.25_s0.502315 out=arrested t_arr=0.02548 cpu=452s
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_starpring_D_v10_ns10_a0.50_s0.159219 out=arrested t_arr=0.04596 cpu=452s
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_star_D_v15_ns40_a0.80_s1.448135 out=arrested t_arr=0.009834 cpu=849s
+[A] 5/49 elapsed=849s remain~2732s
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_starpring_D_v15_ns10_a0.00_s0.288021 out=arrested t_arr=0.02089 cpu=443s
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_star_D_v10_ns40_a0.70_s0.607464 out=arrested t_arr=0.01898 cpu=861s
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_star_D_v15_ns40_a0.25_s1.048239 out=arrested t_arr=0.01852 cpu=864s
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_star_D_v20_ns40_a0.80_s2.546026 out=arrested t_arr=0.007416 cpu=889s
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07616 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_starpring_D_v15_ns10_a0.50_s1.232291 out=arrested t_arr=0.01461 cpu=442s
+[A] 10/49 elapsed=894s remain~2189s
+  pa_starpring_D_v15_ns10_a0.50_s0.327808 out=arrested t_arr=0.1433 cpu=469s
+  pa_star_D_v10_ns40_a0.80_s0.632876 out=arrested t_arr=0.01485 cpu=907s
+  pa_starpring_D_v15_ns10_a0.70_s0.417210 out=arrested t_arr=0.04051 cpu=457s
+  pa_star_D_v10_ns40_a0.50_s0.549380 out=arrested t_arr=0.026 cpu=958s
+  pa_star_D_v15_ns40_a0.70_s1.471619 out=arrested t_arr=0.01224 cpu=974s
+[A] 15/49 elapsed=975s remain~1645s
+  pa_star_S_v10_ns40_a0.50_s0.363721 out=arrested t_arr=0.05967 cpu=83s
+  pa_star_S_v10_ns40_a0.80_s1.138863 out=arrested t_arr=0.02143 cpu=47s
+  pa_star_D_v15_ns40_a0.60_s1.285114 out=arrested t_arr=0.1095 cpu=1010s
+  pa_star_D_v20_ns40_a0.25_s1.920410 out=arrested t_arr=0.01297 cpu=1013s
+  pa_star_D_v20_ns40_a0.60_s2.435303 out=arrested t_arr=0.0106 cpu=1028s
+[A] 20/49 elapsed=1028s remain~1164s
+  pa_star_S_v10_ns40_a0.25_s0.179916 out=arrested t_arr=0.09678 cpu=132s
+  pa_star_S_v15_ns40_a0.60_s1.053151 out=arrested t_arr=0.03226 cpu=51s
+  pa_star_S_v15_ns40_a0.25_s0.411811 out=arrested t_arr=0.06415 cpu=88s
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_star_S_v15_ns40_a0.50_s0.394312 out=arrested t_arr=0.09183 cpu=74s
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_star_D_v10_ns40_a0.00_s0.114807 out=arrested t_arr=0.03218 cpu=1072s
+[A] 25/49 elapsed=1072s remain~920s
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_star_S_v10_ns40_a0.70_s0.109142 out=arrested t_arr=0.1767 cpu=164s
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_star_S_v20_ns40_a0.60_s1.526435 out=arrested t_arr=0.06904 cpu=47s
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_star_S_v20_ns40_a0.25_s0.744552 out=arrested t_arr=0.0481 cpu=70s
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_star_S_v20_ns40_a0.50_s0.707220 out=arrested t_arr=0.06881 cpu=60s
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_star_S_v20_ns40_a0.70_s2.695111 out=arrested t_arr=0.01776 cpu=44s
+[A] 30/49 elapsed=1101s remain~795s
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_starpring_S_v10_ns10_a0.80_s1.137114 out=arrested t_arr=0.02155 cpu=28s
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_starpring_S_v10_ns10_a0.60_s0.459862 out=arrested t_arr=0.04732 cpu=39s
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_starpring_S_v15_ns10_a0.70_s1.505003 out=arrested t_arr=0.02344 cpu=28s
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+segment spacing 0.07322 m exceeds 0.25*r_d = 0.0375 m; consider a larger n_s or r_d
+  pa_starpring_S_v15_ns10_a0.25_s0.489126 out=arrested t_arr=0.05231 cpu=49s
+  pa_starpring_S_v10_ns10_a0.50_s0.186611 out=arrested t_arr=0.09475 cpu=65s
+[A] 35/49 elapsed=1128s remain~726s
+  pa_star_S_v15_ns40_a0.80_s0.235070 out=arrested t_arr=0.127 cpu=120s
+  pa_starpring_S_v20_ns10_a0.50_s0.672768 out=arrested t_arr=0.04847 cpu=37s
+  pa_starpring_S_v15_ns10_a0.60_s0.419874 out=arrested t_arr=0.0692 cpu=55s
+  pa_starpring_S_v20_ns10_a0.80_s4.503862 out=arrested t_arr=0.01093 cpu=26s
+  pa_starpring_S_v20_ns10_a0.60_s1.861745 out=arrested t_arr=0.0237 cpu=33s
+[A] 40/49 elapsed=1145s remain~646s
+  to_star_S_v15_ns40_a0.00_s0.111451 out=timeout t_arr=0.5 cpu=263s
+  pa_starpring_S_v10_ns10_a0.00_s0.051212 out=arrested t_arr=0.09741 cpu=96s
+  pa_starpring_S_v20_ns10_a0.00_s0.206968 out=arrested t_arr=0.04864 cpu=58s
+  pa_starpring_D_v15_ns10_a0.80_s1.516666 out=arrested t_arr=0.009642 cpu=348s
+  pa_starpring_D_v20_ns10_a0.60_s2.475925 out=arrested t_arr=0.01008 cpu=339s
+[A] 45/49 elapsed=1203s remain~456s
+  pa_starpring_D_v20_ns10_a0.25_s2.087036 out=arrested t_arr=0.01262 cpu=388s
+  pa_starpring_D_v20_ns10_a0.80_s0.511755 out=arrested t_arr=0.0492 cpu=360s
+  pa_starpring_D_v20_ns10_a0.50_s0.670692 out=arrested t_arr=0.0228 cpu=397s
+  to_star_D_v10_ns40_a0.00_s0.113659 out=timeout t_arr=0.5 cpu=1663s
+[A] 49/49 elapsed=1663s remain~0s
+=== shard A done in 1663s ===
+=== round8c on-vm done 2026-10-08T14:22:36Z shard=A ===
+arpring_D_v20_ns10_a0.80_s0.511755 out=arrested t_arr=0.0492 cpu=360s
+  pa_starpring_D_v20_ns10_a0.50_s0.670692 out=arrested t_arr=0.0228 cpu=397s
+  to_star_D_v10_ns40_a0.00_s0.113659 out=timeout t_arr=0.5 cpu=1663s
+[A] 49/49 elapsed=1663s remain~0s
+=== shard A done in 1663s ===
+=== round8c on-vm done 2026-10-08T14:22:36Z shard=A ===

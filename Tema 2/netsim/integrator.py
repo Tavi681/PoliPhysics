@@ -112,6 +112,8 @@ class Trajectory:
     drone_x_first_fail: float = float("nan")
     drone_y_first_fail: float = float("nan")
     t_perforate: float = float("nan")
+    t_arrest: float = float("nan")
+    t_frame_contact: float = float("nan")
     uel_r0: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
     uel_other: np.ndarray = field(default_factory=lambda: np.zeros(0))
 
@@ -460,6 +462,13 @@ def integrate(disc, material, drone, numerics, contact, output,
     drone_x_first_fail = float("nan")
     drone_y_first_fail = float("nan")
     t_perforate = float("nan")
+    t_arrest = float("nan")
+    t_frame_contact = float("nan")
+    continue_after_arrest = bool(getattr(
+        numerics, "continue_after_arrest", False))
+    touch_anchor = (anchored[seg_edges[:, 0]] | anchored[seg_edges[:, 1]])
+    h_frame = (float(np.max(seg_rest[touch_anchor]))
+               if np.any(touch_anchor) else float(net_R))
     eps_old, _ = segment_strains(x, seg_edges, seg_rest)
 
     while t < numerics.t_end:
@@ -668,6 +677,23 @@ def integrate(disc, material, drone, numerics, contact, output,
 
         if drone_mode:
             min_drone_z = min(min_drone_z, xd[2])
+            if not np.isfinite(t_frame_contact):
+                active_f = base_free.copy()
+                if grip.active:
+                    active_f[grip.node] = False
+                if active_f.any() and np.any(anchored):
+                    dvec = x[active_f] - xd
+                    dd = np.sqrt(np.sum(dvec * dvec, axis=1))
+                    hit = np.nonzero(r_d - dd > 0.0)[0]
+                    if hit.size:
+                        idx = np.nonzero(active_f)[0][hit]
+                        xa = x[anchored]
+                        for i in idx:
+                            da = np.sqrt(np.sum((x[int(i)] - xa) ** 2,
+                                                axis=1)).min()
+                            if da <= h_frame + 1e-12:
+                                t_frame_contact = float(t)
+                                break
 
         # --- Alg.1 line 6: output --------------------------------------------
         cur_out = int(np.floor(t / numerics.dt_out + 1e-9))
@@ -705,11 +731,14 @@ def integrate(disc, material, drone, numerics, contact, output,
             if vz < 0.0:
                 had_negative_vz = True
             if had_negative_vz and vz >= 0.0:
-                outcome = "arrested"
-                arrested = True
-                drone_x_arrest = float(xd[0])
-                drone_y_arrest = float(xd[1])
-                break
+                if not arrested:
+                    arrested = True
+                    t_arrest = float(t)
+                    drone_x_arrest = float(xd[0])
+                    drone_y_arrest = float(xd[1])
+                if not continue_after_arrest:
+                    outcome = "arrested"
+                    break
             # Early perforation ("point of no return"): still descending, and
             # either no intact segment is in contact / connected to the gripped
             # node, or the drone centre has passed below the deepest intact
@@ -765,10 +794,14 @@ def integrate(disc, material, drone, numerics, contact, output,
             and float(vd[2]) >= -1e-12):
         outcome = "arrested"
         arrested = True
+        if not np.isfinite(t_arrest):
+            t_arrest = float(t)
         drone_x_arrest = float(xd[0])
         drone_y_arrest = float(xd[1])
         logger.info("timeout after vz reversal treated as arrest (vz=%.4g)",
                     float(vd[2]))
+    elif outcome == "timeout" and arrested:
+        outcome = "arrested"
     elif outcome == "timeout":
         logger.info("run reached t_end without arrest/perforation (timeout)")
         if drone_mode:
@@ -838,6 +871,8 @@ def integrate(disc, material, drone, numerics, contact, output,
         drone_x_first_fail=drone_x_first_fail,
         drone_y_first_fail=drone_y_first_fail,
         t_perforate=t_perforate,
+        t_arrest=t_arrest,
+        t_frame_contact=t_frame_contact,
         uel_r0=uel_r0_arr,
         uel_other=uel_other_arr,
     )

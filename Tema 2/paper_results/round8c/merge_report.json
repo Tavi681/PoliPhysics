@@ -1,0 +1,87 @@
+{
+  "n_post": 187,
+  "n_slow": 10,
+  "n_flags": 303,
+  "cache_note": "mmin cache stores arrested/outcome/n_failures/R_d/energy_error/fail_segs only \u2014 not Kd, eta, or the energy partition. eta and Kd/Ekin are taken from mass_scan.csv, lambda_map.csv, and the item-2 threshold runs.",
+  "cache_meta": {
+    "n_h5": 9654,
+    "has_Kd": false,
+    "sample_attrs": [
+      "R_d",
+      "arrested",
+      "energy_error",
+      "n_failures",
+      "outcome"
+    ]
+  },
+  "item1_n": 1,
+  "paper_status_counts": {
+    "tab_mmin_ext": {
+      "keep": 59,
+      "keep_with_note": 279,
+      "exclude": 22
+    },
+    "tab_fa_num": {
+      "keep": 7,
+      "exclude": 23
+    },
+    "lambda_map": {
+      "keep": 182
+    },
+    "mass_scan": {
+      "keep": 144
+    },
+    "mmin_lockxy": {
+      "keep": 2
+    },
+    "fig_etaa": {
+      "keep": 28
+    },
+    "tab_junction_nl": {
+      "keep": 18
+    },
+    "tab_mmin_ring_ns": {
+      "keep": 5
+    },
+    "mmin_frictionless": {
+      "keep": 2
+    },
+    "tab_conv": {
+      "keep": 8
+    },
+    "params_used": {
+      "keep": 24
+    },
+    "tab_mmin": {
+      "keep": 36
+    }
+  },
+  "post_arrest_by_crit": {
+    "A": {
+      "n": 72,
+      "fail_after": 69,
+      "perf_after": 0
+    },
+    "Bany": {
+      "n": 72,
+      "fail_after": 56,
+      "perf_after": 1
+    },
+    "Bloc025": {
+      "n": 72,
+      "fail_after": 57,
+      "perf_after": 1
+    },
+    "Bloc050": {
+      "n": 72,
+      "fail_after": 58,
+      "perf_after": 1
+    },
+    "Bloc075": {
+      "n": 72,
+      "fail_after": 57,
+      "perf_after": 1
+    }
+  },
+  "commit": "a351fff3b5b3926019be55ad0b69741921ecea2a"
+}

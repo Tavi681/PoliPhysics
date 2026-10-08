@@ -1,0 +1,39 @@
+{
+  "note": "mmin cache stores arrested/outcome/n_failures/R_d/energy_error/fail_segs only \u2014 not Kd, eta, or the energy partition. eta and Kd/Ekin are taken from mass_scan.csv, lambda_map.csv, and the item-2 threshold runs.",
+  "cache": {
+    "n_h5": 9654,
+    "has_Kd": false,
+    "sample_attrs": [
+      "R_d",
+      "arrested",
+      "energy_error",
+      "n_failures",
+      "outcome"
+    ]
+  },
+  "n_flags": 303,
+  "counts": {
+    "('star', 'D', '')": 34,
+    "('star', 'S', '0.5')": 76,
+    "('star', 'D', '0.5')": 34,
+    "('star', 'S', '0.1')": 4,
+    "('star', 'S', '0.3')": 12,
+    "('star', 'S', '0.2')": 6,
+    "('star', 'S', '0.4')": 14,
+    "('star', 'S', '0.6')": 24,
+    "('star', 'S', '0.7')": 26,
+    "('star', 'D', '0.4')": 8,
+    "('star', 'D', '0.2')": 4,
+    "('star', 'D', '0.3')": 4,
+    "('star', 'D', '0.1')": 2,
+    "('star', 'D', '0.6')": 16,
+    "('star', 'D', '0.7')": 18,
+    "('star', 'D', 0.8)": 2,
+    "('star', 'S', 0.6)": 2,
+    "('star+ring', 'D', 0.8)": 5,
+    "('star+ring', 'D', 0.5)": 8,
+    "('star', 'D', 0.6)": 1,
+    "('star+ring', 'D', 0.7)": 1,
+    "('star', 'S', 0.7)": 2
+  }
+}

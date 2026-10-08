@@ -1,0 +1,27 @@
+{
+  "A": {
+    "n": 72,
+    "fail_after": 69,
+    "perf_after": 0
+  },
+  "Bany": {
+    "n": 72,
+    "fail_after": 56,
+    "perf_after": 1
+  },
+  "Bloc025": {
+    "n": 72,
+    "fail_after": 57,
+    "perf_after": 1
+  },
+  "Bloc050": {
+    "n": 72,
+    "fail_after": 58,
+    "perf_after": 1
+  },
+  "Bloc075": {
+    "n": 72,
+    "fail_after": 57,
+    "perf_after": 1
+  }
+}

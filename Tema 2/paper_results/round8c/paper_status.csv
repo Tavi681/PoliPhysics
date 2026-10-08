@@ -1,0 +1,841 @@
+# commit=a351fff3b5b3926019be55ad0b69741921ecea2a date=2026-10-08T17:30:03 config=round8c_item6 code_dirty=true
+table_or_figure,net,material,v0,criterion,a_over_R,value,status,reason
+tab_mmin_ext,star,S,10.0,A,0.0,0.5004561705753771,keep,slow timeout still timeout at 0.5 s
+tab_mmin_ext,star,S,10.0,A,0.25,2.0770812493053237,keep_with_note,fails after first rebound at t = 0.08001498099958586
+tab_mmin_ext,star,S,10.0,A,0.5,3.6725204697862246,keep_with_note,fails after first rebound at t = 0.059665906598481484
+tab_mmin_ext,star,S,10.0,A,0.6,4.726112407839651,keep_with_note,fails after first rebound at t = 0.048321892732903875
+tab_mmin_ext,star,S,10.0,A,0.7,6.74298840354192,keep_with_note,fails after first rebound at t = 0.03538960638174135
+tab_mmin_ext,star,S,10.0,A,0.8,11.499203438183098,keep_with_note,fails after first rebound at t = 0.0214307484020287
+tab_mmin_ext,star,S,10.0,Bany,0.0,0.5012741767384619,keep,
+tab_mmin_ext,star,S,10.0,Bany,0.25,1.8009223686478426,keep,
+tab_mmin_ext,star,S,10.0,Bany,0.5,1.282633663717213,keep,
+tab_mmin_ext,star,S,10.0,Bany,0.6,1.1805464945642108,keep,
+tab_mmin_ext,star,S,10.0,Bany,0.7,1.1020179029080548,keep,
+tab_mmin_ext,star,S,10.0,Bany,0.8,1.0470478887487455,keep,
+tab_mmin_ext,star,S,10.0,Bloc025,0.0,0.5012741767384619,keep,
+tab_mmin_ext,star,S,10.0,Bloc025,0.25,1.8166280869790734,keep_with_note,fails after first rebound at t = 0.0967810203742221
+tab_mmin_ext,star,S,10.0,Bloc025,0.5,3.5704333006332227,keep_with_note,fails after first rebound at t = 0.09965111606125909
+tab_mmin_ext,star,S,10.0,Bloc025,0.6,3.4447875539833737,keep,
+tab_mmin_ext,star,S,10.0,Bloc025,0.7,1.9108623969664609,keep,
+tab_mmin_ext,star,S,10.0,Bloc025,0.8,1.0470478887487455,keep,
+tab_mmin_ext,star,S,10.0,Bloc050,0.0,0.5012741767384619,keep,
+tab_mmin_ext,star,S,10.0,Bloc050,0.25,1.8166280869790734,keep_with_note,fails after first rebound at t = 0.0967810203742221
+tab_mmin_ext,star,S,10.0,Bloc050,0.5,1.282633663717213,keep,
+tab_mmin_ext,star,S,10.0,Bloc050,0.6,1.1805464945642108,keep,
+tab_mmin_ext,star,S,10.0,Bloc050,0.7,1.1020179029080548,keep,
+tab_mmin_ext,star,S,10.0,Bloc050,0.8,1.0470478887487455,keep,
+tab_mmin_ext,star,S,10.0,Bloc075,0.0,0.5012741767384619,keep,
+tab_mmin_ext,star,S,10.0,Bloc075,0.25,1.8009223686478426,keep,
+tab_mmin_ext,star,S,10.0,Bloc075,0.5,1.282633663717213,keep,
+tab_mmin_ext,star,S,10.0,Bloc075,0.6,1.1805464945642108,keep,
+tab_mmin_ext,star,S,10.0,Bloc075,0.7,1.1020179029080548,keep,
+tab_mmin_ext,star,S,10.0,Bloc075,0.8,1.0470478887487455,keep,
+tab_mmin_ext,star,S,15.0,A,0.0,1.1344927475825273,keep,
+tab_mmin_ext,star,S,15.0,A,0.25,4.775029176392129,keep_with_note,fails after first rebound at t = 0.05311248290918633
+tab_mmin_ext,star,S,15.0,A,0.5,8.466363787929309,keep_with_note,fails after first rebound at t = 0.0396462879072785
+tab_mmin_ext,star,S,15.0,A,0.6,10.63375291763921,keep_with_note,fails after first rebound at t = 0.032257460699903456
+tab_mmin_ext,star,S,15.0,A,0.7,15.307185728576192,keep_with_note,fails after first rebound at t = 0.02361346449869793
+tab_mmin_ext,star,S,15.0,A,0.8,26.144131377125706,keep_with_note,fails after first rebound at t = 0.014338144583425411
+tab_mmin_ext,star,S,15.0,Bany,0.0,1.1367013642228565,keep_with_note,fails after first rebound at t = 0.06520450647010428
+tab_mmin_ext,star,S,15.0,Bany,0.25,4.087413195702915,keep_with_note,fails after first rebound at t = 0.0645670204720786
+tab_mmin_ext,star,S,15.0,Bany,0.5,3.9460617307218344,keep_with_note,fails after first rebound at t = 0.09208656990909522
+tab_mmin_ext,star,S,15.0,Bany,0.6,2.6738985458921083,keep,
+tab_mmin_ext,star,S,15.0,Bany,0.7,2.4972092146657574,keep,
+tab_mmin_ext,star,S,15.0,Bany,0.8,2.373526682807312,keep,
+tab_mmin_ext,star,S,15.0,Bloc025,0.0,1.1367013642228565,keep_with_note,fails after first rebound at t = 0.06520450647010428
+tab_mmin_ext,star,S,15.0,Bloc025,0.25,4.334778259419806,keep_with_note,fails after first rebound at t = 0.06273370014881996
+tab_mmin_ext,star,S,15.0,Bloc025,0.5,3.9813995969671043,keep_with_note,fails after first rebound at t = 0.09182750815907498
+tab_mmin_ext,star,S,15.0,Bloc025,0.6,4.2287646606839955,keep,
+tab_mmin_ext,star,S,15.0,Bloc025,0.7,3.663358800759673,keep,
+tab_mmin_ext,star,S,15.0,Bloc025,0.8,2.373526682807312,keep,
+tab_mmin_ext,star,S,15.0,Bloc050,0.0,1.1367013642228565,keep_with_note,fails after first rebound at t = 0.06520450647010428
+tab_mmin_ext,star,S,15.0,Bloc050,0.25,4.158088928193455,keep_with_note,fails after first rebound at t = 0.064148782235112
+tab_mmin_ext,star,S,15.0,Bloc050,0.5,3.9460617307218344,keep_with_note,fails after first rebound at t = 0.09208656990909522
+tab_mmin_ext,star,S,15.0,Bloc050,0.6,2.6738985458921083,keep,
+tab_mmin_ext,star,S,15.0,Bloc050,0.7,2.4972092146657574,keep,
+tab_mmin_ext,star,S,15.0,Bloc050,0.8,2.373526682807312,keep,
+tab_mmin_ext,star,S,15.0,Bloc075,0.0,1.1367013642228565,keep_with_note,fails after first rebound at t = 0.06520450647010428
+tab_mmin_ext,star,S,15.0,Bloc075,0.25,4.087413195702915,keep_with_note,fails after first rebound at t = 0.0645670204720786
+tab_mmin_ext,star,S,15.0,Bloc075,0.5,3.9460617307218344,keep_with_note,fails after first rebound at t = 0.09208656990909522
+tab_mmin_ext,star,S,15.0,Bloc075,0.6,2.6738985458921083,keep,
+tab_mmin_ext,star,S,15.0,Bloc075,0.7,2.4972092146657574,keep,
+tab_mmin_ext,star,S,15.0,Bloc075,0.8,2.373526682807312,keep,
+tab_mmin_ext,star,S,20.0,A,0.0,2.122235189507614,keep_with_note,fails after first rebound at t = 0.04842071233178296
+tab_mmin_ext,star,S,20.0,A,0.25,8.669556518839615,keep_with_note,fails after first rebound at t = 0.03969265284383697
+tab_mmin_ext,star,S,20.0,A,0.5,15.53295542958764,keep_with_note,fails after first rebound at t = 0.029600028322124584
+tab_mmin_ext,star,S,20.0,A,0.6,19.145270645770815,keep_with_note,fails after first rebound at t = 0.02418728392097252
+tab_mmin_ext,star,S,20.0,A,0.7,27.212774628579893,keep_with_note,fails after first rebound at t = 0.0177627086835229
+tab_mmin_ext,star,S,20.0,A,0.8,46.47845578155682,keep_with_note,fails after first rebound at t = 0.010804689377611624
+tab_mmin_ext,star,S,20.0,Bany,0.0,2.099331016941235,keep_with_note,fails after first rebound at t = 0.04852559916476043
+tab_mmin_ext,star,S,20.0,Bany,0.25,7.517803841215993,keep_with_note,fails after first rebound at t = 0.048103293372663926
+tab_mmin_ext,star,S,20.0,Bany,0.5,7.1408666012664455,keep,
+tab_mmin_ext,star,S,20.0,Bany,0.6,6.386992121367347,keep_with_note,fails after first rebound at t = 0.077382204790179
+tab_mmin_ext,star,S,20.0,Bany,0.7,5.947232008092875,keep_with_note,fails after first rebound at t = 0.08480439477583142
+tab_mmin_ext,star,S,20.0,Bany,0.8,4.251014428319907,keep_with_note,fails after first rebound at t = 0.0951749223669213
+tab_mmin_ext,star,S,20.0,Bloc025,0.0,2.099331016941235,keep_with_note,fails after first rebound at t = 0.04852559916476043
+tab_mmin_ext,star,S,20.0,Bloc025,0.25,8.250737363340114,keep_with_note,fails after first rebound at t = 0.04511751313023003
+tab_mmin_ext,star,S,20.0,Bloc025,0.5,7.706272461190767,keep_with_note,fails after first rebound at t = 0.0678093147600172
+tab_mmin_ext,star,S,20.0,Bloc025,0.6,15.412544922381533,keep,
+tab_mmin_ext,star,S,20.0,Bloc025,0.7,6.386992121367347,keep_with_note,fails after first rebound at t = 0.08415243816306894
+tab_mmin_ext,star,S,20.0,Bloc025,0.8,4.251014428319907,keep_with_note,fails after first rebound at t = 0.0951749223669213
+tab_mmin_ext,star,S,20.0,Bloc050,0.0,2.099331016941235,keep_with_note,fails after first rebound at t = 0.04852559916476043
+tab_mmin_ext,star,S,20.0,Bloc050,0.25,8.125091616690264,keep_with_note,fails after first rebound at t = 0.04595179401204927
+tab_mmin_ext,star,S,20.0,Bloc050,0.5,7.1408666012664455,keep,
+tab_mmin_ext,star,S,20.0,Bloc050,0.6,6.386992121367347,keep_with_note,fails after first rebound at t = 0.077382204790179
+tab_mmin_ext,star,S,20.0,Bloc050,0.7,5.947232008092875,keep_with_note,fails after first rebound at t = 0.08480439477583142
+tab_mmin_ext,star,S,20.0,Bloc050,0.8,4.251014428319907,keep_with_note,fails after first rebound at t = 0.0951749223669213
+tab_mmin_ext,star,S,20.0,Bloc075,0.0,2.099331016941235,keep_with_note,fails after first rebound at t = 0.04852559916476043
+tab_mmin_ext,star,S,20.0,Bloc075,0.25,7.517803841215993,keep_with_note,fails after first rebound at t = 0.048103293372663926
+tab_mmin_ext,star,S,20.0,Bloc075,0.5,7.1408666012664455,keep,
+tab_mmin_ext,star,S,20.0,Bloc075,0.6,6.386992121367347,keep_with_note,fails after first rebound at t = 0.077382204790179
+tab_mmin_ext,star,S,20.0,Bloc075,0.7,5.947232008092875,keep_with_note,fails after first rebound at t = 0.08480439477583142
+tab_mmin_ext,star,S,20.0,Bloc075,0.8,4.251014428319907,keep_with_note,fails after first rebound at t = 0.0951749223669213
+tab_mmin_ext,star,D,10.0,A,0.0,0.8926391601562501,keep_with_note,fails after first rebound at t = 0.03217505080093059
+tab_mmin_ext,star,D,10.0,A,0.25,3.7328546697443183,keep_with_note,fails after first rebound at t = 0.025912160728159633
+tab_mmin_ext,star,D,10.0,A,0.5,4.490245472301137,keep_with_note,fails after first rebound at t = 0.023200543543584598
+tab_mmin_ext,star,D,10.0,A,0.6,4.733692515980114,keep_with_note,fails after first rebound at t = 0.02118839750948154
+tab_mmin_ext,star,D,10.0,A,0.7,4.868940873579546,keep_with_note,fails after first rebound at t = 0.01858067449816072
+tab_mmin_ext,star,D,10.0,A,0.8,4.977139559659091,keep_with_note,fails after first rebound at t = 0.014759193810079596
+tab_mmin_ext,star,D,10.0,Bany,0.0,0.8938152328310276,keep_with_note,fails after first rebound at t = 0.03216364525296836
+tab_mmin_ext,star,D,10.0,Bany,0.25,3.6505295825098814,keep_with_note,fails after first rebound at t = 0.030193803433109217
+tab_mmin_ext,star,D,10.0,Bany,0.5,4.271495954792489,keep_with_note,fails after first rebound at t = 0.02600091662866423
+tab_mmin_ext,star,D,10.0,Bany,0.6,4.469076164155139,keep_with_note,fails after first rebound at t = 0.022895082231801252
+tab_mmin_ext,star,D,10.0,Bany,0.7,4.723107861907114,keep_with_note,fails after first rebound at t = 0.01897862443523624
+tab_mmin_ext,star,D,10.0,Bany,0.8,0.43617595325816766,exclude,energy bound (rule 1)
+tab_mmin_ext,star,D,10.0,Bloc025,0.0,0.8938152328310276,keep_with_note,fails after first rebound at t = 0.03216364525296836
+tab_mmin_ext,star,D,10.0,Bloc025,0.25,3.6505295825098814,keep_with_note,fails after first rebound at t = 0.030193803433109217
+tab_mmin_ext,star,D,10.0,Bloc025,0.5,4.271495954792489,keep_with_note,fails after first rebound at t = 0.02600091662866423
+tab_mmin_ext,star,D,10.0,Bloc025,0.6,4.469076164155139,keep_with_note,fails after first rebound at t = 0.022895082231801252
+tab_mmin_ext,star,D,10.0,Bloc025,0.7,4.723107861907114,keep_with_note,fails after first rebound at t = 0.01897862443523624
+tab_mmin_ext,star,D,10.0,Bloc025,0.8,4.920688071269763,keep_with_note,fails after first rebound at t = 0.014845046480193856
+tab_mmin_ext,star,D,10.0,Bloc050,0.0,0.8938152328310276,keep_with_note,fails after first rebound at t = 0.03216364525296836
+tab_mmin_ext,star,D,10.0,Bloc050,0.25,3.6505295825098814,keep_with_note,fails after first rebound at t = 0.030193803433109217
+tab_mmin_ext,star,D,10.0,Bloc050,0.5,4.271495954792489,keep_with_note,fails after first rebound at t = 0.02600091662866423
+tab_mmin_ext,star,D,10.0,Bloc050,0.6,4.469076164155139,keep_with_note,fails after first rebound at t = 0.022895082231801252
+tab_mmin_ext,star,D,10.0,Bloc050,0.7,4.723107861907114,keep_with_note,fails after first rebound at t = 0.01897862443523624
+tab_mmin_ext,star,D,10.0,Bloc050,0.8,4.8077850944911065,keep_with_note,fails after first rebound at t = 0.014999747185278972
+tab_mmin_ext,star,D,10.0,Bloc075,0.0,0.8938152328310276,keep_with_note,fails after first rebound at t = 0.03216364525296836
+tab_mmin_ext,star,D,10.0,Bloc075,0.25,3.6505295825098814,keep_with_note,fails after first rebound at t = 0.030193803433109217
+tab_mmin_ext,star,D,10.0,Bloc075,0.5,4.271495954792489,keep_with_note,fails after first rebound at t = 0.02600091662866423
+tab_mmin_ext,star,D,10.0,Bloc075,0.6,4.469076164155139,keep_with_note,fails after first rebound at t = 0.022895082231801252
+tab_mmin_ext,star,D,10.0,Bloc075,0.7,4.723107861907114,keep_with_note,fails after first rebound at t = 0.01897862443523624
+tab_mmin_ext,star,D,10.0,Bloc075,0.8,0.43617595325816766,exclude,energy bound (rule 1)
+tab_mmin_ext,star,D,15.0,A,0.0,2.023653550581499,keep_with_note,fails after first rebound at t = 0.02141547160072578
+tab_mmin_ext,star,D,15.0,A,0.25,8.459784767844463,keep_with_note,fails after first rebound at t = 0.017251409726584857
+tab_mmin_ext,star,D,15.0,A,0.5,10.163914073597303,keep_with_note,fails after first rebound at t = 0.015448918401384014
+tab_mmin_ext,star,D,15.0,A,0.6,10.650808160955258,keep_with_note,fails after first rebound at t = 0.01413209604576674
+tab_mmin_ext,star,D,15.0,A,0.7,11.442011052911933,keep_with_note,fails after first rebound at t = 0.012244374171249567
+tab_mmin_ext,star,D,15.0,A,0.8,11.259425770152701,keep_with_note,fails after first rebound at t = 0.009834278200070991
+tab_mmin_ext,star,D,15.0,Bany,0.0,2.0110842738698125,keep_with_note,fails after first rebound at t = 0.021451969354204306
+tab_mmin_ext,star,D,15.0,Bany,0.25,8.15018363620924,keep_with_note,fails after first rebound at t = 0.018520328780761566
+tab_mmin_ext,star,D,15.0,Bany,0.5,10.055421369349064,keep_with_note,fails after first rebound at t = 0.015655047759097963
+tab_mmin_ext,star,D,15.0,Bany,0.6,9.991913444911068,keep,
+tab_mmin_ext,star,D,15.0,Bany,0.7,10.055421369349064,keep,
+tab_mmin_ext,star,D,15.0,Bany,0.8,9.22981835165514,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star,D,15.0,Bloc025,0.0,2.0110842738698125,keep_with_note,fails after first rebound at t = 0.021451969354204306
+tab_mmin_ext,star,D,15.0,Bloc025,0.25,8.15018363620924,keep_with_note,fails after first rebound at t = 0.018520328780761566
+tab_mmin_ext,star,D,15.0,Bloc025,0.5,10.055421369349064,keep_with_note,fails after first rebound at t = 0.015655047759097963
+tab_mmin_ext,star,D,15.0,Bloc025,0.6,10.563484764853017,keep,
+tab_mmin_ext,star,D,15.0,Bloc025,0.7,10.055421369349064,keep,
+tab_mmin_ext,star,D,15.0,Bloc025,0.8,11.135056084794961,keep_with_note,fails after first rebound at t = 0.009875130799135023
+tab_mmin_ext,star,D,15.0,Bloc050,0.0,2.0110842738698125,keep_with_note,fails after first rebound at t = 0.021451969354204306
+tab_mmin_ext,star,D,15.0,Bloc050,0.25,8.15018363620924,keep_with_note,fails after first rebound at t = 0.018520328780761566
+tab_mmin_ext,star,D,15.0,Bloc050,0.5,10.055421369349064,keep_with_note,fails after first rebound at t = 0.015655047759097963
+tab_mmin_ext,star,D,15.0,Bloc050,0.6,9.991913444911068,keep,
+tab_mmin_ext,star,D,15.0,Bloc050,0.7,10.055421369349064,keep,
+tab_mmin_ext,star,D,15.0,Bloc050,0.8,10.754008538166996,keep_with_note,fails after first rebound at t = 0.01003874856899046
+tab_mmin_ext,star,D,15.0,Bloc075,0.0,2.0110842738698125,keep_with_note,fails after first rebound at t = 0.021451969354204306
+tab_mmin_ext,star,D,15.0,Bloc075,0.25,8.15018363620924,keep_with_note,fails after first rebound at t = 0.018520328780761566
+tab_mmin_ext,star,D,15.0,Bloc075,0.5,10.055421369349064,keep_with_note,fails after first rebound at t = 0.015655047759097963
+tab_mmin_ext,star,D,15.0,Bloc075,0.6,9.991913444911068,keep,
+tab_mmin_ext,star,D,15.0,Bloc075,0.7,10.055421369349064,keep,
+tab_mmin_ext,star,D,15.0,Bloc075,0.8,9.22981835165514,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star,D,20.0,A,0.0,3.5976063121448867,keep_with_note,fails after first rebound at t = 0.01605465668496796
+tab_mmin_ext,star,D,20.0,A,0.25,14.931418678977273,keep_with_note,fails after first rebound at t = 0.012967693285642174
+tab_mmin_ext,star,D,20.0,A,0.5,18.285577947443183,keep_with_note,fails after first rebound at t = 0.0115536127119486
+tab_mmin_ext,star,D,20.0,A,0.6,18.934770063920457,keep_with_note,fails after first rebound at t = 0.010603012132712445
+tab_mmin_ext,star,D,20.0,A,0.7,20.233154296875,keep_with_note,fails after first rebound at t = 0.009211535281343641
+tab_mmin_ext,star,D,20.0,A,0.8,20.557750355113637,keep_with_note,fails after first rebound at t = 0.007332730471596789
+tab_mmin_ext,star,D,20.0,Bany,0.0,3.603486675518775,keep_with_note,fails after first rebound at t = 0.016047813356190738
+tab_mmin_ext,star,D,20.0,Bany,0.25,14.827924283596838,keep_with_note,fails after first rebound at t = 0.01408854758991168
+tab_mmin_ext,star,D,20.0,Bany,0.5,17.65049870306324,keep_with_note,fails after first rebound at t = 0.07408048562897204
+tab_mmin_ext,star,D,20.0,Bany,0.6,18.7795284708498,keep_with_note,fails after first rebound at t = 0.038212940518535944
+tab_mmin_ext,star,D,20.0,Bany,0.7,17.31178977272727,keep_with_note,fails after first rebound at t = 0.085047645801887
+tab_mmin_ext,star,D,20.0,Bany,0.8,15.9569540513834,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star,D,20.0,Bloc025,0.0,3.603486675518775,keep_with_note,fails after first rebound at t = 0.016047813356190738
+tab_mmin_ext,star,D,20.0,Bloc025,0.25,14.827924283596838,keep_with_note,fails after first rebound at t = 0.01408854758991168
+tab_mmin_ext,star,D,20.0,Bloc025,0.5,17.65049870306324,keep_with_note,fails after first rebound at t = 0.07408048562897204
+tab_mmin_ext,star,D,20.0,Bloc025,0.6,18.7795284708498,keep_with_note,fails after first rebound at t = 0.038212940518535944
+tab_mmin_ext,star,D,20.0,Bloc025,0.7,17.31178977272727,keep_with_note,fails after first rebound at t = 0.085047645801887
+tab_mmin_ext,star,D,20.0,Bloc025,0.8,19.795655261857707,keep_with_note,fails after first rebound at t = 0.007415679911320712
+tab_mmin_ext,star,D,20.0,Bloc050,0.0,3.603486675518775,keep_with_note,fails after first rebound at t = 0.016047813356190738
+tab_mmin_ext,star,D,20.0,Bloc050,0.25,14.827924283596838,keep_with_note,fails after first rebound at t = 0.01408854758991168
+tab_mmin_ext,star,D,20.0,Bloc050,0.5,17.65049870306324,keep_with_note,fails after first rebound at t = 0.07408048562897204
+tab_mmin_ext,star,D,20.0,Bloc050,0.6,18.7795284708498,keep_with_note,fails after first rebound at t = 0.038212940518535944
+tab_mmin_ext,star,D,20.0,Bloc050,0.7,17.31178977272727,keep_with_note,fails after first rebound at t = 0.085047645801887
+tab_mmin_ext,star,D,20.0,Bloc050,0.8,19.795655261857707,keep_with_note,fails after first rebound at t = 0.007415679911320712
+tab_mmin_ext,star,D,20.0,Bloc075,0.0,3.603486675518775,keep_with_note,fails after first rebound at t = 0.016047813356190738
+tab_mmin_ext,star,D,20.0,Bloc075,0.25,14.827924283596838,keep_with_note,fails after first rebound at t = 0.01408854758991168
+tab_mmin_ext,star,D,20.0,Bloc075,0.5,17.65049870306324,keep_with_note,fails after first rebound at t = 0.07408048562897204
+tab_mmin_ext,star,D,20.0,Bloc075,0.6,18.7795284708498,keep_with_note,fails after first rebound at t = 0.038212940518535944
+tab_mmin_ext,star,D,20.0,Bloc075,0.7,17.31178977272727,keep_with_note,fails after first rebound at t = 0.085047645801887
+tab_mmin_ext,star,D,20.0,Bloc075,0.8,15.9569540513834,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,S,10.0,A,0.0,1.1062715349560965,keep_with_note,fails after first rebound at t = 0.09741446535230606
+tab_mmin_ext,star+ring,S,10.0,A,0.25,4.756215034641177,keep_with_note,fails after first rebound at t = 0.07820187028228524
+tab_mmin_ext,star+ring,S,10.0,A,0.5,7.345040939572451,keep_with_note,fails after first rebound at t = 0.05749592452316707
+tab_mmin_ext,star+ring,S,10.0,A,0.6,9.933866844503722,keep_with_note,fails after first rebound at t = 0.04731606848729602
+tab_mmin_ext,star+ring,S,10.0,A,0.7,14.44926086473269,keep_with_note,fails after first rebound at t = 0.03507336237668333
+tab_mmin_ext,star+ring,S,10.0,A,0.8,24.563743470045573,keep_with_note,"frame contact (rule 2, A)"
+tab_mmin_ext,star+ring,S,10.0,Bany,0.0,1.1020179029080546,keep_with_note,fails after first rebound at t = 0.09749207817099384
+tab_mmin_ext,star+ring,S,10.0,Bany,0.25,4.753597414919305,keep_with_note,fails after first rebound at t = 0.07821276556233903
+tab_mmin_ext,star+ring,S,10.0,Bany,0.5,2.3925044257908836,keep_with_note,fails after first rebound at t = 0.10461023654650295
+tab_mmin_ext,star+ring,S,10.0,Bany,0.6,3.9683114983577457,keep,
+tab_mmin_ext,star+ring,S,10.0,Bany,0.7,3.853136230595384,keep_with_note,fails after first rebound at t = 0.1182778318456554
+tab_mmin_ext,star+ring,S,10.0,Bany,0.8,3.570433300633222,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,S,10.0,Bloc025,0.0,1.1020179029080546,keep_with_note,fails after first rebound at t = 0.09749207817099384
+tab_mmin_ext,star+ring,S,10.0,Bloc025,0.25,4.753597414919305,keep_with_note,fails after first rebound at t = 0.07821276556233903
+tab_mmin_ext,star+ring,S,10.0,Bloc025,0.5,4.03113437168267,keep_with_note,fails after first rebound at t = 0.09475481420445996
+tab_mmin_ext,star+ring,S,10.0,Bloc025,0.6,4.470894484957144,keep,
+tab_mmin_ext,star+ring,S,10.0,Bloc025,0.7,3.853136230595384,keep_with_note,fails after first rebound at t = 0.1182778318456554
+tab_mmin_ext,star+ring,S,10.0,Bloc025,0.8,3.570433300633222,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,S,10.0,Bloc050,0.0,1.1020179029080546,keep_with_note,fails after first rebound at t = 0.09749207817099384
+tab_mmin_ext,star+ring,S,10.0,Bloc050,0.25,4.753597414919305,keep_with_note,fails after first rebound at t = 0.07821276556233903
+tab_mmin_ext,star+ring,S,10.0,Bloc050,0.5,2.3925044257908836,keep_with_note,fails after first rebound at t = 0.10461023654650295
+tab_mmin_ext,star+ring,S,10.0,Bloc050,0.6,3.9683114983577457,keep,
+tab_mmin_ext,star+ring,S,10.0,Bloc050,0.7,3.853136230595384,keep_with_note,fails after first rebound at t = 0.1182778318456554
+tab_mmin_ext,star+ring,S,10.0,Bloc050,0.8,3.570433300633222,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,S,10.0,Bloc075,0.0,1.1020179029080546,keep_with_note,fails after first rebound at t = 0.09749207817099384
+tab_mmin_ext,star+ring,S,10.0,Bloc075,0.25,4.753597414919305,keep_with_note,fails after first rebound at t = 0.07821276556233903
+tab_mmin_ext,star+ring,S,10.0,Bloc075,0.5,2.3925044257908836,keep_with_note,fails after first rebound at t = 0.10461023654650295
+tab_mmin_ext,star+ring,S,10.0,Bloc075,0.6,3.9683114983577457,keep,
+tab_mmin_ext,star+ring,S,10.0,Bloc075,0.7,3.853136230595384,keep_with_note,fails after first rebound at t = 0.1182778318456554
+tab_mmin_ext,star+ring,S,10.0,Bloc075,0.8,3.570433300633222,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,S,15.0,A,0.0,2.4552454984994996,keep_with_note,fails after first rebound at t = 0.06515020926992865
+tab_mmin_ext,star+ring,S,15.0,A,0.25,10.566022007335777,keep_with_note,fails after first rebound at t = 0.0523102053852739
+tab_mmin_ext,star+ring,S,15.0,A,0.5,16.932727575858618,keep_with_note,fails after first rebound at t = 0.03820712034212888
+tab_mmin_ext,star+ring,S,15.0,A,0.6,23.028509503167722,keep_with_note,fails after first rebound at t = 0.031449270107415675
+tab_mmin_ext,star+ring,S,15.0,A,0.7,32.51083694564855,keep_with_note,fails after first rebound at t = 0.023443178562593328
+tab_mmin_ext,star+ring,S,15.0,A,0.8,55.26842280760254,keep_with_note,"frame contact (rule 2, A)"
+tab_mmin_ext,star+ring,S,15.0,Bany,0.0,2.4618713484204875,keep_with_note,fails after first rebound at t = 0.06511632204495059
+tab_mmin_ext,star+ring,S,15.0,Bany,0.25,10.554242718587355,keep_with_note,fails after first rebound at t = 0.052322631967093906
+tab_mmin_ext,star+ring,S,15.0,Bany,0.5,5.453810690520028,keep_with_note,fails after first rebound at t = 0.06960111806261995
+tab_mmin_ext,star+ring,S,15.0,Bany,0.6,9.070052336286006,keep_with_note,fails after first rebound at t = 0.06920439608760215
+tab_mmin_ext,star+ring,S,15.0,Bany,0.7,8.598880786349072,keep_with_note,fails after first rebound at t = 0.0789543693603373
+tab_mmin_ext,star+ring,S,15.0,Bany,0.8,7.9627991939342095,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,S,15.0,Bloc025,0.0,2.4618713484204875,keep_with_note,fails after first rebound at t = 0.06511632204495059
+tab_mmin_ext,star+ring,S,15.0,Bloc025,0.25,10.554242718587355,keep_with_note,fails after first rebound at t = 0.052322631967093906
+tab_mmin_ext,star+ring,S,15.0,Bloc025,0.5,7.326717601519348,keep_with_note,fails after first rebound at t = 0.06593149667003874
+tab_mmin_ext,star+ring,S,15.0,Bloc025,0.6,10.907621381040055,keep,
+tab_mmin_ext,star+ring,S,15.0,Bloc025,0.7,8.598880786349072,keep_with_note,fails after first rebound at t = 0.0789543693603373
+tab_mmin_ext,star+ring,S,15.0,Bloc025,0.8,7.9627991939342095,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,S,15.0,Bloc050,0.0,2.4618713484204875,keep_with_note,fails after first rebound at t = 0.06511632204495059
+tab_mmin_ext,star+ring,S,15.0,Bloc050,0.25,10.554242718587355,keep_with_note,fails after first rebound at t = 0.052322631967093906
+tab_mmin_ext,star+ring,S,15.0,Bloc050,0.5,5.453810690520028,keep_with_note,fails after first rebound at t = 0.06960111806261995
+tab_mmin_ext,star+ring,S,15.0,Bloc050,0.6,9.070052336286006,keep_with_note,fails after first rebound at t = 0.06920439608760215
+tab_mmin_ext,star+ring,S,15.0,Bloc050,0.7,8.598880786349072,keep_with_note,fails after first rebound at t = 0.0789543693603373
+tab_mmin_ext,star+ring,S,15.0,Bloc050,0.8,7.9627991939342095,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,S,15.0,Bloc075,0.0,2.4618713484204875,keep_with_note,fails after first rebound at t = 0.06511632204495059
+tab_mmin_ext,star+ring,S,15.0,Bloc075,0.25,10.554242718587355,keep_with_note,fails after first rebound at t = 0.052322631967093906
+tab_mmin_ext,star+ring,S,15.0,Bloc075,0.5,5.453810690520028,keep_with_note,fails after first rebound at t = 0.06960111806261995
+tab_mmin_ext,star+ring,S,15.0,Bloc075,0.6,9.070052336286006,keep_with_note,fails after first rebound at t = 0.06920439608760215
+tab_mmin_ext,star+ring,S,15.0,Bloc075,0.7,8.598880786349072,keep_with_note,fails after first rebound at t = 0.0789543693603373
+tab_mmin_ext,star+ring,S,15.0,Bloc075,0.8,7.9627991939342095,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,S,20.0,A,0.0,4.455188766625913,keep_with_note,fails after first rebound at t = 0.04867276330776413
+tab_mmin_ext,star+ring,S,20.0,A,0.25,18.422807602534178,keep_with_note,fails after first rebound at t = 0.039457247213115165
+tab_mmin_ext,star+ring,S,20.0,A,0.5,30.58426883035086,keep_with_note,fails after first rebound at t = 0.028592645356967008
+tab_mmin_ext,star+ring,S,20.0,A,0.6,40.21710940683932,keep_with_note,fails after first rebound at t = 0.02369584372203897
+tab_mmin_ext,star+ring,S,20.0,A,0.7,57.31540143010635,keep_with_note,fails after first rebound at t = 0.017686561161194245
+tab_mmin_ext,star+ring,S,20.0,A,0.8,97.29168982253343,keep_with_note,"frame contact (rule 2, A)"
+tab_mmin_ext,star+ring,S,20.0,Bany,0.0,4.470894484957144,keep_with_note,fails after first rebound at t = 0.04863877619507798
+tab_mmin_ext,star+ring,S,20.0,Bany,0.25,18.386160926427973,keep_with_note,fails after first rebound at t = 0.040690404036079014
+tab_mmin_ext,star+ring,S,20.0,Bany,0.5,9.570017703163535,keep_with_note,fails after first rebound at t = 0.0531300710569215
+tab_mmin_ext,star+ring,S,20.0,Bany,0.6,15.873245993430983,keep_with_note,fails after first rebound at t = 0.05209594406574553
+tab_mmin_ext,star+ring,S,20.0,Bany,0.7,15.412544922381535,keep_with_note,fails after first rebound at t = 0.05923866652462779
+tab_mmin_ext,star+ring,S,20.0,Bany,0.8,14.156087455883041,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,S,20.0,Bloc025,0.0,4.470894484957144,keep_with_note,fails after first rebound at t = 0.04863877619507798
+tab_mmin_ext,star+ring,S,20.0,Bloc025,0.25,18.386160926427973,keep_with_note,fails after first rebound at t = 0.040690404036079014
+tab_mmin_ext,star+ring,S,20.0,Bloc025,0.5,14.533024695832589,keep,
+tab_mmin_ext,star+ring,S,20.0,Bloc025,0.6,21.904241832623757,keep_with_note,fails after first rebound at t = 0.04916222912109115
+tab_mmin_ext,star+ring,S,20.0,Bloc025,0.7,15.412544922381535,keep_with_note,fails after first rebound at t = 0.05923866652462779
+tab_mmin_ext,star+ring,S,20.0,Bloc025,0.8,14.156087455883041,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,S,20.0,Bloc050,0.0,4.470894484957144,keep_with_note,fails after first rebound at t = 0.04863877619507798
+tab_mmin_ext,star+ring,S,20.0,Bloc050,0.25,18.386160926427973,keep_with_note,fails after first rebound at t = 0.040690404036079014
+tab_mmin_ext,star+ring,S,20.0,Bloc050,0.5,9.570017703163535,keep_with_note,fails after first rebound at t = 0.0531300710569215
+tab_mmin_ext,star+ring,S,20.0,Bloc050,0.6,15.873245993430983,keep_with_note,fails after first rebound at t = 0.05209594406574553
+tab_mmin_ext,star+ring,S,20.0,Bloc050,0.7,15.412544922381535,keep_with_note,fails after first rebound at t = 0.05923866652462779
+tab_mmin_ext,star+ring,S,20.0,Bloc050,0.8,14.156087455883041,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,S,20.0,Bloc075,0.0,4.470894484957144,keep_with_note,fails after first rebound at t = 0.04863877619507798
+tab_mmin_ext,star+ring,S,20.0,Bloc075,0.25,18.386160926427973,keep_with_note,fails after first rebound at t = 0.040690404036079014
+tab_mmin_ext,star+ring,S,20.0,Bloc075,0.5,9.570017703163535,keep_with_note,fails after first rebound at t = 0.0531300710569215
+tab_mmin_ext,star+ring,S,20.0,Bloc075,0.6,15.873245993430983,keep_with_note,fails after first rebound at t = 0.05209594406574553
+tab_mmin_ext,star+ring,S,20.0,Bloc075,0.7,15.412544922381535,keep_with_note,fails after first rebound at t = 0.05923866652462779
+tab_mmin_ext,star+ring,S,20.0,Bloc075,0.8,14.156087455883041,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,D,10.0,A,0.0,2.2315979003906254,keep,
+tab_mmin_ext,star+ring,D,10.0,A,0.25,8.385398171164772,keep_with_note,fails after first rebound at t = 0.025475025730265492
+tab_mmin_ext,star+ring,D,10.0,A,0.5,9.088689630681818,keep_with_note,fails after first rebound at t = 0.0219465740578354
+tab_mmin_ext,star+ring,D,10.0,A,0.6,10.387073863636363,keep_with_note,fails after first rebound at t = 0.020100583744362615
+tab_mmin_ext,star+ring,D,10.0,A,0.7,11.144464666193182,keep_with_note,fails after first rebound at t = 0.017798599230798597
+tab_mmin_ext,star+ring,D,10.0,A,0.8,11.360862038352273,keep_with_note,fails after first rebound at t = 0.014405822679967298
+tab_mmin_ext,star+ring,D,10.0,Bany,0.0,2.234538082077569,keep,slow timeout still timeout at 0.5 s
+tab_mmin_ext,star+ring,D,10.0,Bany,0.25,8.430088932806324,keep_with_note,fails after first rebound at t = 0.025437737534593007
+tab_mmin_ext,star+ring,D,10.0,Bany,0.5,2.2909895704668974,keep,
+tab_mmin_ext,star+ring,D,10.0,Bany,0.6,3.0389717916254937,keep_with_note,fails after first rebound at t = 0.050118479771597904
+tab_mmin_ext,star+ring,D,10.0,Bany,0.7,3.15187476840415,keep_with_note,fails after first rebound at t = 0.06091094151433316
+tab_mmin_ext,star+ring,D,10.0,Bany,0.8,2.234538082077569,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,D,10.0,Bloc025,0.0,2.234538082077569,keep,slow timeout still timeout at 0.5 s
+tab_mmin_ext,star+ring,D,10.0,Bloc025,0.25,8.430088932806324,keep_with_note,fails after first rebound at t = 0.025437737534593007
+tab_mmin_ext,star+ring,D,10.0,Bloc025,0.5,2.6579242449975293,keep_with_note,fails after first rebound at t = 0.04596241834787714
+tab_mmin_ext,star+ring,D,10.0,Bloc025,0.6,3.0671975358201577,keep_with_note,fails after first rebound at t = 0.05004839593394787
+tab_mmin_ext,star+ring,D,10.0,Bloc025,0.7,3.208326256793478,keep_with_note,fails after first rebound at t = 0.06083950991057448
+tab_mmin_ext,star+ring,D,10.0,Bloc025,0.8,2.2627638262722334,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,D,10.0,Bloc050,0.0,2.234538082077569,keep,slow timeout still timeout at 0.5 s
+tab_mmin_ext,star+ring,D,10.0,Bloc050,0.25,8.430088932806324,keep_with_note,fails after first rebound at t = 0.025437737534593007
+tab_mmin_ext,star+ring,D,10.0,Bloc050,0.5,2.6579242449975293,keep_with_note,fails after first rebound at t = 0.04596241834787714
+tab_mmin_ext,star+ring,D,10.0,Bloc050,0.6,3.0671975358201577,keep_with_note,fails after first rebound at t = 0.05004839593394787
+tab_mmin_ext,star+ring,D,10.0,Bloc050,0.7,3.208326256793478,keep_with_note,fails after first rebound at t = 0.06083950991057448
+tab_mmin_ext,star+ring,D,10.0,Bloc050,0.8,2.2627638262722334,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,D,10.0,Bloc075,0.0,2.234538082077569,keep,slow timeout still timeout at 0.5 s
+tab_mmin_ext,star+ring,D,10.0,Bloc075,0.25,8.430088932806324,keep_with_note,fails after first rebound at t = 0.025437737534593007
+tab_mmin_ext,star+ring,D,10.0,Bloc075,0.5,2.545021268218873,keep_with_note,fails after first rebound at t = 0.1849117130838253
+tab_mmin_ext,star+ring,D,10.0,Bloc075,0.6,3.0389717916254937,keep_with_note,fails after first rebound at t = 0.050118479771597904
+tab_mmin_ext,star+ring,D,10.0,Bloc075,0.7,3.15187476840415,keep_with_note,fails after first rebound at t = 0.06091094151433316
+tab_mmin_ext,star+ring,D,10.0,Bloc075,0.8,2.234538082077569,exclude,"frame contact (rule 2, B)"
+tab_mmin_ext,star+ring,D,15.0,A,0.0,4.808079112659802,keep_with_note,fails after first rebound at t = 0.0208948672377235
+tab_mmin_ext,star+ring,D,15.0,A,0.25,19.71921053799716,keep_with_note,fails after first rebound at t = 0.016786426883206924
+tab_mmin_ext,star+ring,D,15.0,A,0.5,20.571275190873582,keep_with_note,fails after first rebound at t = 0.014614277171438381
+tab_mmin_ext,star+ring,D,15.0,A,0.6,23.370916193181817,keep_with_note,fails after first rebound at t = 0.013411171291784157
+tab_mmin_ext,star+ring,D,15.0,A,0.7,24.5881514115767,keep_with_note,fails after first rebound at t = 0.011942555488726032
+tab_mmin_ext,star+ring,D,15.0,A,0.8,25.318492542613633,keep_with_note,fails after first rebound at t = 0.009641918741261775
+tab_mmin_ext,star+ring,D,15.0,Bany,0.0,4.805432949141552,keep_with_note,fails after first rebound at t = 0.020898012025310338
+tab_mmin_ext,star+ring,D,15.0,Bany,0.25,18.967700098814234,keep_with_note,fails after first rebound at t = 0.017620694104457584
+tab_mmin_ext,star+ring,D,15.0,Bany,0.5,5.472266155740488,keep_with_note,fails after first rebound at t = 0.1433106658640006
+tab_mmin_ext,star+ring,D,15.0,Bany,0.6,6.710670682281374,keep_with_note,fails after first rebound at t = 0.03529934215157271
+tab_mmin_ext,star+ring,D,15.0,Bany,0.7,6.9647023800333505,keep_with_note,fails after first rebound at t = 0.040514298481326316
+tab_mmin_ext,star+ring,D,15.0,Bany,0.8,5.027710684674532,keep_with_note,fails after first rebound at t = 0.050061424339664866
+tab_mmin_ext,star+ring,D,15.0,Bloc025,0.0,4.805432949141552,keep_with_note,fails after first rebound at t = 0.020898012025310338
+tab_mmin_ext,star+ring,D,15.0,Bloc025,0.25,19.602779343194175,keep_with_note,fails after first rebound at t = 0.016813831460749353
+tab_mmin_ext,star+ring,D,15.0,Bloc025,0.5,7.59978162441329,keep_with_note,fails after first rebound at t = 0.029550670442805065
+tab_mmin_ext,star+ring,D,15.0,Bloc025,0.6,6.837686531157362,keep_with_note,fails after first rebound at t = 0.033428193537390787
+tab_mmin_ext,star+ring,D,15.0,Bloc025,0.7,7.028210304471345,keep_with_note,fails after first rebound at t = 0.04047701028565354
+tab_mmin_ext,star+ring,D,15.0,Bloc025,0.8,5.027710684674532,keep_with_note,fails after first rebound at t = 0.050061424339664866
+tab_mmin_ext,star+ring,D,15.0,Bloc050,0.0,4.805432949141552,keep_with_note,fails after first rebound at t = 0.020898012025310338
+tab_mmin_ext,star+ring,D,15.0,Bloc050,0.25,19.602779343194175,keep_with_note,fails after first rebound at t = 0.016813831460749353
+tab_mmin_ext,star+ring,D,15.0,Bloc050,0.5,5.758051815711464,keep_with_note,fails after first rebound at t = 0.07877108873060103
+tab_mmin_ext,star+ring,D,15.0,Bloc050,0.6,6.837686531157362,keep_with_note,fails after first rebound at t = 0.033428193537390787
+tab_mmin_ext,star+ring,D,15.0,Bloc050,0.7,7.028210304471345,keep_with_note,fails after first rebound at t = 0.04047701028565354
+tab_mmin_ext,star+ring,D,15.0,Bloc050,0.8,5.027710684674532,keep_with_note,fails after first rebound at t = 0.050061424339664866
+tab_mmin_ext,star+ring,D,15.0,Bloc075,0.0,4.805432949141552,keep_with_note,fails after first rebound at t = 0.020898012025310338
+tab_mmin_ext,star+ring,D,15.0,Bloc075,0.25,18.967700098814234,keep_with_note,fails after first rebound at t = 0.017620694104457584
+tab_mmin_ext,star+ring,D,15.0,Bloc075,0.5,5.599282004616477,keep_with_note,fails after first rebound at t = 0.1567761970553592
+tab_mmin_ext,star+ring,D,15.0,Bloc075,0.6,6.710670682281374,keep_with_note,fails after first rebound at t = 0.03529934215157271
+tab_mmin_ext,star+ring,D,15.0,Bloc075,0.7,6.9647023800333505,keep_with_note,fails after first rebound at t = 0.040514298481326316
+tab_mmin_ext,star+ring,D,15.0,Bloc075,0.8,5.027710684674532,keep_with_note,fails after first rebound at t = 0.050061424339664866
+tab_mmin_ext,star+ring,D,20.0,A,0.0,8.385398171164772,keep_with_note,fails after first rebound at t = 0.01575448729935514
+tab_mmin_ext,star+ring,D,20.0,A,0.25,34.83997691761363,keep_with_note,fails after first rebound at t = 0.01262182960748525
+tab_mmin_ext,star+ring,D,20.0,A,0.5,37.86954012784091,keep_with_note,fails after first rebound at t = 0.010865690367915288
+tab_mmin_ext,star+ring,D,20.0,A,0.6,41.33189808238637,keep_with_note,fails after first rebound at t = 0.010084435280268277
+tab_mmin_ext,star+ring,D,20.0,A,0.7,43.71226917613637,keep_with_note,fails after first rebound at t = 0.00897612228358905
+tab_mmin_ext,star+ring,D,20.0,A,0.8,45.87624289772727,keep_with_note,fails after first rebound at t = 0.007207403893672862
+tab_mmin_ext,star+ring,D,20.0,Bany,0.0,8.430088932806324,keep_with_note,fails after first rebound at t = 0.01573382155235593
+tab_mmin_ext,star+ring,D,20.0,Bany,0.25,34.17196763833992,keep_with_note,fails after first rebound at t = 0.013052665506883459
+tab_mmin_ext,star+ring,D,20.0,Bany,0.5,10.292988049654149,keep_with_note,fails after first rebound at t = 0.07196846392495755
+tab_mmin_ext,star+ring,D,20.0,Bany,0.6,11.930081212944662,keep_with_note,fails after first rebound at t = 0.02511607068999663
+tab_mmin_ext,star+ring,D,20.0,Bany,0.7,12.268790143280631,keep_with_note,fails after first rebound at t = 0.03566099272406165
+tab_mmin_ext,star+ring,D,20.0,Bany,0.8,8.54299190958498,keep_with_note,fails after first rebound at t = 0.04920110030697378
+tab_mmin_ext,star+ring,D,20.0,Bloc025,0.0,8.430088932806324,keep_with_note,fails after first rebound at t = 0.01573382155235593
+tab_mmin_ext,star+ring,D,20.0,Bloc025,0.25,34.84938549901186,keep_with_note,fails after first rebound at t = 0.012620931096746151
+tab_mmin_ext,star+ring,D,20.0,Bloc025,0.5,11.1962118638834,keep_with_note,fails after first rebound at t = 0.02279881149386798
+tab_mmin_ext,star+ring,D,20.0,Bloc025,0.6,12.155887166501975,keep_with_note,fails after first rebound at t = 0.02505272568289036
+tab_mmin_ext,star+ring,D,20.0,Bloc025,0.7,12.494596096837945,keep_with_note,fails after first rebound at t = 0.030393473516077137
+tab_mmin_ext,star+ring,D,20.0,Bloc025,0.8,8.938152328310276,keep_with_note,fails after first rebound at t = 0.0375236054862221
+tab_mmin_ext,star+ring,D,20.0,Bloc050,0.0,8.430088932806324,keep_with_note,fails after first rebound at t = 0.01573382155235593
+tab_mmin_ext,star+ring,D,20.0,Bloc050,0.25,34.84938549901186,keep_with_note,fails after first rebound at t = 0.012620931096746151
+tab_mmin_ext,star+ring,D,20.0,Bloc050,0.5,10.688148468379445,keep_with_note,fails after first rebound at t = 0.02296818076818758
+tab_mmin_ext,star+ring,D,20.0,Bloc050,0.6,11.930081212944662,keep_with_note,fails after first rebound at t = 0.02511607068999663
+tab_mmin_ext,star+ring,D,20.0,Bloc050,0.7,12.494596096837945,keep_with_note,fails after first rebound at t = 0.030393473516077137
+tab_mmin_ext,star+ring,D,20.0,Bloc050,0.8,8.938152328310276,keep_with_note,fails after first rebound at t = 0.0375236054862221
+tab_mmin_ext,star+ring,D,20.0,Bloc075,0.0,8.430088932806324,keep_with_note,fails after first rebound at t = 0.01573382155235593
+tab_mmin_ext,star+ring,D,20.0,Bloc075,0.25,34.17196763833992,keep_with_note,fails after first rebound at t = 0.013052665506883459
+tab_mmin_ext,star+ring,D,20.0,Bloc075,0.5,10.688148468379445,keep_with_note,fails after first rebound at t = 0.02296818076818758
+tab_mmin_ext,star+ring,D,20.0,Bloc075,0.6,11.930081212944662,keep_with_note,fails after first rebound at t = 0.02511607068999663
+tab_mmin_ext,star+ring,D,20.0,Bloc075,0.7,12.268790143280631,keep_with_note,fails after first rebound at t = 0.03566099272406165
+tab_mmin_ext,star+ring,D,20.0,Bloc075,0.8,8.54299190958498,keep_with_note,fails after first rebound at t = 0.04920110030697378
+tab_fa_num,star,S,,bisect:break:N8,,0.852344,keep,rule 5 keep
+tab_fa_num,star,S,,bisect:slack:N5,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,bisect:break:N12,,0.768359,keep,rule 5 keep
+tab_fa_num,star,S,,bisect:break:N5,,0.859853,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,bisect:slack:N6,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,bisect:break:N6,,0.828235,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,bisect:slack:N8,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,D,,bisect:break:N5,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,D,,bisect:slack:N5,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,D,,bisect:slack:N6,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,D,,bisect:break:N6,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,bisect:slack:N12,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,D,,bisect:break:N8,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,bisect:break:N16,,0.71125,keep,rule 5 keep
+tab_fa_num,star,D,,bisect:slack:N8,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,D,,bisect:break:N16,,0.731406,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,D,,bisect:break:N12,,0.809265,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,D,,bisect:slack:N12,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,bisect:slack:N16,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,D,,bisect:slack:N16,,0.98,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,amp::N8,,0.0584395,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,amp::N8,,1.35517,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,amp::N8,,1.55305,keep,rule 5 keep
+tab_fa_num,star,S,,amp::N8,,1.57317,keep,rule 5 keep
+tab_fa_num,star,S,,amp::N8,,0.729259,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,amp::N16,,1.58342,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,amp::N16,,1.7991,keep,rule 5 keep
+tab_fa_num,star,S,,amp::N16,,1.80166,keep,rule 5 keep
+tab_fa_num,star,S,,amp::N16,,0.00456729,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+tab_fa_num,star,S,,amp::N16,,0.841049,exclude,rule 5 exclude (D break / slack / N<8 / amp e1>=0.4)
+lambda_map,star,S,20,intact,0.1,10,keep,rule 6
+lambda_map,star,S,20,intact,0.1,8,keep,rule 6
+lambda_map,star,S,20,intact,0.1,7,keep,rule 6
+lambda_map,star,S,20,intact,0.1,6,keep,rule 6
+lambda_map,star,S,20,intact,0.1,5.5,keep,rule 6
+lambda_map,star,S,20,intact,0.1,5,keep,rule 6
+lambda_map,star,S,20,local,0.1,4.5,keep,rule 6
+lambda_map,star,S,20,local,0.1,4,keep,rule 6
+lambda_map,star,S,20,perforated,0.1,1.5,keep,rule 6
+lambda_map,star,S,20,intact,0.2,5,keep,rule 6
+lambda_map,star,S,20,intact,0.2,5.5,keep,rule 6
+lambda_map,star,S,20,intact,0.2,7,keep,rule 6
+lambda_map,star,S,20,intact,0.2,6,keep,rule 6
+lambda_map,star,S,20,intact,0.2,4.5,keep,rule 6
+lambda_map,star,S,20,local,0.1,3,keep,rule 6
+lambda_map,star,S,20,intact,0.2,8,keep,rule 6
+lambda_map,star,S,20,local,0.2,4,keep,rule 6
+lambda_map,star,S,20,intact,0.2,10,keep,rule 6
+lambda_map,star,S,20,local,0.1,3.5,keep,rule 6
+lambda_map,star,S,20,local,0.1,2.5,keep,rule 6
+lambda_map,star,S,20,perforated,0.3,2.5,keep,rule 6
+lambda_map,star,S,20,perforated,0.3,3,keep,rule 6
+lambda_map,star,S,20,nonlocal,0.3,5,keep,rule 6
+lambda_map,star,S,20,nonlocal,0.3,4.5,keep,rule 6
+lambda_map,star,S,20,local,0.3,4,keep,rule 6
+lambda_map,star,S,20,intact,0.3,5.5,keep,rule 6
+lambda_map,star,S,20,intact,0.3,6,keep,rule 6
+lambda_map,star,S,20,perforated,0.2,1.5,keep,rule 6
+lambda_map,star,S,20,intact,0.3,8,keep,rule 6
+lambda_map,star,S,20,intact,0.3,10,keep,rule 6
+lambda_map,star,S,20,perforated,0.2,2.5,keep,rule 6
+lambda_map,star,S,20,perforated,0.2,2,keep,rule 6
+lambda_map,star,S,20,intact,0.3,7,keep,rule 6
+lambda_map,star,S,20,perforated,0.1,2,keep,rule 6
+lambda_map,star,S,20,perforated,0.2,3,keep,rule 6
+lambda_map,star,S,20,nonlocal,0.4,6,keep,rule 6
+lambda_map,star,S,20,nonlocal,0.4,4.5,keep,rule 6
+lambda_map,star,S,20,local,0.4,5,keep,rule 6
+lambda_map,star,S,20,local,0.4,5.5,keep,rule 6
+lambda_map,star,S,20,perforated,0.3,1.5,keep,rule 6
+lambda_map,star,S,20,timeout,0.2,3.5,keep,rule 6
+lambda_map,star,S,20,intact,0.4,10,keep,rule 6
+lambda_map,star,S,20,perforated,0.4,3,keep,rule 6
+lambda_map,star,S,20,perforated,0.3,2,keep,rule 6
+lambda_map,star,S,20,intact,0.4,8,keep,rule 6
+lambda_map,star,S,20,local,0.4,4,keep,rule 6
+lambda_map,star,S,20,intact,0.4,7,keep,rule 6
+lambda_map,star,S,20,local,0.4,3.5,keep,rule 6
+lambda_map,star,S,20,local,0.5,5.5,keep,rule 6
+lambda_map,star,S,20,local,0.5,4,keep,rule 6
+lambda_map,star,S,20,local,0.5,5,keep,rule 6
+lambda_map,star,S,20,local,0.5,4.5,keep,rule 6
+lambda_map,star,S,20,local,0.5,7,keep,rule 6
+lambda_map,star,S,20,local,0.5,6,keep,rule 6
+lambda_map,star,S,20,local,0.5,8,keep,rule 6
+lambda_map,star,S,20,perforated,0.4,1.5,keep,rule 6
+lambda_map,star,S,20,perforated,0.5,2.5,keep,rule 6
+lambda_map,star,S,20,timeout,0.3,3.5,keep,rule 6
+lambda_map,star,S,20,intact,0.5,10,keep,rule 6
+lambda_map,star,S,20,perforated,0.4,2,keep,rule 6
+lambda_map,star,S,20,perforated,0.5,1.5,keep,rule 6
+lambda_map,star,S,20,perforated,0.4,2.5,keep,rule 6
+lambda_map,star,S,20,local,0.5,3.5,keep,rule 6
+lambda_map,star,S,20,local,0.5,3,keep,rule 6
+lambda_map,star,S,20,intact,0.6,10,keep,rule 6
+lambda_map,star,S,20,local,0.6,5,keep,rule 6
+lambda_map,star,S,20,local,0.6,4,keep,rule 6
+lambda_map,star,S,20,local,0.6,5.5,keep,rule 6
+lambda_map,star,S,20,local,0.6,3.5,keep,rule 6
+lambda_map,star,S,20,local,0.6,4.5,keep,rule 6
+lambda_map,star,S,20,local,0.6,6,keep,rule 6
+lambda_map,star,S,20,local,0.6,7,keep,rule 6
+lambda_map,star,S,20,local,0.6,8,keep,rule 6
+lambda_map,star,S,20,perforated,0.6,1.5,keep,rule 6
+lambda_map,star,S,20,perforated,0.6,2.5,keep,rule 6
+lambda_map,star,S,20,perforated,0.5,2,keep,rule 6
+lambda_map,star,S,20,local,0.6,3,keep,rule 6
+lambda_map,star,S,20,perforated,0.7,1.5,keep,rule 6
+lambda_map,star,S,20,local,0.7,4.5,keep,rule 6
+lambda_map,star,S,20,local,0.7,5.5,keep,rule 6
+lambda_map,star,S,20,local,0.7,4,keep,rule 6
+lambda_map,star,S,20,local,0.7,6,keep,rule 6
+lambda_map,star,S,20,local,0.7,7,keep,rule 6
+lambda_map,star,S,20,local,0.7,5,keep,rule 6
+lambda_map,star,S,20,local,0.7,3.5,keep,rule 6
+lambda_map,star,S,20,local,0.7,8,keep,rule 6
+lambda_map,star,S,20,local,0.7,10,keep,rule 6
+lambda_map,star,S,20,perforated,0.6,2,keep,rule 6
+lambda_map,star,S,20,local,0.7,2.5,keep,rule 6
+lambda_map,star,S,20,perforated,0.7,2,keep,rule 6
+lambda_map,star,D,20,intact,0.1,5.5,keep,rule 6
+lambda_map,star,S,20,timeout,0.7,3,keep,rule 6
+lambda_map,star,D,20,intact,0.1,7,keep,rule 6
+lambda_map,star,D,20,intact,0.1,10,keep,rule 6
+lambda_map,star,D,20,intact,0.1,6,keep,rule 6
+lambda_map,star,D,20,intact,0.1,5,keep,rule 6
+lambda_map,star,D,20,intact,0.1,4,keep,rule 6
+lambda_map,star,D,20,intact,0.1,4.5,keep,rule 6
+lambda_map,star,D,20,intact,0.1,3.5,keep,rule 6
+lambda_map,star,D,20,intact,0.1,8,keep,rule 6
+lambda_map,star,D,20,intact,0.1,3,keep,rule 6
+lambda_map,star,D,20,intact,0.2,5.5,keep,rule 6
+lambda_map,star,D,20,intact,0.2,8,keep,rule 6
+lambda_map,star,D,20,intact,0.2,7,keep,rule 6
+lambda_map,star,D,20,intact,0.2,10,keep,rule 6
+lambda_map,star,D,20,intact,0.2,6,keep,rule 6
+lambda_map,star,D,20,intact,0.2,5,keep,rule 6
+lambda_map,star,D,20,intact,0.2,4.5,keep,rule 6
+lambda_map,star,D,20,local,0.2,4,keep,rule 6
+lambda_map,star,D,20,intact,0.3,5,keep,rule 6
+lambda_map,star,D,20,intact,0.3,5.5,keep,rule 6
+lambda_map,star,D,20,intact,0.3,6,keep,rule 6
+lambda_map,star,D,20,intact,0.3,7,keep,rule 6
+lambda_map,star,D,20,perforated,0.2,2.5,keep,rule 6
+lambda_map,star,D,20,intact,0.3,8,keep,rule 6
+lambda_map,star,D,20,intact,0.3,10,keep,rule 6
+lambda_map,star,D,20,perforated,0.4,2,keep,rule 6
+lambda_map,star,D,20,perforated,0.2,1.5,keep,rule 6
+lambda_map,star,D,20,nonlocal,0.1,2.5,keep,rule 6
+lambda_map,star,D,20,perforated,0.2,2,keep,rule 6
+lambda_map,star,D,20,perforated,0.3,1.5,keep,rule 6
+lambda_map,star,D,20,perforated,0.3,2,keep,rule 6
+lambda_map,star,D,20,perforated,0.3,2.5,keep,rule 6
+lambda_map,star,D,20,local,0.4,5,keep,rule 6
+lambda_map,star,D,20,intact,0.4,5.5,keep,rule 6
+lambda_map,star,D,20,perforated,0.4,3,keep,rule 6
+lambda_map,star,D,20,intact,0.4,6,keep,rule 6
+lambda_map,star,D,20,intact,0.4,8,keep,rule 6
+lambda_map,star,D,20,intact,0.4,7,keep,rule 6
+lambda_map,star,D,20,intact,0.4,10,keep,rule 6
+lambda_map,star,D,20,local,0.5,1.5,keep,rule 6
+lambda_map,star,D,20,timeout,0.1,2,keep,rule 6
+lambda_map,star,D,20,perforated,0.4,2.5,keep,rule 6
+lambda_map,star,D,20,timeout,0.3,4,keep,rule 6
+lambda_map,star,D,20,timeout,0.2,3.5,keep,rule 6
+lambda_map,star,D,20,timeout,0.1,1.5,keep,rule 6
+lambda_map,star,D,20,timeout,0.2,3,keep,rule 6
+lambda_map,star,D,20,timeout,0.3,3.5,keep,rule 6
+lambda_map,star,D,20,timeout,0.3,4.5,keep,rule 6
+lambda_map,star,D,20,timeout,0.3,3,keep,rule 6
+lambda_map,star,D,20,intact,0.5,5.5,keep,rule 6
+lambda_map,star,D,20,intact,0.5,7,keep,rule 6
+lambda_map,star,D,20,intact,0.5,6,keep,rule 6
+lambda_map,star,D,20,intact,0.5,8,keep,rule 6
+lambda_map,star,D,20,intact,0.5,10,keep,rule 6
+lambda_map,star,D,20,perforated,0.5,2,keep,rule 6
+lambda_map,star,D,20,local,0.6,2,keep,rule 6
+lambda_map,star,D,20,timeout,0.4,1.5,keep,rule 6
+lambda_map,star,D,20,local,0.6,1.5,keep,rule 6
+lambda_map,star,D,20,intact,0.6,5.5,keep,rule 6
+lambda_map,star,D,20,intact,0.6,6,keep,rule 6
+lambda_map,star,D,20,perforated,0.5,2.5,keep,rule 6
+lambda_map,star,D,20,intact,0.6,7,keep,rule 6
+lambda_map,star,D,20,intact,0.6,8,keep,rule 6
+lambda_map,star,D,20,intact,0.6,10,keep,rule 6
+lambda_map,star,D,20,timeout,0.4,3.5,keep,rule 6
+lambda_map,star,D,20,timeout,0.4,4,keep,rule 6
+lambda_map,star,D,20,timeout,0.4,4.5,keep,rule 6
+lambda_map,star,D,20,local,0.7,1.5,keep,rule 6
+lambda_map,star,D,20,local,0.7,2,keep,rule 6
+lambda_map,star,D,20,perforated,0.6,2.5,keep,rule 6
+lambda_map,star,D,20,local,0.7,2.5,keep,rule 6
+lambda_map,star,D,20,timeout,0.5,3,keep,rule 6
+lambda_map,star,D,20,timeout,0.5,3.5,keep,rule 6
+lambda_map,star,D,20,intact,0.7,6,keep,rule 6
+lambda_map,star,D,20,timeout,0.5,5,keep,rule 6
+lambda_map,star,D,20,timeout,0.5,4,keep,rule 6
+lambda_map,star,D,20,intact,0.7,7,keep,rule 6
+lambda_map,star,D,20,intact,0.7,8,keep,rule 6
+lambda_map,star,D,20,timeout,0.5,4.5,keep,rule 6
+lambda_map,star,D,20,intact,0.7,10,keep,rule 6
+lambda_map,star,D,20,timeout,0.6,3.5,keep,rule 6
+lambda_map,star,D,20,local,0.7,5.5,keep,rule 6
+lambda_map,star,D,20,timeout,0.6,3,keep,rule 6
+lambda_map,star,D,20,timeout,0.6,4,keep,rule 6
+lambda_map,star,D,20,timeout,0.6,5,keep,rule 6
+lambda_map,star,D,20,timeout,0.6,4.5,keep,rule 6
+lambda_map,star,D,20,timeout,0.7,3,keep,rule 6
+lambda_map,star,D,20,timeout,0.7,3.5,keep,rule 6
+lambda_map,star,D,20,timeout,0.7,4.5,keep,rule 6
+lambda_map,star,D,20,timeout,0.7,4,keep,rule 6
+lambda_map,star,D,20,timeout,0.7,5,keep,rule 6
+mass_scan,star,S,15,muA_1.02,0.25,8.63569,keep,rule 6
+mass_scan,star,S,15,muA_1.00,0.25,8.46636,keep,rule 6
+mass_scan,star,S,15,muA_0.98,0.25,8.29703,keep,rule 6
+mass_scan,star,S,15,muB_1.50,0.25,6.13111,keep,rule 6
+mass_scan,star,S,15,muB_1.25,0.25,5.10926,keep,rule 6
+mass_scan,star,S,15,muB_1.10,0.25,4.49615,keep,rule 6
+mass_scan,star,S,15,muB_1.00,0.5,4.08741,keep,rule 6
+mass_scan,star,S,15,muB_0.98,0.5,4.00566,keep,rule 6
+mass_scan,star,S,15,muB_1.05,0.25,4.29178,keep,rule 6
+mass_scan,star,S,15,muB_1.02,0.25,4.16916,keep,rule 6
+mass_scan,star,S,15,muB_1.00,0.25,4.08741,keep,rule 6
+mass_scan,star,S,15,muB_0.95,0.5,3.88304,keep,rule 6
+mass_scan,star,S,15,muB_1.02,0.5,4.16916,keep,rule 6
+mass_scan,star,S,15,muB_1.10,0.5,4.49615,keep,rule 6
+mass_scan,star,S,15,muB_1.05,0.5,4.29178,keep,rule 6
+mass_scan,star,S,15,muB_0.90,0.5,3.67867,keep,rule 6
+mass_scan,star,S,15,muB_1.25,0.5,5.10926,keep,rule 6
+mass_scan,star,S,15,muB_1.50,0.5,6.13111,keep,rule 6
+mass_scan,star,S,15,muA_1.00,0.5,8.46636,keep,rule 6
+mass_scan,star,S,15,muA_1.02,0.5,8.63569,keep,rule 6
+mass_scan,star,S,15,muA_0.98,0.5,8.29703,keep,rule 6
+mass_scan,star,S,20,muA_0.98,0.25,15.2223,keep,rule 6
+mass_scan,star,S,20,muA_1.00,0.25,15.533,keep,rule 6
+mass_scan,star,S,20,muA_1.02,0.25,15.8437,keep,rule 6
+mass_scan,star,S,20,muB_1.25,0.25,9.2402,keep,rule 6
+mass_scan,star,S,20,muB_1.50,0.25,11.0882,keep,rule 6
+mass_scan,star,S,20,muB_1.05,0.25,7.76177,keep,rule 6
+mass_scan,star,S,20,muB_1.10,0.25,8.13138,keep,rule 6
+mass_scan,star,S,20,muB_1.02,0.25,7.54,keep,rule 6
+mass_scan,star,S,20,muB_1.00,0.5,7.39216,keep,rule 6
+mass_scan,star,S,20,muB_0.98,0.5,7.24432,keep,rule 6
+mass_scan,star,S,20,muB_1.05,0.5,7.76177,keep,rule 6
+mass_scan,star,S,20,muB_1.02,0.5,7.54,keep,rule 6
+mass_scan,star,S,20,muB_0.90,0.5,6.65294,keep,rule 6
+mass_scan,star,S,20,muB_1.50,0.5,11.0882,keep,rule 6
+mass_scan,star,S,20,muB_1.25,0.5,9.2402,keep,rule 6
+mass_scan,star,S,20,muB_1.10,0.5,8.13138,keep,rule 6
+mass_scan,star,S,20,muA_1.00,0.5,15.533,keep,rule 6
+mass_scan,star,S,20,muA_1.02,0.5,15.8437,keep,rule 6
+mass_scan,star,S,20,muA_0.98,0.5,15.2223,keep,rule 6
+mass_scan,star,S,15,muB_0.98,0.25,4.00566,keep,rule 6
+mass_scan,star,S,15,muB_0.95,0.25,3.88304,keep,rule 6
+mass_scan,star,S,15,muB_0.90,0.25,3.67867,keep,rule 6
+mass_scan,star,S,20,muB_0.95,0.25,7.02255,keep,rule 6
+mass_scan,star,S,20,muB_0.90,0.25,6.65294,keep,rule 6
+mass_scan,star,S,20,muB_1.00,0.25,7.39216,keep,rule 6
+mass_scan,star,S,20,muB_0.98,0.25,7.24432,keep,rule 6
+mass_scan,star,S,20,muB_0.95,0.5,7.02255,keep,rule 6
+mass_scan,star,D,15,muB_1.02,0.25,10.2565,keep,rule 6
+mass_scan,star,D,15,muB_0.98,0.25,9.85429,keep,rule 6
+mass_scan,star,D,15,muB_0.90,0.25,9.04986,keep,rule 6
+mass_scan,star,D,15,muB_0.95,0.25,9.55263,keep,rule 6
+mass_scan,star,D,15,muB_1.50,0.25,15.0831,keep,rule 6
+mass_scan,star,D,15,muB_1.00,0.25,10.0554,keep,rule 6
+mass_scan,star,D,15,muB_1.25,0.25,12.5693,keep,rule 6
+mass_scan,star,D,15,muB_1.10,0.25,11.0609,keep,rule 6
+mass_scan,star,D,15,muB_1.05,0.25,10.5582,keep,rule 6
+mass_scan,star,D,15,muA_0.98,0.25,9.96062,keep,rule 6
+mass_scan,star,D,15,muA_1.00,0.25,10.1639,keep,rule 6
+mass_scan,star,D,15,muA_1.02,0.25,10.3672,keep,rule 6
+mass_scan,star,D,15,muB_1.00,0.5,10.0554,keep,rule 6
+mass_scan,star,D,15,muB_1.50,0.5,15.0831,keep,rule 6
+mass_scan,star,D,15,muB_1.02,0.5,10.2565,keep,rule 6
+mass_scan,star,D,15,muB_1.25,0.5,12.5693,keep,rule 6
+mass_scan,star,D,20,muB_0.90,0.25,15.8854,keep,rule 6
+mass_scan,star,D,15,muB_1.05,0.5,10.5582,keep,rule 6
+mass_scan,star,D,20,muB_0.95,0.25,16.768,keep,rule 6
+mass_scan,star,D,15,muB_1.10,0.5,11.0609,keep,rule 6
+mass_scan,star,D,20,muB_0.98,0.25,17.2975,keep,rule 6
+mass_scan,star,D,15,muA_1.00,0.5,10.1639,keep,rule 6
+mass_scan,star,D,15,muA_1.02,0.5,10.3672,keep,rule 6
+mass_scan,star,D,20,muB_1.00,0.25,17.6505,keep,rule 6
+mass_scan,star,D,20,muB_1.02,0.25,18.0035,keep,rule 6
+mass_scan,star,D,20,muB_1.50,0.25,26.4757,keep,rule 6
+mass_scan,star,D,20,muB_1.10,0.25,19.4155,keep,rule 6
+mass_scan,star,D,20,muB_1.25,0.25,22.0631,keep,rule 6
+mass_scan,star,D,20,muB_1.05,0.25,18.533,keep,rule 6
+mass_scan,star,D,20,muA_1.00,0.25,18.2856,keep,rule 6
+mass_scan,star,D,20,muA_0.98,0.25,17.9199,keep,rule 6
+mass_scan,star,D,20,muA_1.02,0.25,18.6513,keep,rule 6
+mass_scan,star,D,20,muB_1.02,0.5,18.0035,keep,rule 6
+mass_scan,star,D,20,muB_1.05,0.5,18.533,keep,rule 6
+mass_scan,star,D,20,muB_1.25,0.5,22.0631,keep,rule 6
+mass_scan,star,D,20,muB_1.10,0.5,19.4155,keep,rule 6
+mass_scan,star,D,20,muB_1.50,0.5,26.4757,keep,rule 6
+mass_scan,star,D,20,muA_1.00,0.5,18.2856,keep,rule 6
+mass_scan,star,D,20,muA_1.02,0.5,18.6513,keep,rule 6
+mass_scan,star,D,20,muA_0.98,0.5,17.9199,keep,rule 6
+mass_scan,star,S,20,muB_1.02,0.25,7.54,keep,rule 6
+mass_scan,star,S,20,muB_1.25,0.25,9.2402,keep,rule 6
+mass_scan,star,S,20,muB_1.05,0.25,7.76177,keep,rule 6
+mass_scan,star,S,20,muB_1.10,0.25,8.13138,keep,rule 6
+mass_scan,star,S,20,muB_1.00,0.25,7.39216,keep,rule 6
+mass_scan,star,S,20,muB_1.50,0.25,11.0882,keep,rule 6
+mass_scan,star,S,20,muA_0.98,0.25,15.2223,keep,rule 6
+mass_scan,star,S,20,muA_1.00,0.25,15.533,keep,rule 6
+mass_scan,star,S,20,muA_1.02,0.25,15.8437,keep,rule 6
+mass_scan,star,S,20,muB_0.90,0.25,6.65294,keep,rule 6
+mass_scan,star,S,20,muB_0.98,0.5,7.24432,keep,rule 6
+mass_scan,star,S,20,muB_0.95,0.25,7.02255,keep,rule 6
+mass_scan,star,S,20,muB_0.98,0.25,7.24432,keep,rule 6
+mass_scan,star,S,20,muB_1.10,0.5,8.13138,keep,rule 6
+mass_scan,star,S,20,muB_1.50,0.5,11.0882,keep,rule 6
+mass_scan,star,S,20,muB_1.25,0.5,9.2402,keep,rule 6
+mass_scan,star,S,20,muA_0.98,0.5,15.2223,keep,rule 6
+mass_scan,star,S,20,muA_1.00,0.5,15.533,keep,rule 6
+mass_scan,star,S,20,muB_0.90,0.5,6.65294,keep,rule 6
+mass_scan,star,S,20,muA_1.02,0.5,15.8437,keep,rule 6
+mass_scan,star,S,20,muB_0.95,0.5,7.02255,keep,rule 6
+mass_scan,star,S,20,muB_1.00,0.5,7.39216,keep,rule 6
+mass_scan,star,S,20,muB_1.02,0.5,7.54,keep,rule 6
+mass_scan,star,D,15,muB_0.98,0.5,9.85429,keep,rule 6
+mass_scan,star,S,20,muB_1.05,0.5,7.76177,keep,rule 6
+mass_scan,star,D,20,muB_0.95,0.25,16.768,keep,rule 6
+mass_scan,star,D,20,muB_0.98,0.25,17.2975,keep,rule 6
+mass_scan,star,D,20,muB_0.90,0.25,15.8854,keep,rule 6
+mass_scan,star,D,20,muB_1.00,0.25,17.6505,keep,rule 6
+mass_scan,star,D,20,muB_1.02,0.25,18.0035,keep,rule 6
+mass_scan,star,D,20,muB_1.05,0.25,18.533,keep,rule 6
+mass_scan,star,D,20,muB_1.10,0.25,19.4155,keep,rule 6
+mass_scan,star,D,20,muB_1.25,0.25,22.0631,keep,rule 6
+mass_scan,star,D,20,muB_1.50,0.25,26.4757,keep,rule 6
+mass_scan,star,D,20,muA_1.02,0.25,18.6513,keep,rule 6
+mass_scan,star,D,20,muA_1.00,0.25,18.2856,keep,rule 6
+mass_scan,star,D,20,muA_0.98,0.25,17.9199,keep,rule 6
+mass_scan,star,D,20,muB_1.00,0.5,17.6505,keep,rule 6
+mass_scan,star,D,20,muB_0.95,0.5,16.768,keep,rule 6
+mass_scan,star,D,20,muB_0.90,0.5,15.8854,keep,rule 6
+mass_scan,star,D,20,muB_0.98,0.5,17.2975,keep,rule 6
+mass_scan,star,D,20,muB_1.00,0.5,17.6505,keep,rule 6
+mass_scan,star,D,20,muB_1.02,0.5,18.0035,keep,rule 6
+mass_scan,star,D,20,muB_1.05,0.5,18.533,keep,rule 6
+mass_scan,star,D,20,muB_1.50,0.5,26.4757,keep,rule 6
+mass_scan,star,D,20,muB_1.25,0.5,22.0631,keep,rule 6
+mass_scan,star,D,20,muA_0.98,0.5,17.9199,keep,rule 6
+mass_scan,star,D,20,muB_1.10,0.5,19.4155,keep,rule 6
+mass_scan,star,D,20,muA_1.00,0.5,18.2856,keep,rule 6
+mass_scan,star,D,20,muA_1.02,0.5,18.6513,keep,rule 6
+mass_scan,star,D,15,muB_0.95,0.5,9.55263,keep,rule 6
+mass_scan,star,D,15,muB_0.90,0.5,9.04986,keep,rule 6
+mass_scan,star,D,15,muA_0.98,0.5,9.96062,keep,rule 6
+mass_scan,star,D,20,muB_0.90,0.5,15.8854,keep,rule 6
+mass_scan,star,D,20,muB_0.95,0.5,16.768,keep,rule 6
+mass_scan,star,D,20,muB_0.98,0.5,17.2975,keep,rule 6
+mmin_lockxy,star,S,20,,,,keep,rule 6
+mmin_lockxy,star,D,20,,,,keep,rule 6
+fig_etaa,star,S,,,0,,keep,rule 6
+fig_etaa,star,S,,,0.05,,keep,rule 6
+fig_etaa,star,S,,,0.1,,keep,rule 6
+fig_etaa,star,S,,,0.2,,keep,rule 6
+fig_etaa,star,S,,,0.3,,keep,rule 6
+fig_etaa,star,S,,,0.4,,keep,rule 6
+fig_etaa,star,S,,,0.5,,keep,rule 6
+fig_etaa,star,S,,,0,,keep,rule 6
+fig_etaa,star,S,,,0.05,,keep,rule 6
+fig_etaa,star,S,,,0.1,,keep,rule 6
+fig_etaa,star,S,,,0.2,,keep,rule 6
+fig_etaa,star,S,,,0.3,,keep,rule 6
+fig_etaa,star,S,,,0.4,,keep,rule 6
+fig_etaa,star,S,,,0.5,,keep,rule 6
+fig_etaa,star,D,,,0,,keep,rule 6
+fig_etaa,star,D,,,0.05,,keep,rule 6
+fig_etaa,star,D,,,0.1,,keep,rule 6
+fig_etaa,star,D,,,0.2,,keep,rule 6
+fig_etaa,star,D,,,0.3,,keep,rule 6
+fig_etaa,star,D,,,0.4,,keep,rule 6
+fig_etaa,star,D,,,0.5,,keep,rule 6
+fig_etaa,star,D,,,0,,keep,rule 6
+fig_etaa,star,D,,,0.05,,keep,rule 6
+fig_etaa,star,D,,,0.1,,keep,rule 6
+fig_etaa,star,D,,,0.2,,keep,rule 6
+fig_etaa,star,D,,,0.3,,keep,rule 6
+fig_etaa,star,D,,,0.4,,keep,rule 6
+fig_etaa,star,D,,,0.5,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_junction_nl,star,S,,,,,keep,rule 6
+tab_mmin_ring_ns,star+ring,S,10.0,,0.7,,keep,rule 6
+tab_mmin_ring_ns,star+ring,S,10.0,,0.8,,keep,rule 6
+tab_mmin_ring_ns,star+ring,S,10.0,,0.8,,keep,rule 6
+tab_mmin_ring_ns,star+ring,D,10.0,,0.8,,keep,rule 6
+tab_mmin_ring_ns,star+ring,D,10.0,,0.7,,keep,rule 6
+mmin_frictionless,star,S,20,,,,keep,rule 6
+mmin_frictionless,star,D,20,,,,keep,rule 6
+tab_conv,star,,,,,10.4,keep,rule 6
+tab_conv,star,,,,,10.4,keep,rule 6
+tab_conv,star,,,,,10.4,keep,rule 6
+tab_conv,star,,,,,10.4,keep,rule 6
+tab_conv,star,,,,,10.4,keep,rule 6
+tab_conv,star,,,,,10.4,keep,rule 6
+tab_conv,star,,,,,10.4,keep,rule 6
+tab_conv,star,,,,,10.4,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+params_used,star,,,,,,keep,rule 6
+tab_mmin,star,D,10,,,,keep,rule 6
+tab_mmin,star,D,15,,,,keep,rule 6
+tab_mmin,star,D,20,,,,keep,rule 6
+tab_mmin,star,D,10,,,,keep,rule 6
+tab_mmin,star,D,15,,,,keep,rule 6
+tab_mmin,star,D,20,,,,keep,rule 6
+tab_mmin,star,D,10,,,,keep,rule 6
+tab_mmin,star,D,15,,,,keep,rule 6
+tab_mmin,star,D,20,,,,keep,rule 6
+tab_mmin,star,S,10,,,,keep,rule 6
+tab_mmin,star,S,15,,,,keep,rule 6
+tab_mmin,star,S,20,,,,keep,rule 6
+tab_mmin,star,S,10,,,,keep,rule 6
+tab_mmin,star,S,15,,,,keep,rule 6
+tab_mmin,star,S,20,,,,keep,rule 6
+tab_mmin,star,S,10,,,,keep,rule 6
+tab_mmin,star,S,15,,,,keep,rule 6
+tab_mmin,star,S,20,,,,keep,rule 6
+tab_mmin,star+ring,S,10,,,,keep,rule 6
+tab_mmin,star+ring,S,15,,,,keep,rule 6
+tab_mmin,star+ring,S,20,,,,keep,rule 6
+tab_mmin,star+ring,S,10,,,,keep,rule 6
+tab_mmin,star+ring,S,15,,,,keep,rule 6
+tab_mmin,star+ring,S,20,,,,keep,rule 6
+tab_mmin,star+ring,S,10,,,,keep,rule 6
+tab_mmin,star+ring,S,15,,,,keep,rule 6
+tab_mmin,star+ring,S,20,,,,keep,rule 6
+tab_mmin,star+ring,D,10,,,,keep,rule 6
+tab_mmin,star+ring,D,15,,,,keep,rule 6
+tab_mmin,star+ring,D,20,,,,keep,rule 6
+tab_mmin,star+ring,D,10,,,,keep,rule 6
+tab_mmin,star+ring,D,15,,,,keep,rule 6
+tab_mmin,star+ring,D,20,,,,keep,rule 6
+tab_mmin,star+ring,D,10,,,,keep,rule 6
+tab_mmin,star+ring,D,15,,,,keep,rule 6
+tab_mmin,star+ring,D,20,,,,keep,rule 6

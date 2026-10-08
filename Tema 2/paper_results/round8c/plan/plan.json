@@ -1,0 +1,39 @@
+{
+  "n_jobs": 197,
+  "n_post_arrest": 187,
+  "n_slow_timeout": 10,
+  "workers_per_vm": 16,
+  "n_vms": 4,
+  "cpu_s_total": 198020.0,
+  "per_shard": [
+    {
+      "shard": "A",
+      "n_jobs": 49,
+      "cpu_s": 49620.0,
+      "wall_s_proj": 3101.25,
+      "n_star_D40": 12
+    },
+    {
+      "shard": "B",
+      "n_jobs": 49,
+      "cpu_s": 49440.0,
+      "wall_s_proj": 3090.0,
+      "n_star_D40": 12
+    },
+    {
+      "shard": "C",
+      "n_jobs": 49,
+      "cpu_s": 49400.0,
+      "wall_s_proj": 3087.5,
+      "n_star_D40": 11
+    },
+    {
+      "shard": "D",
+      "n_jobs": 50,
+      "cpu_s": 49560.0,
+      "wall_s_proj": 3097.5,
+      "n_star_D40": 11
+    }
+  ],
+  "wall_s_proj": 3101.25
+}

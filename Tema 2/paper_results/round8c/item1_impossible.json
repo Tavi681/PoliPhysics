@@ -1,0 +1,143 @@
+[
+  {
+    "kind": "post_arrest",
+    "net": "star",
+    "material": "D",
+    "M": 1.0,
+    "v0": 10.0,
+    "n_s": 40,
+    "a": 0.8,
+    "s": 0.056098937988281264,
+    "m_g": 0.43617595325816766,
+    "criteria": "Bany,Bloc075",
+    "t_end": 0.25000007214808806,
+    "continue_after_arrest": true,
+    "expected_cpu": 2300.0,
+    "run_id": "pa_star_D_v10_ns40_a0.80_s0.056099",
+    "shard": "C",
+    "outcome": "arrested",
+    "arrested": 1,
+    "t_arrest": 0.13776636959199778,
+    "Kd_xy": 39.70472245667268,
+    "Kd_z": 0.05522735174551019,
+    "Kd": 39.759949808418185,
+    "Knet": 0.37803588046215725,
+    "Uel": 9.879021165819282,
+    "Ufail": 0.23620605468750006,
+    "Ucontact": 0.002073672630268254,
+    "Ucapture": 6.815239980147011e-05,
+    "eta": 0.3914725842557724,
+    "Kd_over_Ekin": 0.7951989961683636,
+    "m_net_g": 0.43617595325816766,
+    "mstar_g": 0.8655894886363636,
+    "below_mstar": 1,
+    "drone_x": 0.06439192087941631,
+    "drone_y": -1.1964236914509378e-17,
+    "drone_z": -0.7613619390009468,
+    "vx": -8.911191652885746,
+    "vy": -1.1390055127836623e-15,
+    "vz": 0.33234703689962114,
+    "n_failed_threads_arrest": 1,
+    "n_failed_threads_end": 7,
+    "n_failed_seg_arrest": 3,
+    "n_failed_seg_end": 26,
+    "failed_threads_arrest": [
+      0
+    ],
+    "failed_threads_end": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      7
+    ],
+    "fail_after_arrest": 1,
+    "fail_after_parents": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      7
+    ],
+    "perforate_after_arrest": 0,
+    "t_perforate": NaN,
+    "max_dxy_after_arrest": 0.8711571137159472,
+    "frame_contact": 0,
+    "t_frame_contact": NaN,
+    "frame_contact_before_arrest": 0,
+    "contacts_at_arrest": [
+      {
+        "node": 30,
+        "dist_drone": 0.1499862638161722,
+        "dist_anchor": 1.178188567834035,
+        "near_frame": 0
+      },
+      {
+        "node": 31,
+        "dist_drone": 0.14997871034653604,
+        "dist_anchor": 1.1934536124492698,
+        "near_frame": 0
+      },
+      {
+        "node": 32,
+        "dist_drone": 0.14997898925376998,
+        "dist_anchor": 1.2122426547618568,
+        "near_frame": 0
+      },
+      {
+        "node": 33,
+        "dist_drone": 0.1499790987776066,
+        "dist_anchor": 1.2338681529722662,
+        "near_frame": 0
+      },
+      {
+        "node": 34,
+        "dist_drone": 0.14997909506523072,
+        "dist_anchor": 1.2575751436664635,
+        "near_frame": 0
+      },
+      {
+        "node": 35,
+        "dist_drone": 0.14997869534690156,
+        "dist_anchor": 1.2825789126803246,
+        "near_frame": 0
+      },
+      {
+        "node": 36,
+        "dist_drone": 0.1499790701383582,
+        "dist_anchor": 1.3081044317200867,
+        "near_frame": 0
+      },
+      {
+        "node": 37,
+        "dist_drone": 0.1499796090072129,
+        "dist_anchor": 1.3334065590342234,
+        "near_frame": 0
+      },
+      {
+        "node": 38,
+        "dist_drone": 0.14997872497256473,
+        "dist_anchor": 1.3366399035636956,
+        "near_frame": 0
+      },
+      {
+        "node": 39,
+        "dist_drone": 0.14997855374753793,
+        "dist_anchor": 1.3229537371597406,
+        "near_frame": 0
+      },
+      {
+        "node": 40,
+        "dist_drone": 0.14999792626400688,
+        "dist_anchor": 1.3061161057622186,
+        "near_frame": 0
+      }
+    ],
+    "timeout_subclass": "escaped",
+    "cpu_s": 1100.1950726509094
+  }
+]

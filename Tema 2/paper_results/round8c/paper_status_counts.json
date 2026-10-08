@@ -1,0 +1,41 @@
+{
+  "tab_mmin_ext": {
+    "keep": 59,
+    "keep_with_note": 279,
+    "exclude": 22
+  },
+  "tab_fa_num": {
+    "keep": 7,
+    "exclude": 23
+  },
+  "lambda_map": {
+    "keep": 182
+  },
+  "mass_scan": {
+    "keep": 144
+  },
+  "mmin_lockxy": {
+    "keep": 2
+  },
+  "fig_etaa": {
+    "keep": 28
+  },
+  "tab_junction_nl": {
+    "keep": 18
+  },
+  "tab_mmin_ring_ns": {
+    "keep": 5
+  },
+  "mmin_frictionless": {
+    "keep": 2
+  },
+  "tab_conv": {
+    "keep": 8
+  },
+  "params_used": {
+    "keep": 24
+  },
+  "tab_mmin": {
+    "keep": 36
+  }
+}

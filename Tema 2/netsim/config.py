@@ -144,6 +144,9 @@ class NumericsConfig:
     # elastic energy on radial 0 plus the rest lumped.
     store_mesh: bool = True
     energy_groups: bool = False
+    # If True, record the first vz rebound but keep integrating until t_end
+    # or perforation. Default False = Algorithm 1 (stop at first arrest).
+    continue_after_arrest: bool = False
 
     def validate(self) -> None:
         if self.n_s < 1:
