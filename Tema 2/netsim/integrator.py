@@ -174,6 +174,53 @@ def _piston_segment_mask(seg_edges, forced_node, n_seg):
     return mask
 
 
+def _hub_outward_segs(seg_edges, seg_parent):
+    """Per parent thread, segment indices ordered from the hub (node 0)."""
+    parents = sorted(set(int(p) for p in seg_parent))
+    order = {p: [] for p in parents}
+    used = set()
+    for p in parents:
+        node = 0
+        for _ in range(len(seg_edges)):
+            found = None
+            nxt = None
+            for s, (i, j) in enumerate(seg_edges):
+                if s in used or int(seg_parent[s]) != p:
+                    continue
+                if i == node or j == node:
+                    found = s
+                    nxt = int(j if i == node else i)
+                    break
+            if found is None:
+                break
+            order[p].append(found)
+            used.add(found)
+            node = nxt
+    return order
+
+
+def _shock_visc_forces(x, seg_edges, seg_rest, seg_A, intact, eps_new, eps_old,
+                       dt, visc, rho, c_tan):
+    """Artificial viscosity T += visc * rho * c * h * deps/dt on taut segs."""
+    if visc <= 0.0 or dt <= 0.0:
+        return np.zeros_like(x)
+    de = (eps_new - eps_old) / dt
+    c = np.asarray(c_tan, dtype=float)
+    T = visc * rho * c * seg_rest * de
+    T = np.where(intact & (eps_new > 0.0), T, 0.0)
+    i = seg_edges[:, 0]
+    j = seg_edges[:, 1]
+    d = x[j] - x[i]
+    length = np.sqrt(np.sum(d * d, axis=1))
+    with np.errstate(invalid="ignore", divide="ignore"):
+        fdir = np.where(length[:, None] > 0.0, d / length[:, None], 0.0)
+    fseg = (T * seg_A)[:, None] * fdir
+    f = np.zeros_like(x)
+    np.add.at(f, i, fseg)
+    np.add.at(f, j, -fseg)
+    return f
+
+
 def integrate(disc, material, drone, numerics, contact, output,
               kinematic=None, *, net_R=1.0, impact_point=None,
               stop_on_failure=False, stop_after_n_failures=None):
@@ -263,6 +310,13 @@ def integrate(disc, material, drone, numerics, contact, output,
         piston = _piston_segment_mask(
             seg_edges, forced_node,
             int(getattr(kinematic, "piston_n_seg", 0) or 0))
+    fail_avg_n = 0
+    hub_order = None
+    if kinematic is not None and not drone_mode:
+        fail_avg_n = int(getattr(kinematic, "fail_avg_n_seg", 0) or 0)
+        if fail_avg_n > 0:
+            hub_order = _hub_outward_segs(seg_edges, disc.seg_parent)
+    shock_visc = float(getattr(numerics, "shock_visc", 0.0) or 0.0)
 
     r_d = drone.r_d
     # Resolve the penalty stiffness (absolute or relative to axial stiffness).
@@ -508,6 +562,19 @@ def integrate(disc, material, drone, numerics, contact, output,
         # the overshot eps_new). For stiff D the CFL step can jump well past
         # eps_b in one dt; booking Phi(eps_new) then leaves a late-run residual.
         failed = intact & (eps_new >= eps_b) & ~piston
+        if fail_avg_n > 0 and hub_order is not None:
+            failed = np.zeros_like(intact)
+            for segs in hub_order.values():
+                take = segs[:fail_avg_n]
+                if not take:
+                    continue
+                live = [s for s in take if intact[s] and not piston[s]]
+                if not live:
+                    continue
+                avg = float(np.mean(eps_new[live]))
+                if avg >= eps_b:
+                    for s in live:
+                        failed[s] = True
         any_failed = bool(np.any(failed))
         if any_failed:
             for s in np.nonzero(failed)[0]:
@@ -537,11 +604,21 @@ def integrate(disc, material, drone, numerics, contact, output,
                     drone_x_first_fail = float(xd_new[0])
                     drone_y_first_fail = float(xd_new[1])
             intact[failed] = False
+        eps_prev = eps_old
         eps_old = eps_new
 
         # --- Alg.1 line 4: forces and a^{n+1} --------------------------------
         a_new, ad_new, ce = accelerations(x_new, v, xd_new, vd, intact, grip,
                                           M_eff)
+        if shock_visc > 0.0:
+            fv = _shock_visc_forces(
+                x_new, seg_edges, seg_rest, seg_A, intact, eps_new, eps_prev,
+                dt, shock_visc, material.rho, material.c_tan(eps_new))
+            with np.errstate(invalid="ignore"):
+                a_new = a_new + fv / mass[:, None]
+            a_new[anchored] = 0.0
+            if not drone_mode:
+                a_new[forced_node] = 0.0 if not free_lateral else a_new[forced_node]
 
         # --- Alg.1 line 5: velocity update -----------------------------------
         v_new = v.copy()

@@ -1,4 +1,4 @@
-# commit=0e4c75d684d5095d4c5ed5f7818a9188cbe68ecf date=2026-10-03T11:40:25 config=default dirty=false
+# commit=a6c47058a4b2c7308529e4ee1572ad9f82908dbc date=2026-10-07T03:42:15 config=default code_dirty=true
 symbol,value,unit,comment
 E0_S,2e+09,Pa,material S small-strain modulus
 b_S,2.22e+10,Pa,material S cubic coefficient
@@ -12,7 +12,11 @@ rho_D,975,kg/m^3,material D density
 e_mat_D,57764.1,J/kg,material D specific energy
 r_d,0.15,m,drone radius (working value; '?' in paper)
 k_c,10000000.0,N/m^1.5,absolute penalty stiffness (working value)
-k_c_factor,8.0,-,relative-k_c factor for material D (round 4)
+k_c_factor,8.0,-,D relative k_c: k_c = k_c_factor^2 (E0 A / l_s) / ((3/2) sqrt(delta_ref)); not 8e7 absolute
+delta_ref,0.0015,m,contact reference penetration = delta_ref_frac * r_d (delta_ref_frac=0.01)
+delta_ref_frac,0.01,-,delta_ref / r_d
+damping_qs,400.0,1/s,viscous damping per unit mass in quasi-static Tests 2/5 (off-centre pull / hub F(w)); dynamic Alg.1/2 uses 0
+dt_out_dyn,0.005,s,output interval of Alg.2 / production dynamic runs (item-1 diagnostics use 1e-4 s)
 R_max,0.5,m,cascade radius (working value)
 k_max,10,-,cascade failure count (working value)
 N,8,-,reference number of radials

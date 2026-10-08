@@ -1,0 +1,1 @@
+{"material": "S", "N": 6, "mode": "slack", "eps1_frac": 0.98, "n_seg": 400, "n_slack": 0, "dTmax": 3.115855578406511e-13, "T0": -1.750787434251068e-13, "dTopp": -1.0317018350372278e-13, "Tnear": 60599400.00034011, "reached": false, "cpu_s": 79.12360191345215, "run_id": "fa8b2_slack_S_N6_n400_p24", "note": "slack not reached at e1_frac<=0.98 with piston=24"}

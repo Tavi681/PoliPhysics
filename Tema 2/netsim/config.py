@@ -134,6 +134,9 @@ class NumericsConfig:
     t_end: float = 0.2
     dt_out: float = 1e-4
     damping: float = 0.0  # viscous damping coefficient (per unit mass), default 0
+    # Optional shock viscosity (ref/sim.py): T += visc * rho * c * h * deps/dt
+    # on taut segments. 0 = off (production). Used only in Test-3 / 4b.
+    shock_visc: float = 0.0
     area_scale: float = 1.0
     seed: Optional[int] = None
     use_numba: bool = True
@@ -194,6 +197,9 @@ class KinematicConfig:
     # driven node. Those segments are the actuator, not the specimen; without
     # this a launch with ε₁ close to ε_b breaks at the driven end.
     piston_n_seg: int = 0
+    # If > 0, fail a thread only when the mean strain of the first this many
+    # hub-adjacent segments reaches eps_b (grid-scale overshoot filter).
+    fail_avg_n_seg: int = 0
 
     def value(self, t: float) -> float:
         if self.func is not None:

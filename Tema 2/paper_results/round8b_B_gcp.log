@@ -1,0 +1,376 @@
+=== round8b on-vm start 2026-10-07T15:49:59Z shard=B commit=52515f47b8956abf6b82c517b6a560a11242285e dirty=true jobs=16 mmin_n_procs=1 ===
+OMP_NUM_THREADS 1
+MMIN_N_PROCS 1
+mmin cache h5 8185
+warning: Not a git repository. Use --no-index to compare two paths outside a working tree
+usage: git diff --no-index [<options>] <path> <path>
+
+Diff output format options
+    -p, --patch           generate patch
+    -s, --no-patch        suppress diff output
+    -u                    generate patch
+    -U, --unified[=<n>]   generate diffs with <n> lines context
+    -W, --function-context
+                          generate diffs with <n> lines context
+    --raw                 generate the diff in raw format
+    --patch-with-raw      synonym for '-p --raw'
+    --patch-with-stat     synonym for '-p --stat'
+    --numstat             machine friendly --stat
+    --shortstat           output only the last line of --stat
+    -X, --dirstat[=<param1,param2>...]
+                          output the distribution of relative amount of changes for each sub-directory
+    --cumulative          synonym for --dirstat=cumulative
+    --dirstat-by-file[=<param1,param2>...]
+                          synonym for --dirstat=files,param1,param2...
+    --check               warn if changes introduce conflict markers or whitespace errors
+    --summary             condensed summary such as creations, renames and mode changes
+    --name-only           show only names of changed files
+    --name-status         show only names and status of changed files
+    --stat[=<width>[,<name-width>[,<count>]]]
+                          generate diffstat
+    --stat-width <width>  generate diffstat with a given width
+    --stat-name-width <width>
+                          generate diffstat with a given name width
+    --stat-graph-width <width>
+                          generate diffstat with a given graph width
+    --stat-count <count>  generate diffstat with limited lines
+    --compact-summary     generate compact summary in diffstat
+    --binary              output a binary diff that can be applied
+    --full-index          show full pre- and post-image object names on the "index" lines
+    --color[=<when>]      show colored diff
+    --ws-error-highlight <kind>
+                          highlight whitespace errors in the 'context', 'old' or 'new' lines in the diff
+    -z                    do not munge pathnames and use NULs as output field terminators in --raw or --numstat
+    --abbrev[=<n>]        use <n> digits to display object names
+    --src-prefix <prefix>
+                          show the given source prefix instead of "a/"
+    --dst-prefix <prefix>
+                          show the given destination prefix instead of "b/"
+    --line-prefix <prefix>
+                          prepend an additional prefix to every line of output
+    --no-prefix           do not show any source or destination prefix
+    --inter-hunk-context <n>
+                          show context between diff hunks up to the specified number of lines
+    --output-indicator-new <char>
+                          specify the character to indicate a new line instead of '+'
+    --output-indicator-old <char>
+                          specify the character to indicate an old line instead of '-'
+    --output-indicator-context <char>
+                          specify the character to indicate a context instead of ' '
+
+Diff rename options
+    -B, --break-rewrites[=<n>[/<m>]]
+                          break complete rewrite changes into pairs of delete and create
+    -M, --find-renames[=<n>]
+                          detect renames
+    -D, --irreversible-delete
+                          omit the preimage for deletes
+    -C, --find-copies[=<n>]
+                          detect copies
+    --find-copies-harder  use unmodified files as source to find copies
+    --no-renames          disable rename detection
+    --rename-empty        use empty blobs as rename source
+    --follow              continue listing the history of a file beyond renames
+    -l <n>                prevent rename/copy detection if the number of rename/copy targets exceeds given limit
+
+Diff algorithm options
+    --minimal             produce the smallest possible diff
+    -w, --ignore-all-space
+                          ignore whitespace when comparing lines
+    -b, --ignore-space-change
+                          ignore changes in amount of whitespace
+    --ignore-space-at-eol
+                          ignore changes in whitespace at EOL
+    --ignore-cr-at-eol    ignore carrier-return at the end of line
+    --ignore-blank-lines  ignore changes whose lines are all blank
+    -I, --ignore-matching-lines <regex>
+                          ignore changes whose all lines match <regex>
+    --indent-heuristic    heuristic to shift diff hunk boundaries for easy reading
+    --patience            generate diff using the "patience diff" algorithm
+    --histogram           generate diff using the "histogram diff" algorithm
+    --diff-algorithm <algorithm>
+                          choose a diff algorithm
+    --anchored <text>     generate diff using the "anchored diff" algorithm
+    --word-diff[=<mode>]  show word diff, using <mode> to delimit changed words
+    --word-diff-regex <regex>
+                          use <regex> to decide what a word is
+    --color-words[=<regex>]
+                          equivalent to --word-diff=color --word-diff-regex=<regex>
+    --color-moved[=<mode>]
+                          moved lines of code are colored differently
+    --color-moved-ws <mode>
+                          how white spaces are ignored in --color-moved
+
+Other diff options
+    --relative[=<prefix>]
+                          when run from subdir, exclude changes outside and show relative paths
+    -a, --text            treat all files as text
+    -R                    swap two inputs, reverse the diff
+    --exit-code           exit with 1 if there were differences, 0 otherwise
+    --quiet               disable all output of the program
+    --ext-diff            allow an external diff helper to be executed
+    --textconv            run external text conversion filters when comparing binary files
+    --ignore-submodules[=<when>]
+                          ignore changes to submodules in the diff generation
+    --submodule[=<format>]
+                          specify how differences in submodules are shown
+    --ita-invisible-in-index
+                          hide 'git add -N' entries from the index
+    --ita-visible-in-index
+                          treat 'git add -N' entries as real in the index
+    -S <string>           look for differences that change the number of occurrences of the specified string
+    -G <regex>            look for differences that change the number of occurrences of the specified regex
+    --pickaxe-all         show all changes in the changeset with -S or -G
+    --pickaxe-regex       treat <string> in -S as extended POSIX regular expression
+    -O <file>             control the order in which files appear in the output
+    --rotate-to <path>    show the change in the specified path first
+    --skip-to <path>      skip the output to the specified path
+    --find-object <object-id>
+                          look for differences that change the number of occurrences of the specified object
+    --diff-filter [(A|C|D|M|R|T|U|X|B)...[*]]
+                          select files by diff type
+    --output <file>       Output to a specific file
+
+=== round8b shard=B jobs=16 commit=52515f47b8956abf6b82c517b6a560a11242285e dirty=true ===
+[B] 18 A-point jobs × 16 workers
+  point A D v0=15.0 a=0.00 s=0.2603 cpu=0s
+  point A D v0=10.0 a=0.00 s=0.1148 cpu=0s
+  point A D v0=10.0 a=0.70 s=0.6262 cpu=0s
+  point A D v0=10.0 a=0.60 s=0.6088 cpu=0s
+  point A D v0=15.0 a=0.50 s=1.307 cpu=0s  point A D v0=15.0 a=0.25 s=1.088 cpu=0s
+
+  point A D v0=10.0 a=0.25 s=0.4801 cpu=0s
+  point A D v0=10.0 a=0.50 s=0.5775 cpu=0s
+  point A D v0=10.0 a=0.80 s=0.6401 cpu=0s
+  point A D v0=20.0 a=0.00 s=0.4627 cpu=1255s
+  point A D v0=15.0 a=0.80 s=1.448 cpu=1621s
+  point A D v0=20.0 a=0.50 s=2.352 cpu=2190s
+  point A D v0=20.0 a=0.60 s=2.435 cpu=2535s
+  point A D v0=20.0 a=0.80 s=2.644 cpu=2740s
+  point A D v0=15.0 a=0.60 s=1.37 cpu=3069s
+  point A D v0=20.0 a=0.70 s=2.602 cpu=3075s
+  point A D v0=15.0 a=0.70 s=1.472 cpu=3515s
+  point A D v0=20.0 a=0.25 s=1.92 cpu=4501s
+[B] 72 B-point jobs × 16 workers (s_cap from A)
+  point Bany D v0=10.0 a=0.50 s=0.5494 cpu=0s
+  point Bloc025 D v0=10.0 a=0.50 s=0.5494 cpu=0s
+  point Bany D v0=10.0 a=0.25 s=0.4695 cpu=0s
+  point Bloc025 D v0=10.0 a=0.25 s=0.4695 cpu=0s
+  point Bloc050 D v0=10.0 a=0.50 s=0.5494 cpu=0s
+  point Bany D v0=10.0 a=0.00 s=0.115 cpu=0s
+  point Bloc050 D v0=10.0 a=0.25 s=0.4695 cpu=0s
+  point Bloc025 D v0=10.0 a=0.00 s=0.115 cpu=0s
+  point Bloc050 D v0=10.0 a=0.00 s=0.115 cpu=0s
+  point Bloc075 D v0=10.0 a=0.00 s=0.115 cpu=0s
+  point Bloc075 D v0=10.0 a=0.25 s=0.4695 cpu=0s
+  point Bloc075 D v0=10.0 a=0.50 s=0.5494 cpu=0s
+  point Bany D v0=15.0 a=0.25 s=1.048 cpu=0s
+  point Bany D v0=15.0 a=0.50 s=1.293 cpu=0s
+  point Bany D v0=15.0 a=0.00 s=0.2587 cpu=0s
+  point Bloc025 D v0=15.0 a=0.00 s=0.2587 cpu=0s
+  point Bloc025 D v0=15.0 a=0.25 s=1.048 cpu=0s
+  point Bloc025 D v0=15.0 a=0.50 s=1.293 cpu=0s
+  point Bloc025 D v0=10.0 a=0.80 s=0.6329 cpu=5284s
+  point Bloc050 D v0=10.0 a=0.80 s=0.6184 cpu=5286s
+  point Bloc025 D v0=15.0 a=0.80 s=1.432 cpu=67s
+  point Bloc050 D v0=15.0 a=0.00 s=0.2587 cpu=0s
+  point Bloc050 D v0=15.0 a=0.25 s=1.048 cpu=0s
+  point Bloc050 D v0=15.0 a=0.50 s=1.293 cpu=0s
+  point Bany D v0=15.0 a=0.80 s=1.187 cpu=6724s
+  point Bany D v0=10.0 a=0.80 s=0.0561 cpu=7725s
+  point Bloc075 D v0=10.0 a=0.80 s=0.0561 cpu=7725s
+  point Bloc075 D v0=15.0 a=0.00 s=0.2587 cpu=0s
+  point Bloc075 D v0=15.0 a=0.25 s=1.048 cpu=0s
+  point Bloc075 D v0=15.0 a=0.50 s=1.293 cpu=0s
+  point Bloc050 D v0=15.0 a=0.80 s=1.383 cpu=68s
+  point Bloc025 D v0=15.0 a=0.60 s=1.359 cpu=9871s
+  point Bloc075 D v0=15.0 a=0.80 s=1.187 cpu=0s
+  point Bany D v0=20.0 a=0.00 s=0.4635 cpu=792s
+  point Bany D v0=10.0 a=0.60 s=0.5748 cpu=11701s
+  point Bloc025 D v0=10.0 a=0.60 s=0.5748 cpu=11701s
+  point Bloc050 D v0=10.0 a=0.60 s=0.5748 cpu=11701s
+  point Bloc075 D v0=10.0 a=0.60 s=0.5748 cpu=11701s
+  point Bany D v0=10.0 a=0.70 s=0.6075 cpu=11810s
+  point Bloc025 D v0=10.0 a=0.70 s=0.6075 cpu=11810s
+  point Bloc050 D v0=10.0 a=0.70 s=0.6075 cpu=11810s
+  point Bloc075 D v0=10.0 a=0.70 s=0.6075 cpu=11810s
+  point Bloc025 D v0=20.0 a=0.00 s=0.4635 cpu=0s
+  point Bany D v0=15.0 a=0.60 s=1.285 cpu=11916s
+  point Bloc050 D v0=15.0 a=0.60 s=1.285 cpu=6564s
+  point Bloc075 D v0=15.0 a=0.60 s=1.285 cpu=4192s
+  point Bloc050 D v0=20.0 a=0.00 s=0.4635 cpu=0s
+  point Bany D v0=15.0 a=0.70 s=1.293 cpu=12287s
+  point Bloc025 D v0=15.0 a=0.70 s=1.293 cpu=7003s
+  point Bloc050 D v0=15.0 a=0.70 s=1.293 cpu=5564s
+  point Bloc075 D v0=15.0 a=0.70 s=1.293 cpu=4495s
+  point Bloc075 D v0=20.0 a=0.00 s=0.4635 cpu=0s
+  point Bloc025 D v0=20.0 a=0.80 s=2.546 cpu=2115s
+  point Bloc050 D v0=20.0 a=0.80 s=2.546 cpu=1744s
+  point Bany D v0=20.0 a=0.80 s=2.052 cpu=5060s
+  point Bany D v0=20.0 a=0.25 s=1.907 cpu=7633s
+  point Bloc025 D v0=20.0 a=0.25 s=1.907 cpu=6485s
+  point Bloc050 D v0=20.0 a=0.25 s=1.907 cpu=6379s
+  point Bloc075 D v0=20.0 a=0.25 s=1.907 cpu=6008s
+  point Bloc075 D v0=20.0 a=0.80 s=2.052 cpu=0s
+  point Bany D v0=20.0 a=0.50 s=2.27 cpu=8699s
+  point Bloc025 D v0=20.0 a=0.50 s=2.27 cpu=8590s
+  point Bloc050 D v0=20.0 a=0.50 s=2.27 cpu=8483s
+  point Bloc075 D v0=20.0 a=0.50 s=2.27 cpu=6368s
+  point Bany D v0=20.0 a=0.70 s=2.227 cpu=9724s
+  point Bloc025 D v0=20.0 a=0.70 s=2.227 cpu=9615s
+  point Bloc050 D v0=20.0 a=0.70 s=2.227 cpu=9138s
+  point Bloc075 D v0=20.0 a=0.70 s=2.227 cpu=4664s
+  point Bany D v0=20.0 a=0.60 s=2.415 cpu=10071s
+  point Bloc025 D v0=20.0 a=0.60 s=2.415 cpu=9962s
+  point Bloc050 D v0=20.0 a=0.60 s=2.415 cpu=9485s
+  point Bloc075 D v0=20.0 a=0.60 s=2.415 cpu=7741s
+[B] mmin_ext star D v0=10.0 mA=4.977g worstA=[0.8, 0.0] cpu=50378s
+[B] 1/3 mmin_ext elapsed=50378s remain~100757s rate=0.1/h
+[B] mmin_ext star D v0=15.0 mA=11.44g worstA=[0.7, 0.0] cpu=59449s
+[B] 2/3 mmin_ext elapsed=59449s remain~29724s rate=0.1/h
+[B] mmin_ext star D v0=20.0 mA=20.56g worstA=[0.8, 0.0] cpu=76324s
+[B] 3/3 mmin_ext elapsed=76324s remain~0s rate=0.1/h
+warning: Not a git repository. Use --no-index to compare two paths outside a working tree
+usage: git diff --no-index [<options>] <path> <path>
+
+Diff output format options
+    -p, --patch           generate patch
+    -s, --no-patch        suppress diff output
+    -u                    generate patch
+    -U, --unified[=<n>]   generate diffs with <n> lines context
+    -W, --function-context
+                          generate diffs with <n> lines context
+    --raw                 generate the diff in raw format
+    --patch-with-raw      synonym for '-p --raw'
+    --patch-with-stat     synonym for '-p --stat'
+    --numstat             machine friendly --stat
+    --shortstat           output only the last line of --stat
+    -X, --dirstat[=<param1,param2>...]
+                          output the distribution of relative amount of changes for each sub-directory
+    --cumulative          synonym for --dirstat=cumulative
+    --dirstat-by-file[=<param1,param2>...]
+                          synonym for --dirstat=files,param1,param2...
+    --check               warn if changes introduce conflict markers or whitespace errors
+    --summary             condensed summary such as creations, renames and mode changes
+    --name-only           show only names of changed files
+    --name-status         show only names and status of changed files
+    --stat[=<width>[,<name-width>[,<count>]]]
+                          generate diffstat
+    --stat-width <width>  generate diffstat with a given width
+    --stat-name-width <width>
+                          generate diffstat with a given name width
+    --stat-graph-width <width>
+                          generate diffstat with a given graph width
+    --stat-count <count>  generate diffstat with limited lines
+    --compact-summary     generate compact summary in diffstat
+    --binary              output a binary diff that can be applied
+    --full-index          show full pre- and post-image object names on the "index" lines
+    --color[=<when>]      show colored diff
+    --ws-error-highlight <kind>
+                          highlight whitespace errors in the 'context', 'old' or 'new' lines in the diff
+    -z                    do not munge pathnames and use NULs as output field terminators in --raw or --numstat
+    --abbrev[=<n>]        use <n> digits to display object names
+    --src-prefix <prefix>
+                          show the given source prefix instead of "a/"
+    --dst-prefix <prefix>
+                          show the given destination prefix instead of "b/"
+    --line-prefix <prefix>
+                          prepend an additional prefix to every line of output
+    --no-prefix           do not show any source or destination prefix
+    --inter-hunk-context <n>
+                          show context between diff hunks up to the specified number of lines
+    --output-indicator-new <char>
+                          specify the character to indicate a new line instead of '+'
+    --output-indicator-old <char>
+                          specify the character to indicate an old line instead of '-'
+    --output-indicator-context <char>
+                          specify the character to indicate a context instead of ' '
+
+Diff rename options
+    -B, --break-rewrites[=<n>[/<m>]]
+                          break complete rewrite changes into pairs of delete and create
+    -M, --find-renames[=<n>]
+                          detect renames
+    -D, --irreversible-delete
+                          omit the preimage for deletes
+    -C, --find-copies[=<n>]
+                          detect copies
+    --find-copies-harder  use unmodified files as source to find copies
+    --no-renames          disable rename detection
+    --rename-empty        use empty blobs as rename source
+    --follow              continue listing the history of a file beyond renames
+    -l <n>                prevent rename/copy detection if the number of rename/copy targets exceeds given limit
+
+Diff algorithm options
+    --minimal             produce the smallest possible diff
+    -w, --ignore-all-space
+                          ignore whitespace when comparing lines
+    -b, --ignore-space-change
+                          ignore changes in amount of whitespace
+    --ignore-space-at-eol
+                          ignore changes in whitespace at EOL
+    --ignore-cr-at-eol    ignore carrier-return at the end of line
+    --ignore-blank-lines  ignore changes whose lines are all blank
+    -I, --ignore-matching-lines <regex>
+                          ignore changes whose all lines match <regex>
+    --indent-heuristic    heuristic to shift diff hunk boundaries for easy reading
+    --patience            generate diff using the "patience diff" algorithm
+    --histogram           generate diff using the "histogram diff" algorithm
+    --diff-algorithm <algorithm>
+                          choose a diff algorithm
+    --anchored <text>     generate diff using the "anchored diff" algorithm
+    --word-diff[=<mode>]  show word diff, using <mode> to delimit changed words
+    --word-diff-regex <regex>
+                          use <regex> to decide what a word is
+    --color-words[=<regex>]
+                          equivalent to --word-diff=color --word-diff-regex=<regex>
+    --color-moved[=<mode>]
+                          moved lines of code are colored differently
+    --color-moved-ws <mode>
+                          how white spaces are ignored in --color-moved
+
+Other diff options
+    --relative[=<prefix>]
+                          when run from subdir, exclude changes outside and show relative paths
+    -a, --text            treat all files as text
+    -R                    swap two inputs, reverse the diff
+    --exit-code           exit with 1 if there were differences, 0 otherwise
+    --quiet               disable all output of the program
+    --ext-diff            allow an external diff helper to be executed
+    --textconv            run external text conversion filters when comparing binary files
+    --ignore-submodules[=<when>]
+                          ignore changes to submodules in the diff generation
+    --submodule[=<format>]
+                          specify how differences in submodules are shown
+    --ita-invisible-in-index
+                          hide 'git add -N' entries from the index
+    --ita-visible-in-index
+                          treat 'git add -N' entries as real in the index
+    -S <string>           look for differences that change the number of occurrences of the specified string
+    -G <regex>            look for differences that change the number of occurrences of the specified regex
+    --pickaxe-all         show all changes in the changeset with -S or -G
+    --pickaxe-regex       treat <string> in -S as extended POSIX regular expression
+    -O <file>             control the order in which files appear in the output
+    --rotate-to <path>    show the change in the specified path first
+    --skip-to <path>      skip the output to the specified path
+    --find-object <object-id>
+                          look for differences that change the number of occurrences of the specified object
+    --diff-filter [(A|C|D|M|R|T|U|X|B)...[*]]
+                          select files by diff type
+    --output <file>       Output to a specific file
+
+=== shard B done in 76324s ===
+=== round8b on-vm done 2026-10-08T13:02:04Z shard=B ===
+ngeset with -S or -G
+    --pickaxe-regex       treat <string> in -S as extended POSIX regular expression
+    -O <file>             control the order in which files appear in the output
+    --rotate-to <path>    show the change in the specified path first
+    --skip-to <path>      skip the output to the specified path
+    --find-object <object-id>
+                          look for differences that change the number of occurrences of the specified object
+    --diff-filter [(A|C|D|M|R|T|U|X|B)...[*]]
+                          select files by diff type
+    --output <file>       Output to a specific file
+
+=== shard B done in 76324s ===
+=== round8b on-vm done 2026-10-08T13:02:04Z shard=B ===

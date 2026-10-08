@@ -1,0 +1,20 @@
+# commit=52515f47b8956abf6b82c517b6a560a11242285e date=2026-10-07T18:42:26 config=round8b_item3_moving_t2 code_dirty=true
+source,material,v0,a,lock_xy,mu_label,outcome,class,timeout_subclass,t_end,t_end_setting,speed,run_id
+mass_scan,S,20.0,0.25,True,muB_0.90,perforated,perforated,moving,0.27686889559342404,0.5,6.311221548714091,to8b_mscan_S_v20_a0.25_L_muB_0.90_t2
+mass_scan,S,20.0,0.5,True,muB_1.00,perforated,perforated,moving,0.3133733756817881,0.5,5.034750647284567,to8b_mscan_S_v20_a0.5_L_muB_1.00_t2
+mass_scan,S,20.0,0.25,True,muB_0.95,perforated,perforated,moving,0.3409965825134347,0.5,4.970449996543002,to8b_mscan_S_v20_a0.25_L_muB_0.95_t2
+mass_scan,S,20.0,0.25,False,muB_0.98,perforated,perforated,moving,0.3502808998234177,0.5,5.166776206613364,to8b_mscan_S_v20_a0.25_F_muB_0.98_t2
+mass_scan,S,20.0,0.5,True,muB_1.02,perforated,perforated,moving,0.3924116872503132,0.5,3.8573722326595092,to8b_mscan_S_v20_a0.5_L_muB_1.02_t2
+mass_scan,S,20.0,0.25,True,muB_0.98,perforated,perforated,moving,0.38960577765944465,0.5,4.290425573576742,to8b_mscan_S_v20_a0.25_L_muB_0.98_t2
+mass_scan,S,20.0,0.5,True,muB_1.05,timeout,timeout,moving,0.5000035997829003,0.5,2.656266412591145,to8b_mscan_S_v20_a0.5_L_muB_1.05_t2
+mass_scan,S,20.0,0.25,False,muB_1.00,timeout,timeout,escaped,0.5000017871327955,0.5,4.172212401552666,to8b_mscan_S_v20_a0.25_F_muB_1.00_t2
+mass_scan,S,20.0,0.25,False,muB_0.90,perforated,perforated,moving,0.25167762634848667,0.5,7.207468686350101,to8b_mscan_S_v20_a0.25_F_muB_0.90_t2
+lambda_map,S,20.0,0.2,False,m3.5,perforated,perforated,escaped,0.2911841758463616,0.5,6.777150078177835,to8b_lam_S_a0.2_m3.5_t2
+lambda_map,S,20.0,0.3,False,m3.5,perforated,perforated,escaped,0.3877124453795613,0.5,6.84874807317013,to8b_lam_S_a0.3_m3.5_t2
+mass_scan,S,15.0,0.25,False,muB_0.98,perforated,perforated,escaped,0.38519034269040925,0.5,3.2872097385889765,to8b_mscan_S_v15_a0.25_F_muB_0.98_t2
+mass_scan,S,15.0,0.25,False,muB_0.90,perforated,perforated,moving,0.3382835158950287,0.5,5.367326265187944,to8b_mscan_S_v15_a0.25_F_muB_0.90_t2
+mass_scan,S,15.0,0.25,False,muB_0.95,perforated,perforated,moving,0.4164484750414975,0.5,4.324858354014235,to8b_mscan_S_v15_a0.25_F_muB_0.95_t2
+lambda_map,D,20.0,0.7,False,m5,perforated,perforated,escaped,0.3169740718963787,0.5,6.619454833271122,to8b_lam_D_a0.7_m5_t2
+mass_scan,D,15.0,0.5,False,muA_0.98,timeout,timeout,moving,0.50000014426951,0.5,1.2509758983500912,to8b_mscan_D_v15_a0.5_F_muA_0.98_t2
+mass_scan,D,15.0,0.5,False,muB_0.95,timeout,timeout,moving,0.50000014426951,0.5,3.1469610851585954,to8b_mscan_D_v15_a0.5_F_muB_0.95_t2
+lambda_map,D,20.0,0.3,False,m4.5,timeout,timeout,moving,0.50000014426951,0.5,2.3003507950098854,to8b_lam_D_a0.3_m4.5_t2

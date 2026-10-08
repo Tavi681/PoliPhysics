@@ -1,0 +1,12 @@
+{
+  "n": 50,
+  "counts": {
+    "escaped": 32,
+    "moving": 18
+  },
+  "n_slow": 0,
+  "n_doubled": 0,
+  "class_changed": [],
+  "t_end_setting": 0.25,
+  "t_end_note": "paper_star_cfg / mass_scan / lambda_map use t_end=0.25 s"
+}

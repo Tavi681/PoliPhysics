@@ -57,8 +57,8 @@ launch_shard() {
     echo "Instance ${inst} already exists — skip create, will wait."
     return 0
   fi
-  echo "Launching shard ${shard} JOBS=${jobs}..."
-  DETACH=true SHARD="${shard}" JOBS="${jobs}" bash "${LAUNCH}"
+  echo "Launching shard ${shard} JOBS=${jobs} MMIN_N_PROCS=1..."
+  DETACH=true SHARD="${shard}" JOBS="${jobs}" MMIN_N_PROCS=1 bash "${LAUNCH}"
 }
 
 shard_done() {

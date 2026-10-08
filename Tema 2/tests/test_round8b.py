@@ -55,6 +55,12 @@ def test_piston_mask_walks_from_driven_node():
     assert not mask[0] and not mask[3]
 
 
+def test_shock_visc_and_fail_avg_default_off():
+    from netsim.config import NumericsConfig, KinematicConfig
+    assert NumericsConfig().shock_visc == 0.0
+    assert KinematicConfig().fail_avg_n_seg == 0
+
+
 def test_energy_T_frac_uses_Z_eps0_not_Z_ep():
     mat = get_material("S")
     ep = 0.1 * mat.eps_b

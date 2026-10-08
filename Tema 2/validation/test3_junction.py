@@ -72,7 +72,8 @@ def _thread_segment_order(disc, N):
 def run_junction_sim(name="S", N=4, ep_frac=0.1, e1_frac=None, L=2.0,
                      n_seg=400, cells=5, A_hat=1e-6, d_frac=0.02,
                      return_res=False, piston_n_seg=0, clip_before_fail=False,
-                     win_hi_scale=1.0, use_numba=False):
+                     win_hi_scale=1.0, use_numba=False, damping=0.0,
+                     shock_visc=0.0, fail_avg_n_seg=0):
     ref_mat = getattr(riemann, name)
     material = get_material(name)
     ep = ep_frac * material.eps_b
@@ -95,12 +96,15 @@ def run_junction_sim(name="S", N=4, ep_frac=0.1, e1_frac=None, L=2.0,
         net=NetConfig(kind="star", N=N, R=L, eps_p=ep, A_hat=A_hat),
         drone=DroneConfig(M=1.0, r_d=1.0, v0=0.0),
         numerics=NumericsConfig(n_s=n_seg, C=0.4, t_end=0.0, dt_out=1e-6,
-                                use_numba=bool(use_numba)),
+                                use_numba=bool(use_numba),
+                                damping=float(damping or 0.0),
+                                shock_visc=float(shock_visc or 0.0)),
         contact=ContactConfig(mode="frictionless", k_c=1e7),
         output=OutputConfig(hdf5=None, R_max=1e9, k_max=10 ** 9),
         kinematic=KinematicConfig(enabled=True, node=anchor0, mode="velocity",
                                   direction=(1.0, 0.0, 0.0), amplitude=v1,
-                                  piston_n_seg=int(piston_n_seg or 0)),
+                                  piston_n_seg=int(piston_n_seg or 0),
+                                  fail_avg_n_seg=int(fail_avg_n_seg or 0)),
     )
     # Measurement window: after the hub settles to the steady junction state,
     # but before reflections from the far anchors return (~2 L/c after arrival).

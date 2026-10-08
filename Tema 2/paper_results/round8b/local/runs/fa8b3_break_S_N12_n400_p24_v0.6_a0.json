@@ -1,0 +1,1 @@
+{"material": "S", "N": 12, "mode": "break", "eps1_frac": 0.768359375, "n_seg": 400, "n_slack": 0, "dTmax": 0.007152824806400173, "T0": 0.07233510914201369, "dTopp": 0.007152824806400173, "Tnear": 61325796.633089356, "reached": true, "cpu_s": 68.798819065094, "run_id": "fa8b3_break_S_N12_n400_p24_v0.6_a0", "piston_n_seg": 24}

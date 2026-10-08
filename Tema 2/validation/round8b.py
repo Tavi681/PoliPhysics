@@ -37,14 +37,14 @@ if _REF not in sys.path:
 from netsim.discretize import discretize
 from netsim.io_hdf5 import git_commit
 from netsim.materials import get_material
-from netsim.mmin import MminConfig, evaluate, minimum_mass
+from netsim.mmin import MminConfig, analytical_s0, evaluate, minimum_mass_point
 from netsim.simulate import simulate_config, build_net
 from netsim.integrator import PenetrationError
 
 import riemann
 
 from validation.export_paper import (
-    _MMIN_CACHE, _mmin_cfg, _mmin_n_procs, _MMIN_TOL,
+    _MMIN_CACHE, _mmin_cfg, _MMIN_TOL,
 )
 from validation.round8 import (
     _classify, _code_dirty, _pool_jobs, _progress, _s_for_mass,
@@ -132,8 +132,7 @@ def diagnose_4b(shard="local"):
     v1 = float(ref_mat.Phi(e1, ep))
     t0 = time.time()
     r = run_junction_sim(name, N=N, ep_frac=0.1, e1_frac=e1f, L=L,
-                         n_seg=n_seg, return_res=True, piston_n_seg=PISTON_N,
-                         clip_before_fail=True, use_numba=True)
+                         n_seg=n_seg, return_res=True, **FA_KW)
     res, disc, order = r["result"], r["disc"], r["seg_order"]
     traj = res.trajectory
     c_inc = ref_mat.c(e1) if e1 > 0 else mat.c_L0
@@ -185,10 +184,21 @@ def diagnose_4b(shard="local"):
     return rec
 
 
+FA_KW = dict(piston_n_seg=PISTON_N, clip_before_fail=True, use_numba=True,
+             shock_visc=0.6, fail_avg_n_seg=0, damping=0.0)
+
+
+def _fa_tag():
+    return "p%d_v%g_a%d" % (
+        FA_KW.get("piston_n_seg", PISTON_N),
+        FA_KW.get("shock_visc", 0.0),
+        FA_KW.get("fail_avg_n_seg", 0),
+    )
+
+
 def _fa_probe(name, N, e1f, L, n_seg):
     r = run_junction_sim(name, N=N, ep_frac=0.1, e1_frac=e1f, L=L,
-                         n_seg=n_seg, return_res=True, piston_n_seg=PISTON_N,
-                         clip_before_fail=True, use_numba=True)
+                         n_seg=n_seg, return_res=True, **FA_KW)
     res, order = r["result"], r["seg_order"]
     hub_seg = order[0][0]
     broke = False
@@ -278,8 +288,7 @@ def _fa_amp_one(job):
     t0 = time.time()
     r = run_junction_sim(
         "S", N=job["N"], ep_frac=0.1, e1_frac=job["e1_frac"],
-        L=job.get("L", 4.0), n_seg=job.get("n_seg", 400),
-        piston_n_seg=PISTON_N, clip_before_fail=True, use_numba=True,
+        L=job.get("L", 4.0), n_seg=job.get("n_seg", 400), **FA_KW,
     )
     rec = dict(
         material="S", N=job["N"], e1_frac=job["e1_frac"],
@@ -300,7 +309,7 @@ def item4b(shard="local", n_seg=400):
             for mode in ("break", "slack"):
                 jobs.append(dict(
                     material=mat, N=N, mode=mode, n_seg=n_seg, L=4.0,
-                    run_id=f"fa8b2_{mode}_{mat}_N{N}_n{n_seg}_p{PISTON_N}",
+                    run_id=f"fa8b3_{mode}_{mat}_N{N}_n{n_seg}_{_fa_tag()}",
                 ))
     rows_b = _pool_jobs(shard, jobs, _fa_break_or_slack, "fa_bisect")
     jobs_a = []
@@ -308,7 +317,7 @@ def item4b(shard="local", n_seg=400):
         for e1 in (0.2, 0.3, 0.4, 0.6, 0.8):
             jobs_a.append(dict(
                 N=N, e1_frac=e1, n_seg=n_seg, L=4.0,
-                run_id=f"fa8b2_amp_S_N{N}_e{e1}_n{n_seg}_p{PISTON_N}",
+                    run_id=f"fa8b3_amp_S_N{N}_e{e1}_n{n_seg}_{_fa_tag()}",
             ))
     rows_a = _pool_jobs(shard, jobs_a, _fa_amp_one, "fa_amp")
     fields = ["kind", "material", "N", "mode", "eps1_frac", "e1_frac",
@@ -744,57 +753,86 @@ def _first_fail_seg(info):
     return int(segs[0])
 
 
-def _mmin_ext_one(job):
-    shard, run_id = job["shard"], job["run_id"]
-    cached = _load_run(shard, run_id)
-    if cached is not None:
-        return cached
+_CRIT_SPEC = (
+    ("A", "A", None),
+    ("Bany", "B_any", None),
+    ("Bloc025", "B_loc", 0.25),
+    ("Bloc050", "B_loc", 0.5),
+    ("Bloc075", "B_loc", 0.75),
+)
+
+
+def _mmin_point_work(job):
+    """One (row, point, criterion) Alg.2 bisection. Cache is per (point_idx, s)."""
     net_kind, mat, M, v0, n_s = (
         job["net"], job["material"], job["M"], job["v0"], job["n_s"])
     cfg = _mmin_cfg(mat, M, v0, net_kind=net_kind, n_s=int(n_s))
-    net = build_net(cfg)
-    material = cfg.material.resolve()
-    m1 = net.net_mass(material.rho, 1.0)
-    n_inner = _mmin_n_procs()
     cache = str(_MMIN_CACHE / f"{net_kind}_{mat}_M{M:g}_v{v0:g}_ns{int(n_s)}")
     Path(cache).mkdir(parents=True, exist_ok=True)
-    pts = list(PTS_EXT)
+    s0 = analytical_s0(cfg)
+    p = (float(job["px"]), float(job["py"]))
+    idx = int(job["point_idx"])
+    mm = MminConfig(
+        criterion=job["mmin_crit"], tol=_MMIN_TOL, impact_points=[p],
+        n_procs=1, n_scan=24, cache_dir=cache,
+        R_max=(None if job.get("R_max") is None else float(job["R_max"])),
+    )
     t0 = time.time()
-    mmA = MminConfig(criterion="A", tol=_MMIN_TOL, impact_points=pts,
-                     n_procs=n_inner, cache_dir=cache)
-    mm_any = MminConfig(criterion="B_any", tol=_MMIN_TOL, impact_points=pts,
-                        n_procs=n_inner, n_scan=24, cache_dir=cache)
-    mm_locs = {
-        frac: MminConfig(criterion="B_loc", tol=_MMIN_TOL, impact_points=pts,
-                         n_procs=n_inner, n_scan=24, R_max=frac * 1.0,
-                         cache_dir=cache)
-        for frac in (0.25, 0.5, 0.75)
-    }
-    MminConfig.assert_same_tol(mmA, mm_any, *mm_locs.values())
-    rA = minimum_mass(cfg, mmA)
-    r_any = minimum_mass(cfg, mm_any, s_cap=rA.s_min)
-    blocs = {frac: minimum_mass(cfg, mm, s_cap=rA.s_min)
-             for frac, mm in mm_locs.items()}
-    named = {
-        "A": (mmA, rA),
-        "Bany": (mm_any, r_any),
-        "Bloc025": (mm_locs[0.25], blocs[0.25]),
-        "Bloc050": (mm_locs[0.5], blocs[0.5]),
-        "Bloc075": (mm_locs[0.75], blocs[0.75]),
-    }
+    rec = minimum_mass_point((cfg, p, mm, idx, s0))
+    s_cap = job.get("s_cap")
+    if s_cap is not None and rec["s_min"] > float(s_cap):
+        rec["s_below"] = float(rec.get("s_below", 0.995 * s_cap))
+        rec["s_lo"] = float(rec.get("s_lo", rec["s_below"]))
+        rec["s_min"] = float(s_cap)
+        rec["s_hi"] = float(s_cap)
+        rec["info"] = evaluate(cfg, float(s_cap), p, mm, idx)
+    rec["cpu_s"] = time.time() - t0
+    rec["crit_key"] = job["crit_key"]
+    rec["px"], rec["py"] = p
+    rec["net"] = net_kind
+    rec["material"] = mat
+    rec["M"] = M
+    rec["v0"] = v0
+    rec["n_s"] = n_s
+    rec["run_id"] = job["row_id"]
+    rec["point_idx"] = idx
+    print(f"  point {job['crit_key']} {mat} v0={v0} a={p[0]:.2f} "
+          f"s={rec['s_min']:.4g} cpu={rec['cpu_s']:.0f}s", flush=True)
+    return rec
+
+
+def _pool_point_jobs(jobs, n_workers):
+    if not jobs:
+        return []
+    n = min(max(1, n_workers), len(jobs))
+    if n <= 1:
+        return [_mmin_point_work(j) for j in jobs]
+    out = []
+    with ProcessPoolExecutor(max_workers=n) as pool:
+        futs = {pool.submit(_mmin_point_work, j): j for j in jobs}
+        for fut in as_completed(futs):
+            out.append(fut.result())
+    return out
+
+
+def _assemble_mmin_row(shard, net_kind, mat, M, v0, n_s, by_crit_point, t0):
+    cfg = _mmin_cfg(mat, M, v0, net_kind=net_kind, n_s=int(n_s))
+    material = cfg.material.resolve()
+    m1 = build_net(cfg).net_mass(material.rho, 1.0)
+    pts = list(PTS_EXT)
     point_rows = []
     nesting_ok_all = True
-    for crit, (mm, rx) in named.items():
-        per = rx.per_point
+    masses_pt = {}
+    for crit_key, mmin_crit, rmax in _CRIT_SPEC:
+        mm = MminConfig(
+            criterion=mmin_crit, tol=_MMIN_TOL, impact_points=pts, n_procs=1,
+            n_scan=24, cache_dir=str(
+                _MMIN_CACHE / f"{net_kind}_{mat}_M{M:g}_v{v0:g}_ns{int(n_s)}"),
+            R_max=(None if rmax is None else rmax),
+        )
         for idx, p in enumerate(pts):
-            s_pt = None
-            for pk, sv in per.items():
-                if abs(_pt_key(pk)[0] - p[0]) < 1e-12 and abs(
-                        _pt_key(pk)[1] - p[1]) < 1e-12:
-                    s_pt = float(sv)
-                    break
-            if s_pt is None:
-                s_pt = float(rx.s_min)
+            rec = by_crit_point[(crit_key, idx)]
+            s_pt = float(rec["s_min"])
             m_g = 1e3 * s_pt * m1
             s_lo = 0.99 * s_pt
             info_lo = evaluate(cfg, float(s_lo), p, mm, idx)
@@ -816,16 +854,13 @@ def _mmin_ext_one(job):
                 except Exception as e:
                     subclass = f"error:{e}"
             point_rows.append(dict(
-                criterion=crit, a_over_R=p[0], m_min_g=m_g,
+                criterion=crit_key, a_over_R=p[0], m_min_g=m_g,
                 outcome_below=outcome,
                 first_fail_seg=_first_fail_seg(info_lo),
                 timeout_subclass=subclass, s_min=s_pt,
             ))
-        # per-point nesting checked after collecting this case's A/B
-    by_pt = {}
-    for pr in point_rows:
-        by_pt.setdefault(pr["a_over_R"], {})[pr["criterion"]] = pr["m_min_g"]
-    for a, masses in by_pt.items():
+            masses_pt.setdefault(p[0], {})[crit_key] = m_g
+    for a, masses in masses_pt.items():
         mA = masses.get("A", float("nan"))
         mBloc = min(masses.get("Bloc025", mA),
                     masses.get("Bloc050", mA),
@@ -834,15 +869,22 @@ def _mmin_ext_one(job):
         ok = (mA + 1e-12 >= mBloc) and (mBloc + 1e-12 >= mBany)
         if not ok:
             nesting_ok_all = False
+
+    def worst(key):
+        block = [pr for pr in point_rows if pr["criterion"] == key]
+        w = max(block, key=lambda x: float(x["m_min_g"]))
+        return float(w["m_min_g"]), (w["a_over_R"], 0.0)
+
+    mA, wA = worst("A")
+    mBany, wB = worst("Bany")
+    run_id = f"mmin8b_{net_kind}_{mat}_M{M:g}_v{v0:g}_ns{n_s}"
     rec = dict(
         net=net_kind, material=mat, M=M, v0=v0, n_s=n_s,
-        mA_min_g=1e3 * rA.m_min,
-        mBany_min_g=1e3 * r_any.m_min,
-        mBloc025_min_g=1e3 * blocs[0.25].m_min,
-        mBloc050_min_g=1e3 * blocs[0.5].m_min,
-        mBloc075_min_g=1e3 * blocs[0.75].m_min,
-        worst_A=list(rA.worst_point),
-        worst_Bany=list(r_any.worst_point),
+        mA_min_g=mA, mBany_min_g=mBany,
+        mBloc025_min_g=worst("Bloc025")[0],
+        mBloc050_min_g=worst("Bloc050")[0],
+        mBloc075_min_g=worst("Bloc075")[0],
+        worst_A=list(wA), worst_Bany=list(wB),
         nesting_ok=int(nesting_ok_all),
         points=point_rows,
         cpu_s=time.time() - t0, run_id=run_id,
@@ -855,23 +897,70 @@ def _mmin_ext_one(job):
 
 
 def item4_mmin_ext(shard):
+    """All row×point×criterion bisections, up to JOBS workers (cache per sim)."""
     cases = SHARD_CASES[shard]
-    jobs = []
+    n_workers = min(16, max(1, N_JOBS))
+    pts = list(PTS_EXT)
+    pending_rows = []
+    done_rows = []
     for net, mat, M, v0, n_s in cases:
-        jobs.append(dict(
-            net=net, material=mat, M=M, v0=v0, n_s=n_s,
-            run_id=f"mmin8b_{net}_{mat}_M{M:g}_v{v0:g}_ns{n_s}",
-        ))
-    # Sequential: each case already uses MMIN_N_PROCS inner workers.
-    rows = []
+        run_id = f"mmin8b_{net}_{mat}_M{M:g}_v{v0:g}_ns{n_s}"
+        cached = _load_run(shard, run_id)
+        if cached is not None:
+            done_rows.append(cached)
+        else:
+            pending_rows.append((net, mat, M, v0, n_s, run_id))
     t0 = time.time()
-    for i, job in enumerate(jobs):
-        job = dict(job)
-        job["shard"] = shard
-        rows.append(_mmin_ext_one(job))
-        _progress(shard, i + 1, len(jobs), t0, "mmin_ext")
-    _write_ext_csv(rows, OUT / shard / "tab_mmin_ext.csv")
-    return rows
+    if not pending_rows:
+        _write_ext_csv(done_rows, OUT / shard / "tab_mmin_ext.csv")
+        return done_rows
+
+    a_jobs = []
+    for net, mat, M, v0, n_s, run_id in pending_rows:
+        for idx, p in enumerate(pts):
+            a_jobs.append(dict(
+                net=net, material=mat, M=M, v0=v0, n_s=n_s, row_id=run_id,
+                crit_key="A", mmin_crit="A", R_max=None, s_cap=None,
+                px=p[0], py=p[1], point_idx=idx,
+            ))
+    print(f"[{shard}] {len(a_jobs)} A-point jobs × {n_workers} workers",
+          flush=True)
+    a_res = _pool_point_jobs(a_jobs, n_workers)
+    s_cap_row = {}
+    a_by = {}
+    for r in a_res:
+        key = (r["run_id"], r["point_idx"])
+        a_by[key] = r
+        s_cap_row[r["run_id"]] = max(s_cap_row.get(r["run_id"], 0.0),
+                                     float(r["s_min"]))
+
+    b_jobs = []
+    for net, mat, M, v0, n_s, run_id in pending_rows:
+        cap = s_cap_row[run_id]
+        for crit_key, mmin_crit, rmax in _CRIT_SPEC:
+            if crit_key == "A":
+                continue
+            for idx, p in enumerate(pts):
+                b_jobs.append(dict(
+                    net=net, material=mat, M=M, v0=v0, n_s=n_s, row_id=run_id,
+                    crit_key=crit_key, mmin_crit=mmin_crit,
+                    R_max=(None if rmax is None else rmax),
+                    s_cap=cap, px=p[0], py=p[1], point_idx=idx,
+                ))
+    print(f"[{shard}] {len(b_jobs)} B-point jobs × {n_workers} workers "
+          f"(s_cap from A)", flush=True)
+    b_res = _pool_point_jobs(b_jobs, n_workers)
+
+    grouped = {}
+    for r in a_res + b_res:
+        grouped.setdefault(r["run_id"], {})[(r["crit_key"], r["point_idx"])] = r
+    for net, mat, M, v0, n_s, run_id in pending_rows:
+        rec = _assemble_mmin_row(
+            shard, net, mat, M, v0, n_s, grouped[run_id], t0)
+        done_rows.append(rec)
+        _progress(shard, len(done_rows), len(cases), t0, "mmin_ext")
+    _write_ext_csv(done_rows, OUT / shard / "tab_mmin_ext.csv")
+    return done_rows
 
 
 def _load_7c_worst():
@@ -961,18 +1050,221 @@ def merge_shards():
     return report
 
 
+def _hub_hist(name, N, e1f, *, shock_visc=0.0, fail_avg_n_seg=0, damping=0.0,
+              L=4.0, n_seg=400):
+    """Peak/plateau of hub segment 0 and neighbour-1 tension history."""
+    mat = get_material(name)
+    r = run_junction_sim(
+        name, N=N, ep_frac=0.1, e1_frac=e1f, L=L, n_seg=n_seg,
+        return_res=True, piston_n_seg=PISTON_N, clip_before_fail=True,
+        use_numba=True, shock_visc=shock_visc, fail_avg_n_seg=fail_avg_n_seg,
+        damping=damping)
+    res, disc, order = r["result"], r["disc"], r["seg_order"]
+    traj = res.trajectory
+    hub = order[0][0]
+    near = order[1][0]
+    def _eps(fr, s):
+        ii, jj = disc.seg_edges[s]
+        return float(np.linalg.norm(traj.x[fr, jj] - traj.x[fr, ii])
+                     / disc.seg_rest_length[s] - 1.0)
+
+    hub3 = list(order[0][:3])
+    near3 = list(order[1][:3])
+    eps_h, eps_h3, T_n, T_n3 = [], [], [], []
+    for fr in range(traj.t.size):
+        eh = _eps(fr, hub)
+        en = _eps(fr, near)
+        eh3 = float(np.mean([_eps(fr, s) for s in hub3]))
+        en3 = float(np.mean([_eps(fr, s) for s in near3]))
+        eps_h.append(eh)
+        eps_h3.append(eh3)
+        T_n.append(float(mat.sigma(max(en, 0.0))))
+        T_n3.append(float(mat.sigma(max(en3, 0.0))))
+    eps_h = np.asarray(eps_h)
+    eps_h3 = np.asarray(eps_h3)
+    e1 = e1f * mat.eps_b
+    peak = float(eps_h.max())
+    ref_mat = getattr(riemann, name)
+    tarr = L / (ref_mat.c(e1) if e1 > 0 else mat.c_L0)
+    t_fail = float("inf")
+    if traj.failures.size:
+        for s, _p, tf in traj.failures:
+            if int(s) == int(hub):
+                t_fail = float(tf)
+                break
+    # Plateau: median of the late, non-exploded hub strain (after 0.5 t_end,
+    # before hub failure). The 0.7 tarr window sits in the prestress if the
+    # nonlinear shock is slower than c(e1).
+    t_hi = min(t_fail, float(traj.t[-1]))
+    mask = (traj.t >= 0.5 * t_hi) & (traj.t < t_hi)
+    if not np.any(mask):
+        mask = np.ones(traj.t.size, dtype=bool)
+    body = eps_h[mask]
+    plat = float(np.median(body))
+    if np.isfinite(plat) and plat > 0 and peak > 2.0 * plat:
+        body = body[body < 1.5 * np.median(body)]
+        if body.size:
+            plat = float(np.median(body))
+    peak3 = float(eps_h3.max())
+    plat3 = float(np.mean(eps_h3[mask])) if np.any(mask) else float("nan")
+    slack_1 = bool(np.min([_eps(traj.t.size - 1, s) for s in near3[:1]]) <= 1e-8)
+    slack_3 = bool(float(np.mean([_eps(traj.t.size - 1, s) for s in near3])) <= 1e-8)
+    return dict(
+        material=name, N=N, e1_frac=e1f, shock_visc=shock_visc,
+        fail_avg_n_seg=fail_avg_n_seg, damping=damping,
+        peak=peak, plateau=plat, peak_over_plat=peak / plat if plat else float("nan"),
+        peak_over_eb=peak / mat.eps_b, plat_over_e1=plat / e1 if e1 else float("nan"),
+        peak_avg3=peak3, plateau_avg3=plat3,
+        peak_avg3_over_eb=peak3 / mat.eps_b,
+        t_hub_fail=(t_fail if np.isfinite(t_fail) else None),
+        T_near=T_n, T_near_avg3=T_n3, t=traj.t.tolist(), hub_eps=eps_h.tolist(),
+        slack_1seg=slack_1, slack_3seg=slack_3,
+        T0=r["T0_sim"], n_fail=int(traj.failures.shape[0]),
+    )
+
+
+def _over_row(rec):
+    skip = {"T_near", "T_near_avg3", "t", "hub_eps"}
+    return {k: rec[k] for k in rec if k not in skip}
+
+
+def _over_series(rec):
+    out = []
+    for ti, eh, Tn in zip(rec.get("t") or [], rec.get("hub_eps") or [],
+                          rec.get("T_near") or []):
+        out.append(dict(
+            material=rec["material"], e1_frac=rec["e1_frac"],
+            shock_visc=rec["shock_visc"], fail_avg_n_seg=rec["fail_avg_n_seg"],
+            t=ti, hub_eps=eh, T_near=Tn,
+        ))
+    return out
+
+
+def item4b_overshoot(shard="local"):
+    rows, series = [], []
+    visc_grid = (0.0, 0.3, 0.6, 1.0)
+    for name in ("S", "D"):
+        for e1f in (0.4, 0.5):
+            jobs = [dict(shock_visc=0.0, fail_avg_n_seg=0, tag="base"),
+                    dict(shock_visc=0.0, fail_avg_n_seg=3, tag="avg3")]
+            jobs.extend(dict(shock_visc=v, fail_avg_n_seg=0, tag=f"visc{v}")
+                        for v in visc_grid[1:])
+            for j in jobs:
+                rec = _hub_hist(name, 8, e1f, shock_visc=j["shock_visc"],
+                                fail_avg_n_seg=j["fail_avg_n_seg"])
+                _save_run(shard, f"over_{j['tag']}_{name}_e{e1f}", rec)
+                rows.append(_over_row(rec))
+                series.extend(_over_series(rec))
+    fields = ["material", "N", "e1_frac", "shock_visc", "fail_avg_n_seg",
+              "damping", "peak", "plateau", "peak_over_plat", "peak_over_eb",
+              "plat_over_e1", "peak_avg3", "plateau_avg3", "peak_avg3_over_eb",
+              "slack_1seg", "slack_3seg", "t_hub_fail", "T0", "n_fail"]
+    _write(OUT / "tab_fa_overshoot.csv", fields, rows, "round8b_4b_overshoot")
+    _write(OUT / "tab_fa_overshoot_series.csv",
+           ["material", "e1_frac", "shock_visc", "fail_avg_n_seg",
+            "t", "hub_eps", "T_near"],
+           series, "round8b_4b_overshoot_series")
+    return rows
+
+
+def item_ring_ns(shard="local"):
+    """Criterion A at a/R in {0.7,0.8} for star+ring, n_s=20 (and S 0.8 n_s=40)."""
+    jobs = []
+    for mat in ("S", "D"):
+        for ns in (20,):
+            for a in (0.7, 0.8):
+                jobs.append(dict(
+                    net="star+ring", material=mat, M=1.0, v0=10.0, n_s=ns,
+                    row_id=f"ringns_{mat}_ns{ns}", crit_key="A", mmin_crit="A",
+                    R_max=None, s_cap=None, px=a, py=0.0,
+                    point_idx=PTS_EXT.index((a, 0.0)),
+                ))
+    jobs.append(dict(
+        net="star+ring", material="S", M=1.0, v0=10.0, n_s=40,
+        row_id="ringns_S_ns40", crit_key="A", mmin_crit="A",
+        R_max=None, s_cap=None, px=0.8, py=0.0, point_idx=5,
+    ))
+    n_workers = min(8, max(1, N_JOBS))
+    print(f"[ring-ns] {len(jobs)} A-only jobs × {n_workers}", flush=True)
+    res = _pool_point_jobs(jobs, n_workers)
+    out = []
+    for r in res:
+        cfg = _mmin_cfg(r["material"], r["M"], r["v0"], net_kind=r["net"],
+                        n_s=int(r["n_s"]))
+        m1 = build_net(cfg).net_mass(cfg.material.resolve().rho, 1.0)
+        out.append(dict(
+            net=r["net"], material=r["material"], v0=r["v0"], n_s=r["n_s"],
+            a_over_R=r["px"], mA_g=1e3 * float(r["s_min"]) * m1,
+            s_min=r["s_min"], cpu_s=r["cpu_s"],
+        ))
+    _write(OUT / "tab_mmin_ring_ns.csv",
+           ["net", "material", "v0", "n_s", "a_over_R", "mA_g", "s_min", "cpu_s"],
+           out, "round8b_ring_ns")
+    return out
+
+
+def item3_moving_t2(shard="local"):
+    """Rerun the 18 moving timeouts with t_end doubled (original t_end=0.25 s)."""
+    src = OUT / "timeout_class.csv"
+    if not src.is_file():
+        src = R8 / "timeout_class.csv"
+    jobs = []
+    with open(src) as fh:
+        rows = list(csv.DictReader((ln for ln in fh if not ln.startswith("#"))))
+    for r in rows:
+        if r.get("timeout_subclass") != "moving":
+            continue
+        lock = str(r.get("lock_xy", "False")).lower() in ("1", "true")
+        jobs.append(dict(
+            source=r["source"], material=r["material"],
+            v0=float(r["v0"]), a=float(r["a"]), lock_xy=lock,
+            mu_label=r["mu_label"], m_net=float(r["m_net"]),
+            t_end=0.50, n_s=40, kind="star",
+            run_id=r["run_id"] + "_t2",
+            orig_t_end=0.25, orig_class=r.get("class"),
+        ))
+    print(f"[timeout-t2] {len(jobs)} moving cases, t_end 0.25 -> 0.50", flush=True)
+    got = _pool_jobs(shard, jobs, _run_timeout_one, "timeout_moving_t2")
+    by_id = {d["run_id"]: d for d in got}
+    changed = []
+    for j in jobs:
+        d = by_id.get(j["run_id"], {})
+        if d.get("class") != j.get("orig_class"):
+            changed.append(dict(
+                run_id=j["run_id"], old=j.get("orig_class"),
+                new=d.get("class"), subclass=d.get("timeout_subclass"),
+                material=j["material"], v0=j["v0"], a=j["a"],
+                mu_label=j["mu_label"], lock_xy=j["lock_xy"],
+            ))
+    fields = ["source", "material", "v0", "a", "lock_xy", "mu_label",
+              "outcome", "class", "timeout_subclass", "t_end", "t_end_setting",
+              "speed", "run_id"]
+    _write(OUT / "timeout_moving_t2.csv", fields, got, "round8b_item3_moving_t2")
+    summary = dict(n=len(got), orig_t_end=0.25, new_t_end=0.50,
+                   n_changed=len(changed), changed=changed)
+    (OUT / "timeout_moving_t2_summary.json").write_text(
+        json.dumps(summary, indent=2, default=str))
+    return got, summary
+
+
 def run_local(items=None):
     OUT.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     print(f"=== round8b local jobs={N_JOBS} commit={_COMMIT} "
           f"dirty={_code_dirty()} ===", flush=True)
     want = set(items or ("4b", "4a", "timeout"))
+    if "overshoot" in want:
+        item4b_overshoot("local")
     if "4b" in want:
         item4b("local")
     if "4a" in want:
         item4a_rewrite_and_diag("local")
     if "timeout" in want:
         item3_timeouts("local")
+    if "moving" in want:
+        item3_moving_t2("local")
+    if "ringns" in want:
+        item_ring_ns("local")
     print(f"=== round8b local done in {time.time() - t0:.0f}s ===", flush=True)
 
 
@@ -998,7 +1290,7 @@ def main():
     ap.add_argument("--shard", default="")
     ap.add_argument("--merge", action="store_true")
     ap.add_argument("--items", default="",
-                    help="comma list of local items: 4b,4a,timeout")
+                    help="comma list of local items: 4b,4a,timeout,overshoot,moving,ringns")
     args = ap.parse_args()
     if args.merge:
         merge_shards()

@@ -26,6 +26,7 @@ No physics or tolerances are tuned here.
 
 from __future__ import annotations
 
+import fcntl
 import logging
 import math
 import os
@@ -333,7 +334,8 @@ def _write_cache(path, info):
     try:
         import h5py
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-        with h5py.File(path, "w") as h5:
+        tmp = path + ".tmp"
+        with h5py.File(tmp, "w") as h5:
             g = h5.create_group("eval")
             g.attrs["arrested"] = bool(info["arrested"])
             g.attrs["n_failures"] = int(info["n_failures"])
@@ -358,8 +360,13 @@ def _write_cache(path, info):
                 "fail_drone_xy",
                 data=np.asarray(info.get("fail_drone_xy", np.zeros((0, 2))),
                                 dtype=float).reshape(-1, 2))
+        os.replace(tmp, path)
     except Exception as exc:  # pragma: no cover
         logger.warning("could not write mmin cache %s: %s", path, exc)
+        try:
+            os.remove(path + ".tmp")
+        except OSError:
+            pass
 
 
 def evaluate(cfg: SimConfig, s: float, point, mmincfg: MminConfig,
@@ -370,28 +377,40 @@ def evaluate(cfg: SimConfig, s: float, point, mmincfg: MminConfig,
     k_max = int(cfg.output.k_max)
     cache_dir = mmincfg.cache_dir
     raw = None
-    if cache_dir is not None:
-        path = _cache_path(cache_dir, point_idx, s)
-        if os.path.exists(path):
-            raw = _read_cache(path)
-            # Old caches without drone xy cannot evaluate B_loc honestly.
-            if (raw is not None and mmincfg.criterion in ("B", "B_loc")
-                    and int(raw["n_failures"]) > 0
-                    and (raw["fail_drone_xy"].shape[0]
-                         != int(raw["n_failures"]))):
-                raw = None
-
-    if raw is None:
-        cfg2 = replace(cfg)
-        cfg2.numerics = replace(cfg.numerics, area_scale=float(s))
-        cfg2.drone = replace(cfg.drone, p=(float(point[0]), float(point[1])))
-        cfg2.output = replace(cfg.output, hdf5=None)
-        res = simulate_config(cfg2, write=False)
-        raw = _info_from_result(res)
+    lock_f = None
+    path = None
+    try:
         if cache_dir is not None:
-            _write_cache(_cache_path(cache_dir, point_idx, s), raw)
-    else:
-        attach_thread_failures(raw, seg_parent=_seg_parent_of(cfg))
+            path = _cache_path(cache_dir, point_idx, s)
+            os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+            lock_f = open(path + ".lock", "w")
+            fcntl.flock(lock_f, fcntl.LOCK_EX)
+            if os.path.exists(path):
+                raw = _read_cache(path)
+                # Old caches without drone xy cannot evaluate B_loc honestly.
+                if (raw is not None and mmincfg.criterion in ("B", "B_loc")
+                        and int(raw["n_failures"]) > 0
+                        and (raw["fail_drone_xy"].shape[0]
+                             != int(raw["n_failures"]))):
+                    raw = None
+        if raw is None:
+            cfg2 = replace(cfg)
+            cfg2.numerics = replace(cfg.numerics, area_scale=float(s))
+            cfg2.drone = replace(cfg.drone, p=(float(point[0]), float(point[1])))
+            cfg2.output = replace(cfg.output, hdf5=None)
+            res = simulate_config(cfg2, write=False)
+            raw = _info_from_result(res)
+            if cache_dir is not None and path is not None:
+                _write_cache(path, raw)
+        else:
+            attach_thread_failures(raw, seg_parent=_seg_parent_of(cfg))
+    finally:
+        if lock_f is not None:
+            try:
+                fcntl.flock(lock_f, fcntl.LOCK_UN)
+            except OSError:
+                pass
+            lock_f.close()
 
     assert_criterion_nesting(raw, R_max, k_max)
     ok, reason = pass_from_info(raw, mmincfg.criterion, R_max, k_max)

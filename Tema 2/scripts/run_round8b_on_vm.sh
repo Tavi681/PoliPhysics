@@ -17,7 +17,8 @@ export CODE_DIRTY="${CODE_DIRTY:-$(tr -d '[:space:]' < CODE_DIRTY 2>/dev/null ||
 SHARD="${SHARD:-A}"
 JOBS="${JOBS:-16}"
 export JOBS
-export MMIN_N_PROCS="${MMIN_N_PROCS:-8}"
+# Inner Alg.2 n_procs=1: outer JOBS parallelise row×point×criterion.
+export MMIN_N_PROCS="${MMIN_N_PROCS:-1}"
 export ROUND8B_OUT="${ROOT}/paper_results/round8b"
 export MMIN_CACHE="${ROOT}/.cache/mmin"
 LOG="${ROOT}/round8b_${SHARD}.log"

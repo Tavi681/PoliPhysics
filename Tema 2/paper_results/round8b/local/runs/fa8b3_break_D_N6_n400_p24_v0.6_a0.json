@@ -1,0 +1,1 @@
+{"material": "D", "N": 6, "mode": "break", "eps1_frac": 0.98, "n_seg": 400, "n_slack": 0, "dTmax": 0.012783521490893289, "T0": -0.11363636363636363, "dTopp": -0.027326218892974433, "Tnear": 324855398.9940265, "reached": false, "cpu_s": 65.87765073776245, "run_id": "fa8b3_break_D_N6_n400_p24_v0.6_a0", "note": "break not reached at e1_frac<=0.98 with piston=24"}
