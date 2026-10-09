@@ -1,0 +1,15 @@
+# Versions verified on Mac (Python 3.14, MPS). Avoid torch_scatter / torch_sparse.
+torch==2.14.1
+torch-geometric==2.8.0.post1
+numpy==2.5.3
+h5py==3.16.0
+PyYAML==6.0.3
+pandas==3.0.6
+scipy==1.18.1
+tqdm==4.67.1
+wandb==0.30.0
+pytest==9.1.1
+gcsfs==2026.10.0
+google-cloud-storage==3.4.1
+zarr==3.4.1
+psutil==7.0.0

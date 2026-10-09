@@ -1,0 +1,11 @@
+{
+  "run_id": "follow_air_s42_4cd38eaf_1791573918",
+  "model": "follow_air",
+  "param_count": 0,
+  "data_version": "df22281b885a7cf1",
+  "splits_hash": "1d0e252067d541b1",
+  "git_commit": "4cd38eafb9b669c1bee4162bd407f921ba5e3ae6",
+  "git_dirty": true,
+  "device": "mps",
+  "seed": 42
+}

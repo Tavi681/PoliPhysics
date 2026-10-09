@@ -1,0 +1,5 @@
+# Transient inspection downloads / caches
+*.h5
+*.gstmp
+t_cache/
+b_h5/

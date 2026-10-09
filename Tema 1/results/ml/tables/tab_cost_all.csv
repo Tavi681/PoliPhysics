@@ -1,0 +1,4 @@
+Method,Hardware,Time per run,Time per P (M),C_data,C_train,Q*,|Delta P|,air_time_per_run,run_id
+constant_velocity,mps,0.6972094165394083,,,,,0.2777777777777777,0.171451684488501,constant_velocity_s42_4cd38eaf_1791573915
+follow_air,mps,0.1504478123970329,,,,,0.1666666666666666,0.0389577252531631,follow_air_s42_4cd38eaf_1791573918
+stub_gnn,mps,1.0293481249827892,,,,,0.1666666666666666,0.1730902516153744,stub_gnn_s42_4cd38eaf_1791573894

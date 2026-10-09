@@ -1,0 +1,15 @@
+seed: 42
+val_frac: 0.20
+test_interp_frac: 0.20
+
+train_val_pool:
+  N: [1, 2, 4]
+  sigma_w: [0.15, 0.30]
+  sources: [main, gen_N, gen_sigma]
+
+test_unseenN:
+  N: [6, 8]
+  sources: [main, gen_N, gen_sigma]
+
+test_unseenSigma:
+  sigma_w: [0.22]

@@ -1,0 +1,22 @@
+{
+  "n_cached": 492,
+  "raw_bad_interval_frac": 0.09419686872854156,
+  "index_bad_interval_frac": 0.0,
+  "masked_raw_by_N": {
+    "1": 0.052525146250766895,
+    "2": 0.017511494938262068,
+    "3": 0.007547169811320753,
+    "4": 0.025706985262057072,
+    "6": 0.120258644069211,
+    "8": 0.1287709447671131
+  },
+  "masked_index_by_N": {
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.0,
+    "4": 0.0,
+    "6": 0.0,
+    "8": 0.0
+  },
+  "decision": "Use nominal dt=0.01; mask on frame-index jumps only (float32 ULP). Literal 1e-6 masks long runs spuriously."
+}

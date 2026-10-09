@@ -1,0 +1,82 @@
+{
+  "git": {
+    "commit": "4cd38eafb9b669c1bee4162bd407f921ba5e3ae6",
+    "dirty": true
+  },
+  "run_id": "follow_air_s42_4cd38eaf_1791573918",
+  "model": "follow_air",
+  "splits": {
+    "test_interp": {
+      "n_runs": 2,
+      "one_step_mse": 864.9618708441117,
+      "rollout_mse": 0.003094034514629129,
+      "outcome_accuracy": 0.0,
+      "exit_time_mae": 59.39499945095368,
+      "delta_V_over_V": 335.22478078510255,
+      "delta_R_over_L": 10.508118990216065,
+      "P_sim": 0.0,
+      "P_surr": 0.0,
+      "P_sim_wilson": [
+        0.0,
+        0.6576197724933469
+      ],
+      "P_surr_wilson": [
+        0.0,
+        0.6576197724933469
+      ],
+      "abs_delta_P": 0.0,
+      "time_per_run_s": 0.15044781239703298,
+      "air_time_per_run_s": 0.014422811800614,
+      "time_sim_mean_s": 4758.343481,
+      "speedup": 31627.867532182478
+    },
+    "test_unseenN": {
+      "n_runs": 3,
+      "one_step_mse": 1578.903511078807,
+      "rollout_mse": 0.0046887931917268585,
+      "outcome_accuracy": 0.6666666666666666,
+      "exit_time_mae": 24.833333150953674,
+      "delta_V_over_V": 7.815038723255758,
+      "delta_R_over_L": 9.593128183687197,
+      "P_sim": 0.0,
+      "P_surr": 0.0,
+      "P_sim_wilson": [
+        0.0,
+        0.5614970317550455
+      ],
+      "P_surr_wilson": [
+        0.0,
+        0.5614970317550455
+      ],
+      "abs_delta_P": 0.0,
+      "time_per_run_s": 0.3362408052974691,
+      "air_time_per_run_s": 0.08518363760473828,
+      "time_sim_mean_s": 1201.840831,
+      "speedup": 3574.3455644437404
+    },
+    "test_unseenSigma": {
+      "n_runs": 2,
+      "one_step_mse": 1612.6952800907673,
+      "rollout_mse": 0.003055741693128766,
+      "outcome_accuracy": 0.5,
+      "exit_time_mae": 8.450000000953674,
+      "delta_V_over_V": 7.801849193294097,
+      "delta_R_over_L": 4.617538191275587,
+      "P_sim": 0.5,
+      "P_surr": 0.0,
+      "P_sim_wilson": [
+        0.09453120573423074,
+        0.9054687942657693
+      ],
+      "P_surr_wilson": [
+        0.0,
+        0.6576197724933469
+      ],
+      "abs_delta_P": 0.5,
+      "time_per_run_s": 0.11106291704345495,
+      "air_time_per_run_s": 0.017266726354137063,
+      "time_sim_mean_s": 1076.13643865,
+      "speedup": 9689.43070556076
+    }
+  }
+}

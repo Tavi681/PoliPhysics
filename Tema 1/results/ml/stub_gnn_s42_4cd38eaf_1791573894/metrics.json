@@ -1,0 +1,82 @@
+{
+  "git": {
+    "commit": "4cd38eafb9b669c1bee4162bd407f921ba5e3ae6",
+    "dirty": true
+  },
+  "run_id": "stub_gnn_s42_4cd38eaf_1791573894",
+  "model": "stub_gnn",
+  "splits": {
+    "test_interp": {
+      "n_runs": 2,
+      "one_step_mse": 0.3019583943716287,
+      "rollout_mse": 0.0014039939690974278,
+      "outcome_accuracy": 1.0,
+      "exit_time_mae": NaN,
+      "delta_V_over_V": 19.89700133726714,
+      "delta_R_over_L": 116.07216409295779,
+      "P_sim": 0.0,
+      "P_surr": 0.0,
+      "P_sim_wilson": [
+        0.0,
+        0.6576197724933469
+      ],
+      "P_surr_wilson": [
+        0.0,
+        0.6576197724933469
+      ],
+      "abs_delta_P": 0.0,
+      "time_per_run_s": 1.0293481249827892,
+      "air_time_per_run_s": 0.10369276604615152,
+      "time_sim_mean_s": 4758.343481,
+      "speedup": 4622.676590662231
+    },
+    "test_unseenN": {
+      "n_runs": 3,
+      "one_step_mse": 1.1996781485388666,
+      "rollout_mse": 0.003838258731447297,
+      "outcome_accuracy": 0.3333333333333333,
+      "exit_time_mae": NaN,
+      "delta_V_over_V": 2.096528874383823,
+      "delta_R_over_L": 30.854772281443513,
+      "P_sim": 0.0,
+      "P_surr": 0.0,
+      "P_sim_wilson": [
+        0.0,
+        0.5614970317550455
+      ],
+      "P_surr_wilson": [
+        0.0,
+        0.5614970317550455
+      ],
+      "abs_delta_P": 0.0,
+      "time_per_run_s": 1.2080305416602641,
+      "air_time_per_run_s": 0.29151694670629996,
+      "time_sim_mean_s": 1201.840831,
+      "speedup": 994.8761968784686
+    },
+    "test_unseenSigma": {
+      "n_runs": 2,
+      "one_step_mse": 1.3286910242290204,
+      "rollout_mse": 0.001587658342887721,
+      "outcome_accuracy": 0.0,
+      "exit_time_mae": NaN,
+      "delta_V_over_V": 0.28825218376825806,
+      "delta_R_over_L": 36.817645765816,
+      "P_sim": 0.5,
+      "P_surr": 0.0,
+      "P_sim_wilson": [
+        0.09453120573423074,
+        0.9054687942657693
+      ],
+      "P_surr_wilson": [
+        0.0,
+        0.6576197724933469
+      ],
+      "abs_delta_P": 0.5,
+      "time_per_run_s": 1.0133458954514936,
+      "air_time_per_run_s": 0.12406104209367186,
+      "time_sim_mean_s": 1076.13643865,
+      "speedup": 1061.9635836887958
+    }
+  }
+}

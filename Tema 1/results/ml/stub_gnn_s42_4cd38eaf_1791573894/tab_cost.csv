@@ -1,0 +1,2 @@
+Method,Hardware,Time per run,Time per P (M),C_data,C_train,Q*,|Delta P|,air_time_per_run
+stub_gnn,mps,1.0293481249827892,,,,,0.16666666666666666,0.17309025161537442

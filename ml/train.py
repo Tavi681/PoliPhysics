@@ -1,0 +1,297 @@
+"""Train a registered surrogate: python -m ml.train --config configs/stub_gnn.yaml"""
+from __future__ import annotations
+
+import argparse
+import json
+import time
+from pathlib import Path
+
+import numpy as np
+import torch
+from torch.optim import AdamW
+from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, SequentialLR
+
+from ml.data.dataset import BallooningDataset, BallooningRunStore, make_loader
+from ml.data.integrator import step_torch, DT
+from ml.data.normalize import denormalize
+from ml.data.splits import load_splits, splits_hash
+from ml.models import build_model
+from ml.utils.config import load_yaml
+from ml.utils.git_info import git_provenance, repo_root, format_git_tag
+
+
+def _device(name: str | None) -> torch.device:
+    if name:
+        return torch.device(name)
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    return torch.device("cpu")
+
+
+def _set_seed(seed: int) -> None:
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def _resolve(path: str | Path) -> Path:
+    p = Path(path)
+    if p.is_absolute():
+        return p
+    return repo_root() / p
+
+
+def _init_wandb(cfg: dict, run_meta: dict):
+    wcfg = cfg.get("wandb", {})
+    mode = wcfg.get("mode", "online")
+    try:
+        import wandb
+        if mode == "disabled":
+            return None
+        # offline fallback if no network
+        try:
+            run = wandb.init(
+                project=wcfg.get("project", "poliphysics-ballooning-ml"),
+                entity=wcfg.get("entity"),
+                config={**cfg, **run_meta},
+                mode=mode,
+            )
+            return run
+        except Exception:
+            run = wandb.init(
+                project=wcfg.get("project", "poliphysics-ballooning-ml"),
+                config={**cfg, **run_meta},
+                mode="offline",
+            )
+            return run
+    except Exception as e:
+        print(f"W&B unavailable ({e}); continuing without logging")
+        return None
+
+
+@torch.no_grad()
+def one_step_mse(model, loader, device, norm) -> float:
+    model.eval()
+    total = 0.0
+    n = 0
+    for batch in loader:
+        batch = batch.to(device)
+        pred = model(batch)
+        err = (pred - batch.y).pow(2).mean()
+        total += float(err) * batch.num_graphs
+        n += batch.num_graphs
+    return total / max(n, 1)
+
+
+@torch.no_grad()
+def rollout_mse(model, store, run_ids, device, norm, K: int = 100, C: int = 5, max_runs: int = 8) -> float:
+    """Rollout K frames from stored ICs; compare positions (spider-relative)."""
+    model.eval()
+    a_mean = torch.as_tensor(norm["a"]["mean"], device=device)
+    a_std = torch.as_tensor(norm["a"]["std"], device=device)
+    errs = []
+    for rid in list(run_ids)[:max_runs]:
+        rec = store.get(rid)
+        T = rec["v"].shape[0]
+        t0 = C
+        if t0 + K >= T:
+            continue
+        x = torch.from_numpy(rec["x_rel"][t0].astype(np.float32)).to(device)
+        v = torch.from_numpy(rec["v"][t0].astype(np.float32)).to(device)
+        # build a minimal batch repeatedly — use dataset for features
+        from ml.data.dataset import BallooningDataset
+        ds = BallooningDataset(
+            store, [rid], C=C, edge_sets=model.required_edges() or ["material"],
+            normalize_target=True, noise_std=0.0,
+        )
+        # map t -> dataset index
+        idx_map = {t: i for i, (_, t) in enumerate(ds.index)}
+        for k in range(K):
+            t = t0 + k
+            if t not in idx_map:
+                break
+            data = ds[idx_map[t]].to(device)
+            # override pos/v with current rollout state
+            data.pos = x
+            data.v_t = v
+            # crude: keep u from GT at that time (open-loop air); full eval uses KS
+            pred_n = model(data)
+            a = pred_n * a_std + a_mean
+            x, v = step_torch(x, v, a, dt=DT)
+            x_gt = torch.from_numpy(rec["x_rel"][t0 + k + 1].astype(np.float32)).to(device)
+            errs.append(float((x - x_gt).pow(2).mean()))
+    return float(np.mean(errs)) if errs else float("nan")
+
+
+def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
+    _set_seed(seed)
+    data_dir = _resolve(cfg["data"]["data_dir"])
+    splits = load_splits(_resolve(cfg["data"]["splits"]))
+    store = BallooningRunStore(data_dir)
+    dcfg = cfg["data"]
+    edge_sets = dcfg.get("edge_sets", ["material"])
+
+    train_ds = BallooningDataset(
+        store, splits["train"], C=dcfg.get("C", 5),
+        history_u=dcfg.get("history_u", False),
+        node_features=dcfg.get("node_features"),
+        edge_sets=edge_sets, radius=dcfg.get("radius", 0.1),
+        noise_std=dcfg.get("noise_std", 0.0),
+        sample_weight=dcfg.get("sample_weight", "per_run"),
+        seed=seed,
+    )
+    val_ds = BallooningDataset(
+        store, splits["val"], C=dcfg.get("C", 5),
+        node_features=dcfg.get("node_features"),
+        edge_sets=edge_sets, radius=dcfg.get("radius", 0.1),
+        noise_std=0.0, sample_weight="per_frame", seed=seed,
+    )
+    tcfg = cfg["train"]
+    train_loader = make_loader(
+        train_ds, batch_size=tcfg.get("batch_size", 4), shuffle=True,
+        num_workers=tcfg.get("num_workers", 0), device=str(device),
+    )
+    val_loader = make_loader(
+        val_ds, batch_size=tcfg.get("batch_size", 4), shuffle=False,
+        num_workers=0, device=str(device),
+    )
+
+    # infer node_dim
+    sample = train_ds[0]
+    node_dim = int(sample.x.shape[-1])
+    mcfg = dict(cfg["model"])
+    name = mcfg.pop("name")
+    if name in ("constant_velocity", "follow_air"):
+        mcfg["a_mean"] = store.norm["a"]["mean"]
+        mcfg["a_std"] = store.norm["a"]["std"]
+    else:
+        mcfg["node_dim"] = node_dim
+    model = build_model(name, **mcfg).to(device)
+    # ensure required edges present in dataset
+    need = model.required_edges()
+    if need and set(need) - set(edge_sets):
+        raise RuntimeError(f"model needs edges {need}, dataset has {edge_sets}")
+
+    prov = git_provenance()
+    run_id = f"{name}_s{seed}_{format_git_tag(prov)[:8]}_{int(time.time())}"
+    ckpt_dir = _resolve(tcfg.get("checkpoint_dir", "Tema 1/results/ml/runs")) / run_id
+    ckpt_dir.mkdir(parents=True, exist_ok=True)
+
+    run_meta = {
+        "run_id": run_id,
+        "model": name,
+        "param_count": model.count_parameters(),
+        "data_version": store.manifest.get("data_version"),
+        "splits_hash": splits_hash(splits),
+        "git_commit": prov["commit"],
+        "git_dirty": prov["dirty"],
+        "device": str(device),
+        "seed": seed,
+    }
+    with open(ckpt_dir / "run_meta.json", "w") as f:
+        json.dump(run_meta, f, indent=2)
+
+    wb = _init_wandb(cfg, run_meta)
+    max_steps = int(tcfg.get("max_steps", 1000))
+    if max_steps <= 0 or name in ("constant_velocity", "follow_air"):
+        # save baseline checkpoint and exit
+        torch.save({"model": model.state_dict(), "meta": run_meta, "cfg": cfg}, ckpt_dir / "best.pt")
+        torch.save({"model": model.state_dict(), "meta": run_meta, "cfg": cfg}, ckpt_dir / "last.pt")
+        print(f"baseline checkpoint → {ckpt_dir}")
+        return ckpt_dir
+
+    opt = AdamW(model.parameters(), lr=tcfg.get("lr", 1e-3), weight_decay=tcfg.get("weight_decay", 1e-4))
+    warmup = int(tcfg.get("lr_schedule", {}).get("warmup_steps", 0))
+    if tcfg.get("lr_schedule", {}).get("type") == "cosine":
+        sched = SequentialLR(
+            opt,
+            [
+                LinearLR(opt, start_factor=0.1, total_iters=max(warmup, 1)),
+                CosineAnnealingLR(opt, T_max=max(max_steps - warmup, 1)),
+            ],
+            milestones=[max(warmup, 1)],
+        )
+    else:
+        sched = None
+
+    best = float("inf")
+    patience = int(tcfg.get("early_stopping", {}).get("patience", 20))
+    bad = 0
+    step = 0
+    t0 = time.time()
+    model.train()
+    it = iter(train_loader)
+    while step < max_steps:
+        try:
+            batch = next(it)
+        except StopIteration:
+            it = iter(train_loader)
+            batch = next(it)
+        batch = batch.to(device)
+        opt.zero_grad(set_to_none=True)
+        pred = model(batch)
+        loss = (pred - batch.y).pow(2).mean()
+        loss.backward()
+        if tcfg.get("grad_clip"):
+            torch.nn.utils.clip_grad_norm_(model.parameters(), tcfg["grad_clip"])
+        opt.step()
+        if sched is not None:
+            sched.step()
+        step += 1
+
+        if step % int(tcfg.get("val_every", 50)) == 0 or step == max_steps:
+            osm = one_step_mse(model, val_loader, device, store.norm)
+            rom = rollout_mse(
+                model, store, splits["val"], device, store.norm,
+                K=int(tcfg.get("rollout_K", 100)), C=dcfg.get("C", 5),
+            )
+            print(f"step {step}: train_loss={float(loss):.4e} val_1step={osm:.4e} val_rollout={rom:.4e}")
+            if wb is not None:
+                import wandb
+                wandb.log({"train/loss": float(loss), "val/one_step_mse": osm, "val/rollout_mse": rom, "step": step})
+            metric = rom if np.isfinite(rom) else osm
+            torch.save({"model": model.state_dict(), "meta": run_meta, "cfg": cfg, "step": step}, ckpt_dir / "last.pt")
+            if metric < best:
+                best = metric
+                bad = 0
+                torch.save({"model": model.state_dict(), "meta": run_meta, "cfg": cfg, "step": step}, ckpt_dir / "best.pt")
+            else:
+                bad += 1
+                if bad >= patience:
+                    print("early stopping")
+                    break
+            model.train()
+
+    run_meta["train_time_s"] = time.time() - t0
+    with open(ckpt_dir / "run_meta.json", "w") as f:
+        json.dump(run_meta, f, indent=2)
+    if wb is not None:
+        import wandb
+        wandb.finish()
+    return ckpt_dir
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--config", type=Path, required=True)
+    ap.add_argument("--device", type=str, default=None)
+    ap.add_argument("--subset", type=str, default=None, help="unused alias; data_dir in config")
+    ap.add_argument("--resume", type=Path, default=None)
+    args = ap.parse_args()
+    cfg = load_yaml(_resolve(args.config) if not Path(args.config).is_absolute() else args.config)
+    # allow configs relative to ml/
+    if not _resolve(cfg["data"]["data_dir"]).exists():
+        alt = repo_root() / "ml" / args.config
+        pass
+    device = _device(args.device)
+    seeds = cfg.get("train", {}).get("seeds") or [cfg.get("train", {}).get("seed", 42)]
+    for seed in seeds:
+        path = train_one(cfg, device, int(seed))
+        print(f"done → {path}")
+
+
+if __name__ == "__main__":
+    main()

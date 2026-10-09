@@ -1,0 +1,2 @@
+Method,Hardware,Time per run,Time per P (M),C_data,C_train,Q*,|Delta P|,air_time_per_run
+follow_air,mps,0.15044781239703298,,,,,0.16666666666666666,0.038957725253163114

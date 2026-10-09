@@ -1,0 +1,2 @@
+Method,Hardware,Time per run,Time per P (M),C_data,C_train,Q*,|Delta P|,air_time_per_run
+constant_velocity,mps,0.6972094165394083,,,,,0.27777777777777773,0.171451684488501

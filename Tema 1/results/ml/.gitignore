@@ -1,0 +1,4 @@
+# Large local artifacts (regenerate via preprocess / gsutil)
+raw_smoke/
+processed/
+**/shard_*.pt
