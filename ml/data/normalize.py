@@ -10,21 +10,33 @@ import torch
 
 
 def running_mean_var():
+    """Welford online mean/variance; update() accepts a batch [N, D]."""
     n = 0
     mean = None
     m2 = None
 
     def update(x: np.ndarray):
         nonlocal n, mean, m2
-        x = x.reshape(-1, x.shape[-1]).astype(np.float64)
+        x = np.asarray(x, dtype=np.float64).reshape(-1, x.shape[-1])
+        if x.size == 0:
+            return
         if mean is None:
             mean = np.zeros(x.shape[-1], dtype=np.float64)
             m2 = np.zeros(x.shape[-1], dtype=np.float64)
-        for row in x:
-            n += 1
-            delta = row - mean
-            mean += delta / n
-            m2 += delta * (row - mean)
+        # Parallel Welford merge of the batch into the running stats
+        batch_n = x.shape[0]
+        batch_mean = x.mean(axis=0)
+        batch_m2 = ((x - batch_mean) ** 2).sum(axis=0)
+        if n == 0:
+            mean[:] = batch_mean
+            m2[:] = batch_m2
+            n = batch_n
+            return
+        delta = batch_mean - mean
+        total = n + batch_n
+        mean = (n * mean + batch_n * batch_mean) / total
+        m2 = m2 + batch_m2 + delta ** 2 * n * batch_n / total
+        n = total
 
     def finalize():
         var = m2 / max(n - 1, 1)

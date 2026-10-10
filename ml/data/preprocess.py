@@ -256,16 +256,25 @@ def compute_train_norms(out_dir: Path, train_ids: set[str], shard_paths: list[st
         for rec in pack:
             if rec["run_id"] not in train_ids:
                 continue
-            v, u, x, ok = rec["v"], rec["u"], rec["x_rel"], rec["window_ok"]
+            v = np.asarray(rec["v"], dtype=np.float32)
+            u = np.asarray(rec["u"], dtype=np.float32)
+            x = np.asarray(rec["x_rel"], dtype=np.float32)
+            ok = np.asarray(rec["window_ok"], dtype=bool)
             T = v.shape[0]
-            for ti in range(T - 1):
-                if ti < 5 or not ok[ti]:
-                    continue
-                a = (v[ti + 1] - v[ti]) / DT
-                upd_a(a)
-                upd_v(v[ti])
-                upd_u(u[ti])
-                upd_x(x[ti])
+            if T < 7:
+                continue
+            # usable targets at t in [5, T-2] with window_ok[t]
+            t_idx = np.arange(5, T - 1)
+            mask = ok[t_idx]
+            if not np.any(mask):
+                continue
+            t_use = t_idx[mask]
+            a = (v[t_use + 1] - v[t_use]) / np.float32(DT)
+            # flatten nodes into batch rows [N_frames*n_nodes, 3]
+            upd_a(a.reshape(-1, 3))
+            upd_v(v[t_use].reshape(-1, 3))
+            upd_u(u[t_use].reshape(-1, 3))
+            upd_x(x[t_use].reshape(-1, 3))
     return {
         "v": fin_v(),
         "u": fin_u(),
@@ -302,12 +311,26 @@ def preprocess(
     prov = git_provenance()
     rows = [r.to_dict() for _, r in df.iterrows()]
 
-    # Resume: skip runs already in per-run files OR already packed into shards
+    # Resume: skip runs already in per-run files OR already packed into shards.
+    # Avoid loading every shard just to list IDs when a prior manifest exists.
     packed_ids: set[str] = set()
-    if resume:
-        for sh in sorted(out_dir.glob("shard_*.pt")):
+    existing_shards = sorted(out_dir.glob("shard_*.pt"))
+    man_path = out_dir / "manifest.json"
+    if resume and man_path.exists():
+        try:
+            old = json.loads(man_path.read_text())
+            packed_ids = {r["run_id"] for r in old.get("records", [])}
+        except Exception:
+            packed_ids = set()
+    if resume and existing_shards and not packed_ids:
+        # One-time scan (slow); write a lightweight id list for next resume
+        for sh in existing_shards:
             for rec in torch.load(sh, weights_only=False):
                 packed_ids.add(rec["run_id"])
+        (out_dir / "packed_ids.json").write_text(json.dumps(sorted(packed_ids)))
+    elif resume and (out_dir / "packed_ids.json").exists() and not packed_ids:
+        packed_ids = set(json.loads((out_dir / "packed_ids.json").read_text()))
+
     todo = []
     skipped = 0
     for r in rows:
