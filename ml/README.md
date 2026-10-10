@@ -93,13 +93,17 @@ Surrogate rollouts evaluate air velocity via the simulator’s `KinematicSimulat
 
 ## Cloud
 
+Default **training** VM (create only when starting a full train run): `g2-standard-8` + 1× L4, us-central1, on-demand. If W&B shows high `train/data_wait_s` and low `train/gpu_util`, use documented `g2-standard-16` + 1× L4.
+
 ```bash
-python -m ml.cloud.propose_vm   # prints GPU/cost proposal — creates nothing
-# After explicit OK: create VM, rsync processed data, train with resume, then:
+python -m ml.cloud.propose_vm   # prints defaults — creates nothing
+# Full preprocess (CPU VM, stream from GCS):
+bash ml/cloud/run_preprocess_on_gcp.sh
+# After OK for training: create GPU VM, rsync processed data, train with resume, then:
 bash ml/cloud/sync_run.sh <run_id>
 ```
 
-Never create/resize/delete VMs, disks, or buckets without an explicit OK.
+Never create/resize/delete VMs, disks, or buckets without an explicit OK (preprocess VM OK is this task).
 
 ## Tests
 

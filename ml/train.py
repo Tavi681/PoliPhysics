@@ -224,12 +224,15 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
     t0 = time.time()
     model.train()
     it = iter(train_loader)
+    log_every = int(tcfg.get("log_every", 10))
     while step < max_steps:
+        t_wait0 = time.perf_counter()
         try:
             batch = next(it)
         except StopIteration:
             it = iter(train_loader)
             batch = next(it)
+        data_wait_s = time.perf_counter() - t_wait0
         batch = batch.to(device)
         opt.zero_grad(set_to_none=True)
         pred = model(batch)
@@ -241,6 +244,28 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         if sched is not None:
             sched.step()
         step += 1
+
+        if wb is not None and (step % log_every == 0 or step == 1):
+            import wandb
+            payload = {
+                "train/loss_step": float(loss),
+                "train/data_wait_s": data_wait_s,
+                "step": step,
+            }
+            if device.type == "cuda":
+                try:
+                    payload["train/gpu_util"] = float(
+                        torch.cuda.utilization(device.index or 0)
+                    )
+                except Exception:
+                    payload["train/gpu_util"] = float("nan")
+                try:
+                    payload["train/gpu_mem_frac"] = float(
+                        torch.cuda.memory_allocated(device) / max(torch.cuda.get_device_properties(device).total_memory, 1)
+                    )
+                except Exception:
+                    pass
+            wandb.log(payload)
 
         if step % int(tcfg.get("val_every", 50)) == 0 or step == max_steps:
             osm = one_step_mse(model, val_loader, device, store.norm)
