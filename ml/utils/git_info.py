@@ -11,6 +11,13 @@ def repo_root() -> Path:
 
 def git_provenance(cwd: Path | None = None) -> dict:
     root = cwd or repo_root()
+    # Prefer stamped files when the checkout has no .git (e.g. preprocess VM)
+    for base in (root / "ml", root):
+        cpath, dpath = base / "COMMIT", base / "CODE_DIRTY"
+        if cpath.exists():
+            commit = cpath.read_text().strip()
+            dirty = dpath.read_text().strip().lower() == "true" if dpath.exists() else False
+            return {"commit": commit, "dirty": dirty}
     try:
         commit = subprocess.check_output(
             ["git", "-C", str(root), "rev-parse", "HEAD"],

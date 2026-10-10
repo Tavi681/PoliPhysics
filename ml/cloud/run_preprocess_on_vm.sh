@@ -14,8 +14,8 @@ export OPENBLAS_NUM_THREADS=1
 cd "${ROOT}"
 START_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 START_EPOCH="$(date +%s)"
-GIT_COMMIT="$(cat "${ROOT}/COMMIT" 2>/dev/null || git rev-parse HEAD)"
-CODE_DIRTY="$(cat "${ROOT}/CODE_DIRTY" 2>/dev/null || echo unknown)"
+GIT_COMMIT="$(cat "${ROOT}/ml/COMMIT" 2>/dev/null || cat "${ROOT}/COMMIT" 2>/dev/null || echo unknown)"
+CODE_DIRTY="$(cat "${ROOT}/ml/CODE_DIRTY" 2>/dev/null || cat "${ROOT}/CODE_DIRTY" 2>/dev/null || echo unknown)"
 
 mkdir -p "${OUT}" /data/logs
 LOG=/data/logs/preprocess.log
