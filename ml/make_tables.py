@@ -39,21 +39,16 @@ def main():
         if cost.exists():
             df = pd.read_csv(cost)
             df["run_id"] = d.name
-            # fill C_data from metrics if present
+            # Prefer evaluate.py metrics (duration-normalized Q*)
             if meta_p.exists():
                 meta = json.loads(meta_p.read_text())
-                # C_data = sum wall_time of training runs — optional field
-                c_data = meta.get("C_data", float("nan"))
-                c_train = meta.get("C_train", df["C_train"].iloc[0] if "C_train" in df else float("nan"))
-                t_sim = meta.get("t_sim_mean", float("nan"))
-                t_surr = df["Time per run"].iloc[0] if len(df) else float("nan")
-                if np.isfinite(t_sim) and np.isfinite(t_surr) and (t_sim - t_surr) > 0:
-                    qstar = (float(c_data) + float(c_train)) / (t_sim - t_surr) if np.isfinite(c_data) else float("nan")
-                else:
-                    qstar = float("nan")
-                df["C_data"] = c_data
-                df["C_train"] = c_train
-                df["Q*"] = qstar
+                df["C_data"] = meta.get("C_data", float("nan"))
+                df["C_train"] = meta.get("C_train", float("nan"))
+                df["Q*"] = meta.get("Q_star", float("nan"))
+                if "t_sim_per_run" in meta:
+                    df["t_sim_per_run"] = meta["t_sim_per_run"]
+                if "t_surr_per_run" in meta:
+                    df["t_surr_per_run"] = meta["t_surr_per_run"]
             cost_rows.append(df)
 
     if acc_rows:

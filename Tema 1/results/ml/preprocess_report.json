@@ -1,0 +1,74 @@
+{
+  "check_A": {
+    "n_runs": 8200,
+    "n_runs_expected": 8200,
+    "total_jumps": 0,
+    "runs_with_jump": 0,
+    "masked_window_frac_overall": 0.0,
+    "by_N": {
+      "1": {
+        "runs": 2000,
+        "n_jumps": 0,
+        "runs_with_jump": 0,
+        "windows_total": 1767847,
+        "windows_ok": 1767847,
+        "masked_window_frac": 0.0
+      },
+      "2": {
+        "runs": 2150,
+        "n_jumps": 0,
+        "runs_with_jump": 0,
+        "windows_total": 1912874,
+        "windows_ok": 1912874,
+        "masked_window_frac": 0.0
+      },
+      "3": {
+        "runs": 150,
+        "n_jumps": 0,
+        "runs_with_jump": 0,
+        "windows_total": 108322,
+        "windows_ok": 108322,
+        "masked_window_frac": 0.0
+      },
+      "4": {
+        "runs": 2050,
+        "n_jumps": 0,
+        "runs_with_jump": 0,
+        "windows_total": 1907578,
+        "windows_ok": 1907578,
+        "masked_window_frac": 0.0
+      },
+      "6": {
+        "runs": 150,
+        "n_jumps": 0,
+        "runs_with_jump": 0,
+        "windows_total": 120446,
+        "windows_ok": 120446,
+        "masked_window_frac": 0.0
+      },
+      "8": {
+        "runs": 1700,
+        "n_jumps": 0,
+        "runs_with_jump": 0,
+        "windows_total": 1777640,
+        "windows_ok": 1777640,
+        "masked_window_frac": 0.0
+      }
+    },
+    "mask_mode": "frame_index_jump (round(t/0.01) not consecutive)",
+    "dt_nominal": 0.01,
+    "C": 5,
+    "gcs_bytes_transferred_this_run": 39013884,
+    "gcs_read_ops_this_run": 59590,
+    "gcs_files_fetched_this_run": 5959,
+    "gcs_files_errors": 0,
+    "errors_sample": [],
+    "method": "gcsfs.open(cache_type='none') + h5py File \u2192 only /t dataset",
+    "elapsed_s": 15360.714534044266
+  },
+  "target": "velocity",
+  "dt": 0.01,
+  "store_v": true,
+  "processed_size_estimate_GB": 52,
+  "raw_size_GB": 59
+}

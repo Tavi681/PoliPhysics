@@ -1,6 +1,6 @@
 {
   "git": {
-    "commit": "4cd38eafb9b669c1bee4162bd407f921ba5e3ae6",
+    "commit": "957689184089e811e16e8f7313ead59db5a4c012",
     "dirty": true
   },
   "run_id": "constant_velocity_s42_4cd38eaf_1791573915",
@@ -25,10 +25,16 @@
         0.6576197724933469
       ],
       "abs_delta_P": 0.0,
-      "time_per_run_s": 0.6972094165394083,
-      "air_time_per_run_s": 0.10627841227687895,
+      "time_per_run_s": 0.7384808330098167,
+      "time_per_run_full_s": 8.951431930355174,
+      "air_time_per_run_s": 0.1097406503977254,
+      "model_time_per_run_s": 0.058149979915469885,
+      "integ_time_per_run_s": 0.006092612515203655,
       "time_sim_mean_s": 4758.343481,
-      "speedup": 6824.841099562293
+      "sim_hardware": "c2-standard-30",
+      "surr_hardware": "mps",
+      "n_speedup_runs": 2,
+      "speedup": 520.5333974503571
     },
     "test_unseenN": {
       "n_runs": 3,
@@ -49,10 +55,16 @@
         0.7923403991979523
       ],
       "abs_delta_P": 0.3333333333333333,
-      "time_per_run_s": 0.891637264052406,
-      "air_time_per_run_s": 0.27863062188650173,
+      "time_per_run_s": 0.9444895690151801,
+      "time_per_run_full_s": 0.7314515198967735,
+      "air_time_per_run_s": 0.27931163110770285,
+      "model_time_per_run_s": 0.06562059714148442,
+      "integ_time_per_run_s": 0.007136624849711855,
       "time_sim_mean_s": 1201.840831,
-      "speedup": 1347.9033228577152
+      "sim_hardware": "c2-standard-30",
+      "surr_hardware": "mps",
+      "n_speedup_runs": 1,
+      "speedup": 1643.0902094093815
     },
     "test_unseenSigma": {
       "n_runs": 2,
@@ -73,10 +85,24 @@
         0.6576197724933469
       ],
       "abs_delta_P": 0.5,
-      "time_per_run_s": 0.6741175620118156,
-      "air_time_per_run_s": 0.1294460193021223,
+      "time_per_run_s": 0.7511143336305395,
+      "time_per_run_full_s": 1.42827411588215,
+      "air_time_per_run_s": 0.13205592997837812,
+      "model_time_per_run_s": 0.05972544651012868,
+      "integ_time_per_run_s": 0.0071369739016518,
       "time_sim_mean_s": 1076.13643865,
-      "speedup": 1596.3631557653114
+      "sim_hardware": "c2-standard-30",
+      "surr_hardware": "mps",
+      "n_speedup_runs": 2,
+      "speedup": 634.4574350812251
     }
-  }
+  },
+  "C_data": 15719.23251421,
+  "C_train": 0.0,
+  "t_sim_per_run": 2345.4402502166663,
+  "t_surr_per_run": 3.7037191887113656,
+  "Q_star": 6.712639234145486,
+  "sim_hardware": "c2-standard-30",
+  "surr_hardware": "mps",
+  "speedup_definition": "(sim wall/sim-s) / (surr wall/sim-s); surr includes model + KinematicSimulation u-eval + integration; sim walls only when wall_time_s finite"
 }

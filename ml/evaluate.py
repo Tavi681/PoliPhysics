@@ -21,6 +21,12 @@ from ml.metrics.physics import (
     opening_R_over_L,
     wilson_interval,
 )
+from ml.metrics.speedup import (
+    mean_speedup,
+    q_star,
+    scale_surr_to_full_length,
+    sim_seconds,
+)
 from ml.models import build_model
 from ml.train import _device, _resolve, one_step_mse, rollout_mse
 from ml.utils.config import load_yaml
@@ -107,6 +113,8 @@ def full_rollout_surrogate(
     vs = [v.copy()]
     ts = [float(rec["t"][t0])]
     air_time = 0.0
+    model_time = 0.0
+    integ_time = 0.0
     wall0 = time.perf_counter()
 
     model.eval()
@@ -116,6 +124,8 @@ def full_rollout_surrogate(
     t = float(rec["t"][t0])
     step = 0
     max_steps = int(t_end / DT) + 5
+    from ml.data.graph import material_edges
+    from torch_geometric.data import Data
 
     while t < t_end and step < max_steps:
         x_abs = spider + x_rel.astype(np.float64)
@@ -123,7 +133,6 @@ def full_rollout_surrogate(
         u = flow.u(x_abs, t).astype(np.float32)
         air_time += time.perf_counter() - t_air0
 
-        # build features manually
         n = x_rel.shape[0]
         feat_parts = [
             v_hist.transpose(1, 0, 2).reshape(n, -1),
@@ -132,9 +141,7 @@ def full_rollout_surrogate(
             np.eye(3, dtype=np.float32)[rec["node_type"].astype(np.int64)],
         ]
         x_feat = torch.from_numpy(np.concatenate(feat_parts, axis=-1)).to(device)
-        from ml.data.graph import material_edges
         e = material_edges(rec["edges"]).to(device)
-        from torch_geometric.data import Data
         data = Data(
             x=x_feat,
             pos=torch.from_numpy(x_rel).to(device),
@@ -146,18 +153,28 @@ def full_rollout_surrogate(
             u_t=torch.from_numpy(u).to(device),
             num_nodes=n,
         )
-        data.w_s = torch.tensor([_settling_speed(int(g["N"]), m=float(g["m"]), L=float(g["L"]), N_t=int(g["N_t"]))], device=device)
+        data.w_s = torch.tensor(
+            [_settling_speed(int(g["N"]), m=float(g["m"]), L=float(g["L"]), N_t=int(g["N_t"]))],
+            device=device,
+        )
 
+        t_m0 = time.perf_counter()
         pred_n = model(data)
+        if device.type == "mps":
+            torch.mps.synchronize()
+        elif device.type == "cuda":
+            torch.cuda.synchronize()
+        model_time += time.perf_counter() - t_m0
         a = pred_n.detach().cpu().numpy().astype(np.float32) * a_std + a_mean
+
+        t_i0 = time.perf_counter()
         x_rel, v = step_np(x_rel, v, a, dt=DT)
-        # update spider abs: x_rel spider row is 0 by construction; track abs via integration
         spider = spider + DT * v[0].astype(np.float64)
-        # re-zero relative to spider
         x_abs = np.vstack([spider[None, :], (spider + x_rel[1:].astype(np.float64))])
-        # actually keep x_rel with spider at 0
         x_rel = (x_abs - spider[None, :]).astype(np.float32)
         v_hist = np.concatenate([v_hist[1:], v[None]], axis=0)
+        integ_time += time.perf_counter() - t_i0
+
         t = t + DT
         step += 1
         xs_abs.append(x_abs.copy())
@@ -178,6 +195,7 @@ def full_rollout_surrogate(
     X = np.stack(xs_abs)
     V = np.stack(vs)
     tt = np.asarray(ts)
+    sim_dur = float(tt[-1] - tt[0]) if len(tt) > 1 else 0.0
     return {
         "status": status,
         "exit_time": exit_time,
@@ -186,6 +204,9 @@ def full_rollout_surrogate(
         "v": V,
         "wall_time_s": wall,
         "air_time_s": air_time,
+        "model_time_s": model_time,
+        "integ_time_s": integ_time,
+        "sim_duration_s": sim_dur,
         "V_mean": mean_vertical_spider_velocity(X, tt),
         "R_over_L": opening_R_over_L(X, tip_ids, L=float(g["L"])),
         "edge_drift": edge_length_drift(X, rec["edges"], L_seg=float(g["L"]) / int(g["N_t"])),
@@ -252,6 +273,12 @@ def evaluate_checkpoint(
         takeoff_m = []
         walls = []
         airs = []
+        models_t = []
+        integs_t = []
+        surr_durs = []
+        sim_walls = []
+        sim_durs = []
+        t_end_cfg = float(cfg.get("eval", {}).get("t_end", 60.0))
         max_full = cfg.get("eval", {}).get("max_full_runs")
         ids_full = ids if not max_full else ids[: int(max_full)]
         for rid in ids_full:
@@ -260,15 +287,21 @@ def evaluate_checkpoint(
             pred = full_rollout_surrogate(
                 model, rec, store.norm, device,
                 C=cfg["data"].get("C", 5),
-                t_end=float(cfg.get("eval", {}).get("t_end", 60.0)),
+                t_end=t_end_cfg,
             )
             walls.append(pred["wall_time_s"])
             airs.append(pred["air_time_s"])
+            models_t.append(pred["model_time_s"])
+            integs_t.append(pred["integ_time_s"])
+            surr_durs.append(pred["sim_duration_s"])
+            sw = rec["globals"]["wall_time_s"]
+            sd = sim_seconds(rec["globals"].get("exit_time"), t_end=60.0)
+            sim_walls.append(float(sw) if np.isfinite(sw) else float("nan"))
+            sim_durs.append(sd)
             if pred["status"] == gt_out:
                 outcomes_ok += 1
             if np.isfinite(pred["exit_time"]) and np.isfinite(rec["globals"]["exit_time"]):
                 exit_errs.append(abs(pred["exit_time"] - rec["globals"]["exit_time"]))
-            # GT metrics from stored trajectory
             x_abs = rec["spider_abs"][:, None, :] + rec["x_rel"].astype(np.float64)
             V_gt = mean_vertical_spider_velocity(x_abs, rec["t"].astype(np.float64))
             tips = np.where(rec["node_type"] == 2)[0]
@@ -286,15 +319,19 @@ def evaluate_checkpoint(
         lo_s, hi_s = wilson_interval(k_s, n)
         lo_m, hi_m = wilson_interval(k_m, n)
 
-        # speed-up vs simulator wall_time
-        sim_times = [
-            store.get(rid)["globals"]["wall_time_s"]
-            for rid in ids_full
-            if np.isfinite(store.get(rid)["globals"]["wall_time_s"])
-        ]
-        t_sim = float(np.nanmean(sim_times)) if sim_times else float("nan")
+        # Duration-normalized speed-up; only runs with finite simulator wall_time_s
+        speedup = mean_speedup(sim_walls, sim_durs, walls, surr_durs)
+        # Full-length equivalent times for Q* (scale surrogate to simulator duration)
+        full_sim_walls = []
+        full_surr_walls = []
+        for sw, sd, uw, ud in zip(sim_walls, sim_durs, walls, surr_durs):
+            if not np.isfinite(sw):
+                continue
+            full_sim_walls.append(sw)
+            full_surr_walls.append(scale_surr_to_full_length(uw, ud, sd))
+        t_sim = float(np.mean(full_sim_walls)) if full_sim_walls else float("nan")
+        t_surr_full = float(np.mean(full_surr_walls)) if full_surr_walls else float("nan")
         t_surr = float(np.mean(walls)) if walls else float("nan")
-        speedup = t_sim / t_surr if (np.isfinite(t_sim) and t_surr > 0) else float("nan")
 
         split_metrics = {
             "n_runs": n,
@@ -310,8 +347,14 @@ def evaluate_checkpoint(
             "P_surr_wilson": [lo_m, hi_m],
             "abs_delta_P": abs(P_m - P_s),
             "time_per_run_s": t_surr,
+            "time_per_run_full_s": t_surr_full,
             "air_time_per_run_s": float(np.mean(airs)) if airs else float("nan"),
+            "model_time_per_run_s": float(np.mean(models_t)) if models_t else float("nan"),
+            "integ_time_per_run_s": float(np.mean(integs_t)) if integs_t else float("nan"),
             "time_sim_mean_s": t_sim,
+            "sim_hardware": "c2-standard-30",
+            "surr_hardware": str(device),
+            "n_speedup_runs": len(full_sim_walls),
             "speedup": speedup,
         }
         metrics["splits"][sp] = split_metrics
@@ -325,17 +368,66 @@ def evaluate_checkpoint(
             "Speed-up": speedup,
         })
 
-    # cost table stub (C_data / C_train filled by make_tables when aggregating)
+    # C_data = sum of simulator wall_time for training runs (NaN-safe)
+    splits_all = load_splits(_resolve(cfg["data"]["splits"]))
+    C_data = 0.0
+    n_cdata = 0
+    for rid in splits_all.get("train", []):
+        if rid not in store.runs:
+            continue
+        wt = store.get(rid)["globals"]["wall_time_s"]
+        if np.isfinite(wt):
+            C_data += float(wt)
+            n_cdata += 1
+    C_train = float(ckpt.get("meta", {}).get("train_time_s", float("nan")))
+    # train_time_s is written to run_meta.json after the last ckpt save
+    for meta_path in (
+        Path(ckpt_path).resolve().parent / "run_meta.json",
+        repo_root() / "Tema 1" / "results" / "ml" / "runs" / run_id / "run_meta.json",
+    ):
+        if np.isfinite(C_train):
+            break
+        if meta_path.exists():
+            try:
+                C_train = float(json.loads(meta_path.read_text()).get("train_time_s", float("nan")))
+            except Exception:
+                pass
+    # Zero-parameter baselines / missing meta → treat train cost as 0
+    if not np.isfinite(C_train):
+        C_train = 0.0
+    # Aggregate full-length times across splits for Q*
+    # (surrogate wall scaled to each run's simulator simulated duration)
+    t_sims = [m["time_sim_mean_s"] for m in metrics["splits"].values() if np.isfinite(m.get("time_sim_mean_s", float("nan")))]
+    t_surrs = [m["time_per_run_full_s"] for m in metrics["splits"].values() if np.isfinite(m.get("time_per_run_full_s", float("nan")))]
+    t_sim_q = float(np.mean(t_sims)) if t_sims else float("nan")
+    t_surr_q = float(np.mean(t_surrs)) if t_surrs else float("nan")
+    metrics["C_data"] = C_data if n_cdata else float("nan")
+    metrics["C_train"] = C_train
+    metrics["t_sim_per_run"] = t_sim_q
+    metrics["t_surr_per_run"] = t_surr_q
+    metrics["Q_star"] = q_star(C_data if n_cdata else float("nan"), C_train, t_sim_q, t_surr_q)
+    metrics["sim_hardware"] = "c2-standard-30"
+    metrics["surr_hardware"] = str(device)
+    metrics["speedup_definition"] = (
+        "(sim wall/sim-s) / (surr wall/sim-s); surr includes model + "
+        "KinematicSimulation u-eval + integration; sim walls only when wall_time_s finite"
+    )
+
+    first = next(iter(metrics["splits"].values()), {})
     cost_rows.append({
         "Method": name,
-        "Hardware": str(device),
-        "Time per run": metrics["splits"][split_names[0]]["time_per_run_s"] if metrics["splits"] else float("nan"),
+        "Hardware": f"surr={device}; sim=c2-standard-30",
+        "Time per run": first.get("time_per_run_full_s", float("nan")),
         "Time per P (M)": float("nan"),
-        "C_data": float("nan"),
-        "C_train": ckpt.get("meta", {}).get("train_time_s", float("nan")),
-        "Q*": float("nan"),
+        "C_data": metrics["C_data"],
+        "C_train": C_train,
+        "Q*": metrics["Q_star"],
         "|Delta P|": float(np.mean([m["abs_delta_P"] for m in metrics["splits"].values()])) if metrics["splits"] else float("nan"),
-        "air_time_per_run": float(np.mean([m.get("air_time_per_run_s", float("nan")) for m in metrics["splits"].values()])),
+        "model_time_per_run": first.get("model_time_per_run_s", float("nan")),
+        "air_time_per_run": first.get("air_time_per_run_s", float("nan")),
+        "integ_time_per_run": first.get("integ_time_per_run_s", float("nan")),
+        "t_sim_per_run": t_sim_q,
+        "t_surr_per_run": t_surr_q,
     })
 
     with open(out_dir / "metrics.json", "w") as f:

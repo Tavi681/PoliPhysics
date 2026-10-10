@@ -268,6 +268,19 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
     run_meta["train_time_s"] = time.time() - t0
     with open(ckpt_dir / "run_meta.json", "w") as f:
         json.dump(run_meta, f, indent=2)
+    # Refresh ckpt meta so evaluate can read C_train without run_meta fallback
+    for name in ("last.pt", "best.pt"):
+        p = ckpt_dir / name
+        if not p.exists():
+            continue
+        try:
+            blob = torch.load(p, map_location="cpu", weights_only=False)
+            meta = dict(blob.get("meta") or {})
+            meta["train_time_s"] = run_meta["train_time_s"]
+            blob["meta"] = meta
+            torch.save(blob, p)
+        except Exception:
+            pass
     if wb is not None:
         import wandb
         wandb.finish()

@@ -1,2 +1,2 @@
-Method,Hardware,Time per run,Time per P (M),C_data,C_train,Q*,|Delta P|,air_time_per_run
-follow_air,mps,0.15044781239703298,,,,,0.16666666666666666,0.038957725253163114
+Method,Hardware,Time per run,Time per P (M),C_data,C_train,Q*,|Delta P|,model_time_per_run,air_time_per_run,integ_time_per_run,t_sim_per_run,t_surr_per_run
+follow_air,surr=mps; sim=c2-standard-30,19.986710969141996,,15719.23251421,0.0,6.72346775835724,0.16666666666666666,0.024326393264345825,0.014665729482658207,0.0007614583009853959,2345.4402502166663,7.475218009727687

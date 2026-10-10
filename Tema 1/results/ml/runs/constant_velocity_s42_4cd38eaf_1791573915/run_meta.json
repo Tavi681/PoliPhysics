@@ -7,5 +7,6 @@
   "git_commit": "4cd38eafb9b669c1bee4162bd407f921ba5e3ae6",
   "git_dirty": true,
   "device": "mps",
-  "seed": 42
+  "seed": 42,
+  "train_time_s": 0.0
 }
