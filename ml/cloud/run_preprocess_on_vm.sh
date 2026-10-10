@@ -22,6 +22,9 @@ LOG=/data/logs/preprocess.log
 exec > >(tee -a "${LOG}") 2>&1
 
 echo "=== preprocess start ${START_TS} commit=${GIT_COMMIT} dirty=${CODE_DIRTY} ==="
+sudo apt-get update -qq
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-venv python3-pip python3-dev build-essential libhdf5-dev pkg-config
+rm -rf /data/venv
 python3 -m venv /data/venv
 source /data/venv/bin/activate
 pip install -U pip wheel
