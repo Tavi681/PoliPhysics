@@ -402,14 +402,18 @@ def main():
         ok = report["sanity_below_zero_acc"]
         train_ok = bool(ok.get("train_overall"))
         val_ok = bool(ok.get("val_overall"))
-        # Require overall; per-type is reported but spider can be sparse on tiny subsets.
-        if not (train_ok and val_ok):
+        train_types = ok.get("train_by_type") or {}
+        val_types = ok.get("val_by_type") or {}
+        types_ok = all(train_types.get(k) for k in ("spider", "interior", "tip")) and all(
+            val_types.get(k) for k in ("spider", "interior", "tip")
+        )
+        if not (train_ok and val_ok and types_ok):
             print(
-                f"SANITY_FAIL train_ok={train_ok} val_ok={val_ok} detail={ok}",
+                f"SANITY_FAIL train_ok={train_ok} val_ok={val_ok} types_ok={types_ok} detail={ok}",
                 flush=True,
             )
             raise SystemExit(44)
-        print(f"SANITY_OK below zero-acc: {ok}", flush=True)
+        print(f"SANITY_OK below zero-acc (overall+per-type): {ok}", flush=True)
 
 
 if __name__ == "__main__":
