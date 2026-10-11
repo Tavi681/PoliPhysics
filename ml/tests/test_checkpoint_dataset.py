@@ -50,7 +50,8 @@ def _write_synthetic_store(tmp: Path, N: int = 1, T: int = 40):
             "n_frames": T, "n_nodes": n,
         },
     }
-    torch.save([rec], tmp / "shard_0000.pt")
+    from ml.data.shard_format import pack_records_consolidated
+    torch.save(pack_records_consolidated([rec]), tmp / "shard_0000.pt")
     norm = {
         "v": {"mean": [0, 0, 0], "std": [1, 1, 1], "count": 1},
         "u": {"mean": [0, 0, 0], "std": [1, 1, 1], "count": 1},

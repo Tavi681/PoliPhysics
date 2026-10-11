@@ -11,21 +11,23 @@ from ml.models import MODEL_REGISTRY, build_model
 def _fake_index(n_per=20):
     rows = []
     i = 0
-    for N in [1, 2, 4, 6, 8]:
+    for N in [1, 2, 3, 4, 6, 8]:
         for sw in [0.15, 0.30, 0.22]:
             if sw == 0.22 and N not in (2, 4):
                 continue
-            if N in (6, 8) and sw == 0.22:
+            if N in (3, 6, 8) and sw == 0.22:
                 continue
-            src = "gen_sigma" if sw == 0.22 else ("gen_N" if N in (3, 6) and sw == 0.30 and N != 8 else "main")
-            if N == 6:
-                src = "gen_N"
+            if N == 3 and sw != 0.30:
+                continue
+            src = "gen_sigma" if sw == 0.22 else ("gen_N" if N in (3, 6) else "main")
+            if N == 8:
+                src = "main"
             for x in [-1, 0, 1]:
                 for _ in range(n_per // 3 + 1):
                     rows.append({
                         "run_id": f"N{N}_sw{sw}_x{x:+d}_i{i:04d}",
                         "N": N, "sigma_w": sw, "x_grid": x, "q": 1e-9, "q_nC": 1.0,
-                        "n_frames": 100, "valid": True, "split_source": src if N != 8 else "main",
+                        "n_frames": 100, "valid": True, "split_source": src,
                     })
                     i += 1
     return pd.DataFrame(rows)
@@ -36,12 +38,18 @@ def test_no_split_leakage():
         "seed": 42, "val_frac": 0.1, "test_interp_frac": 0.1,
         "train_val_pool": {"N": [1, 2, 4], "sigma_w": [0.15, 0.30], "sources": ["main"]},
         "test_unseenN": {"N": [6, 8], "sources": ["main", "gen_N"]},
+        "test_unseenN_interp": {"N": [3], "sources": ["main", "gen_N"]},
         "test_unseenSigma": {"sigma_w": [0.22]},
     }
-    splits = build_splits(_fake_index(), cfg)
+    idx = _fake_index()
+    splits = build_splits(idx, cfg)
     assert_no_leakage(splits)
     assert len(splits["train"]) > 0
     assert len(splits["test_unseenN"]) > 0
+    assert len(splits["test_unseenN_interp"]) > 0
+    assert set(idx.loc[idx.N == 3, "run_id"]) == set(splits["test_unseenN_interp"])
+    from ml.data.splits import assert_split_coverage
+    assert_split_coverage(splits, set(idx["run_id"]))
 
 
 def test_material_edges_bidirectional_and_count():

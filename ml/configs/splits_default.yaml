@@ -12,5 +12,10 @@ test_unseenN:
   N: [6, 8]
   sources: [main, gen_N]
 
+# N=3 lies between train Ns {1,2,4} and extrapolative {6,8}
+test_unseenN_interp:
+  N: [3]
+  sources: [main, gen_N]
+
 test_unseenSigma:
   sigma_w: [0.22]

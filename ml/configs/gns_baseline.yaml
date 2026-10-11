@@ -1,0 +1,57 @@
+# Full MeshGraphNet / GNS baseline (Sanchez-Gonzalez 2020 + Pfaff 2021).
+# Requires u_next (stored in data_version 5c60fa… or computed on the fly).
+model:
+  name: gns_baseline
+  latent: 128
+  n_mp_steps: 10
+  mlp_depth: 2
+  aggregation: sum
+  node_type_embed_dim: 16
+  edge_sets: [material, interaction]
+
+data:
+  data_dir: Tema 1/results/ml/processed/local_subset
+  splits: Tema 1/results/ml/splits/splits.json
+  C: 5
+  # continuous node features (node_type uses a learned embedding in the model)
+  node_features: [v_hist, u, u_next, charge]
+  globals_fields: [qE, m, N]   # sigma_w, ell, spider_z off by default
+  edge_sets: [material, interaction]
+  radius: 0.05                 # cross-thread neighbourhood near the spider
+  # GNS input noise σ=3e-4 scaled by our train v_std ≈ 0.18 → 5.4e-5
+  noise_std: 5.4e-5
+  normalize_features: true
+  rotate_augment: false        # yaw augmentation OFF for baseline
+  sample_weight: per_run
+  cache_shards: 4
+
+train:
+  seed: 42
+  seeds: [42]
+  optimizer: adam
+  batch_size: 2                # smoke / MPS; L4: raise to largest that fits (try 8–16)
+  lr: 1.0e-4
+  weight_decay: 0.0
+  max_steps: 300
+  grad_clip: 1.0
+  log_every: 10
+  lr_schedule:
+    type: exponential
+    lr_end: 1.0e-6
+  val_every: 50
+  rollout_K: 20
+  early_stopping:
+    metric: val_rollout_mse
+    patience: 20
+  num_workers: 0
+  checkpoint_dir: Tema 1/results/ml/runs
+
+wandb:
+  project: poliphysics-ballooning-ml
+  mode: offline
+  entity: null
+
+eval:
+  rollout_K: 20
+  t_end: 5.0
+  max_full_runs: 3

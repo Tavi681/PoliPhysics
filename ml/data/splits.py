@@ -48,6 +48,13 @@ def build_splits(index: pd.DataFrame, split_cfg: dict[str, Any]) -> dict[str, li
         m &= df["split_source"].isin(cfg_uN["sources"])
     assign(m, "test_unseenN")
 
+    cfg_uNi = split_cfg.get("test_unseenN_interp")
+    if cfg_uNi:
+        m = df["N"].isin(cfg_uNi["N"]) & ~df["run_id"].isin(assigned)
+        if cfg_uNi.get("sources"):
+            m &= df["split_source"].isin(cfg_uNi["sources"])
+        assign(m, "test_unseenN_interp")
+
     cfg_us = split_cfg["test_unseenSigma"]
     m = df["sigma_w"].isin(cfg_us["sigma_w"]) & ~df["run_id"].isin(assigned)
     assign(m, "test_unseenSigma")
@@ -76,7 +83,10 @@ def build_splits(index: pd.DataFrame, split_cfg: dict[str, Any]) -> dict[str, li
         assigned[rid] = "train"
 
     out: dict[str, list[str]] = {
-        k: [] for k in ["train", "val", "test_interp", "test_unseenN", "test_unseenSigma"]
+        k: [] for k in [
+            "train", "val", "test_interp",
+            "test_unseenN", "test_unseenN_interp", "test_unseenSigma",
+        ]
     }
     for rid, sp in assigned.items():
         out.setdefault(sp, []).append(rid)
@@ -92,6 +102,38 @@ def assert_no_leakage(splits: dict[str, list[str]]) -> None:
             if rid in seen:
                 raise AssertionError(f"leakage: {rid} in {seen[rid]} and {name}")
             seen[rid] = name
+
+
+def assert_split_coverage(
+    splits: dict[str, list[str]],
+    expected_ids: set[str],
+) -> None:
+    """Union of all splits equals expected_ids with no duplicates."""
+    assert_no_leakage(splits)
+    union = set()
+    for ids in splits.values():
+        union.update(ids)
+    missing = expected_ids - union
+    extra = union - expected_ids
+    if missing or extra:
+        raise AssertionError(
+            f"split coverage: missing={len(missing)} extra={len(extra)} "
+            f"e.g. missing={sorted(missing)[:5]} extra={sorted(extra)[:5]}"
+        )
+
+
+SPLIT_DISPLAY = {
+    "train": "train",
+    "val": "val",
+    "test_interp": "interpolation",
+    "test_unseenN": "unseen N, extrapolation",
+    "test_unseenN_interp": "unseen N, interpolation",
+    "test_unseenSigma": "unseen sigma",
+}
+
+
+def split_display_name(name: str) -> str:
+    return SPLIT_DISPLAY.get(name, name)
 
 
 def splits_hash(splits: dict[str, list[str]]) -> str:

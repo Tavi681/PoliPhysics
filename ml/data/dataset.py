@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -10,34 +11,93 @@ import torch
 from torch.utils.data import Dataset, WeightedRandomSampler
 from torch_geometric.data import Data
 
+from ml.data.air import u_next_frame
+from ml.data.edge_features import (
+    build_edge_sets_gns,
+    interaction_edge_attr,
+    material_edge_attr,
+)
 from ml.data.frames import DT
 from ml.data.graph import build_edge_sets
 from ml.data.normalize import load_norm_stats, normalize
 
 
 class BallooningRunStore:
-    """Loads sharded .pt packs into memory (fine for local subset)."""
+    """Shard-backed run store with an LRU cache (full pack fits on disk, not RAM)."""
 
-    def __init__(self, data_dir: Path):
+    def __init__(self, data_dir: Path, *, cache_shards: int = 4, preload: bool = False):
         self.data_dir = Path(data_dir)
         with open(self.data_dir / "manifest.json") as f:
             self.manifest = json.load(f)
         self.norm = load_norm_stats(self.data_dir / "norm_stats.json")
-        self.runs: dict[str, dict] = {}
-        for sh in self.manifest["shards"]:
-            pack = torch.load(self.data_dir / sh, weights_only=False)
-            for rec in pack:
-                self.runs[rec["run_id"]] = rec
+        self._rid_to_shard: dict[str, str] = {
+            r["run_id"]: r["shard"] for r in self.manifest["records"]
+        }
+        self._cache_shards = max(1, int(cache_shards))
+        self._shard_cache: OrderedDict[str, dict[str, dict]] = OrderedDict()
+        self.runs = _RunIdView(self)
+        if preload:
+            for sh in self.manifest["shards"]:
+                self._load_shard(sh)
+
+    def __contains__(self, run_id: str) -> bool:
+        return run_id in self._rid_to_shard
 
     def get(self, run_id: str) -> dict:
-        return self.runs[run_id]
+        sh = self._rid_to_shard.get(run_id)
+        if sh is None:
+            raise KeyError(run_id)
+        return self._load_shard(sh)[run_id]
+
+    def _load_shard(self, sh: str) -> dict[str, dict]:
+        if sh in self._shard_cache:
+            self._shard_cache.move_to_end(sh)
+            return self._shard_cache[sh]
+        from ml.data.shard_format import load_shard
+        pack = {rec["run_id"]: rec for rec in load_shard(self.data_dir / sh)}
+        self._shard_cache[sh] = pack
+        self._shard_cache.move_to_end(sh)
+        while len(self._shard_cache) > self._cache_shards:
+            self._shard_cache.popitem(last=False)
+        return pack
+
+
+class _RunIdView:
+    def __init__(self, store: BallooningRunStore):
+        self._store = store
+
+    def __contains__(self, rid: str) -> bool:
+        return rid in self._store._rid_to_shard
+
+    def __iter__(self):
+        return iter(self._store._rid_to_shard)
+
+    def __len__(self) -> int:
+        return len(self._store._rid_to_shard)
+
+    def __getitem__(self, rid: str) -> dict:
+        return self._store.get(rid)
+
+    def keys(self):
+        return self._store._rid_to_shard.keys()
+
+    def get(self, rid: str, default=None):
+        if rid not in self._store._rid_to_shard:
+            return default
+        return self._store.get(rid)
+
+
+def _norm_vec(x: np.ndarray, stats: dict | None) -> np.ndarray:
+    if stats is None:
+        return x.astype(np.float32)
+    return normalize(x.astype(np.float32), stats["mean"], stats["std"])
 
 
 class BallooningDataset(Dataset):
     """One item = (run_id, t) with history of C velocities.
 
     Target a_t = (v_{t+1} - v_t) / dt  (velocity-based; check B).
-    Positions are spider-relative (+ spider absolute z / xyz in globals).
+    Positions are spider-relative (no absolute xy in node features by default).
     """
 
     def __init__(
@@ -48,21 +108,29 @@ class BallooningDataset(Dataset):
         C: int = 5,
         history_u: bool = False,
         node_features: Sequence[str] | None = None,
+        globals_fields: Sequence[str] | None = None,
         edge_sets: Sequence[str] | None = None,
         radius: float = 0.1,
         noise_std: float = 0.0,
         sample_weight: str = "per_run",
+        normalize_features: bool = True,
         normalize_target: bool = True,
+        rotate_augment: bool = False,
         seed: int = 0,
     ):
         self.store = store
         self.C = int(C)
         self.history_u = history_u
-        self.node_features = list(node_features or ["v_hist", "u", "charge", "node_type"])
+        self.node_features = list(
+            node_features or ["v_hist", "u", "charge", "node_type"]
+        )
+        self.globals_fields = list(globals_fields or [])
         self.edge_sets = list(edge_sets or ["material"])
         self.radius = float(radius)
         self.noise_std = float(noise_std)
+        self.normalize_features = bool(normalize_features)
         self.normalize_target = normalize_target
+        self.rotate_augment = bool(rotate_augment)
         self.rng = np.random.default_rng(seed)
         self.dt = float(store.norm.get("dt", DT))
         self.norm = store.norm
@@ -70,17 +138,15 @@ class BallooningDataset(Dataset):
         self.index: list[tuple[str, int]] = []
         self._run_sample_count: dict[str, int] = {}
         for rid in run_ids:
-            if rid not in store.runs:
+            if rid not in store:
                 continue
-            rec = store.runs[rid]
+            rec = store.get(rid)
             ok = rec["window_ok"]
-            # need t>=C and t+1 < T; also extend window_ok for this C
             T = rec["v"].shape[0]
             n_ok = 0
             for t in range(self.C, T - 1):
                 if not bool(ok[t]):
                     continue
-                # ensure history frames exist (always true if t>=C)
                 self.index.append((rid, t))
                 n_ok += 1
             self._run_sample_count[rid] = n_ok
@@ -91,15 +157,21 @@ class BallooningDataset(Dataset):
         return len(self.index)
 
     def weights(self) -> torch.Tensor:
-        """Sampler weights: equal per run (default) or uniform per frame."""
         w = torch.ones(len(self.index), dtype=torch.double)
         if self.sample_weight == "per_frame":
             return w
-        # per_run: weight ∝ 1 / n_samples_in_run
         for i, (rid, _) in enumerate(self.index):
             n = max(self._run_sample_count.get(rid, 1), 1)
             w[i] = 1.0 / n
         return w
+
+    def _rotate_yaw(self, arr: np.ndarray, c: float, s: float) -> np.ndarray:
+        """Rotate ...x3 about z by angle with cos c, sin s."""
+        out = arr.copy()
+        x, y = arr[..., 0], arr[..., 1]
+        out[..., 0] = c * x - s * y
+        out[..., 1] = s * x + c * y
+        return out
 
     def _build_node_features(
         self,
@@ -107,28 +179,77 @@ class BallooningDataset(Dataset):
         t: int,
         v_hist: np.ndarray,
         u_t: np.ndarray,
+        u_next: np.ndarray | None,
+        spider: np.ndarray,
     ) -> torch.Tensor:
         feats = []
         n = rec["v"].shape[1]
+        g = rec["globals"]
         for name in self.node_features:
             if name == "v_hist":
-                feats.append(v_hist.reshape(n, -1))  # (n, 3C)
+                vh = v_hist.reshape(n, -1)
+                if self.normalize_features and "v" in self.norm:
+                    # normalize each 3-vector block with v stats
+                    blocks = []
+                    for k in range(self.C):
+                        blocks.append(_norm_vec(v_hist[k], self.norm["v"]))
+                    vh = np.concatenate(blocks, axis=-1)
+                feats.append(vh)
             elif name == "u":
-                feats.append(u_t)
+                feats.append(_norm_vec(u_t, self.norm.get("u") if self.normalize_features else None))
+            elif name == "u_next":
+                if u_next is None:
+                    raise KeyError("u_next requested but unavailable")
+                feats.append(
+                    _norm_vec(u_next, self.norm.get("u") if self.normalize_features else None)
+                )
             elif name == "u_hist":
-                u_hist = rec["u"][t - self.C + 1 : t + 1]  # (C,n,3)
-                feats.append(np.transpose(u_hist, (1, 0, 2)).reshape(n, -1))
+                # history u_{t-C+1..t-1} (exclude u_t; u_t is separate)
+                u_h = rec["u"][t - self.C + 1 : t]  # (C-1,n,3)
+                if u_h.shape[0] == 0:
+                    feats.append(np.zeros((n, 0), dtype=np.float32))
+                else:
+                    blocks = []
+                    for k in range(u_h.shape[0]):
+                        blocks.append(
+                            _norm_vec(u_h[k], self.norm.get("u") if self.normalize_features else None)
+                        )
+                    feats.append(np.concatenate(blocks, axis=-1))
             elif name == "charge":
-                feats.append(rec["charge"][:, None])
+                feats.append(rec["charge"][:, None].astype(np.float32))
             elif name == "node_type":
-                # one-hot 3
+                # legacy one-hot for stub_gnn; MeshGraphNet uses embedding instead
                 nt = rec["node_type"].astype(np.int64)
-                oh = np.eye(3, dtype=np.float32)[nt]
-                feats.append(oh)
+                feats.append(np.eye(3, dtype=np.float32)[nt])
             elif name == "x_rel":
-                feats.append(rec["x_rel"][t])
+                feats.append(
+                    _norm_vec(rec["x_rel"][t], self.norm.get("x_rel") if self.normalize_features else None)
+                )
+            elif name == "spider_z":
+                feats.append(np.full((n, 1), float(spider[2]), dtype=np.float32))
             else:
                 raise KeyError(name)
+
+        # globals broadcast
+        for gf in self.globals_fields:
+            if gf == "qE":
+                val = float(g["q"]) * float(g["E"])
+            elif gf == "m":
+                val = float(g["m"])
+            elif gf == "N":
+                val = float(g["N"])
+            elif gf == "sigma_w":
+                val = float(g["sigma_w"])
+            elif gf == "ell":
+                val = float(g["ell"])
+            elif gf == "spider_z":
+                val = float(spider[2])
+            else:
+                raise KeyError(f"unknown globals field {gf}")
+            feats.append(np.full((n, 1), val, dtype=np.float32))
+
+        if not feats:
+            return torch.zeros(n, 0, dtype=torch.float32)
         x = np.concatenate(feats, axis=-1).astype(np.float32)
         return torch.from_numpy(x)
 
@@ -136,65 +257,97 @@ class BallooningDataset(Dataset):
         rid, t = self.index[i]
         rec = self.store.get(rid)
         dt = self.dt
-        v = rec["v"]  # (T,n,3)
-        # history velocities v_{t-C+1} .. v_t  → shape (C,n,3)
+        v = rec["v"]
         v_hist = v[t - self.C + 1 : t + 1].copy()
         v_t = v[t].copy()
         v_tp1 = v[t + 1].copy()
         a = (v_tp1 - v_t) / dt
 
-        # Sanchez-Gonzalez random-walk noise on velocity history
         if self.noise_std > 0:
-            # noise on the C history steps; correct target consistently:
-            # observed v'_t = v_t + sum eps, a' = (v_{t+1} - v'_t)/dt
             eps = self.rng.normal(0.0, self.noise_std, size=v_hist.shape).astype(np.float32)
-            # random walk along history axis
             noise_rw = np.cumsum(eps, axis=0)
             v_hist = v_hist + noise_rw
-            v_t_noisy = v_hist[-1]
-            a = (v_tp1 - v_t_noisy) / dt
+            a = (v_tp1 - v_hist[-1]) / dt
 
-        x_rel = rec["x_rel"][t]
-        u_t = rec["u"][t]
-        spider = rec["spider_abs"][t]
+        x_rel = rec["x_rel"][t].astype(np.float32).copy()
+        u_t = rec["u"][t].astype(np.float32).copy()
+        spider = rec["spider_abs"][t].astype(np.float64).copy()
 
-        pos = torch.from_numpy(x_rel.astype(np.float32))
-        # absolute positions for radius graph: relative + spider
+        # optional yaw augmentation (about vertical)
+        if self.rotate_augment:
+            ang = float(self.rng.uniform(0.0, 2.0 * np.pi))
+            c, s = float(np.cos(ang)), float(np.sin(ang))
+            x_rel = self._rotate_yaw(x_rel, c, s)
+            v_hist = self._rotate_yaw(v_hist, c, s)
+            u_t = self._rotate_yaw(u_t, c, s)
+            a = self._rotate_yaw(a.astype(np.float32), c, s)
+            spider_xy = spider.copy()
+            spider_xy[0], spider_xy[1] = c * spider[0] - s * spider[1], s * spider[0] + c * spider[1]
+            spider = spider_xy
+
+        need_unext = "u_next" in self.node_features
+        u_next = u_next_frame(rec, t) if need_unext else None
+        if need_unext and self.rotate_augment:
+            u_next = self._rotate_yaw(u_next, c, s)
+
+        pos = torch.from_numpy(x_rel)
         pos_abs = pos + torch.from_numpy(spider.astype(np.float32))
 
         node_type = torch.from_numpy(rec["node_type"].astype(np.int64))
         thread_id = torch.from_numpy(rec["thread_id"].astype(np.int64))
-        edge_dict = build_edge_sets(
-            self.edge_sets,
-            edges_material=rec["edges"],
-            pos=pos_abs,
-            thread_id=thread_id,
-            node_type=node_type,
-            radius=self.radius,
-        )
+        charge_t = torch.from_numpy(rec["charge"].astype(np.float32))
 
-        feat = self._build_node_features(rec, t, v_hist, u_t)
+        use_gns_edges = any(s in ("interaction",) for s in self.edge_sets)
+        if use_gns_edges or "interaction" in self.edge_sets:
+            edge_dict = build_edge_sets_gns(
+                self.edge_sets,
+                edges_material=rec["edges"],
+                pos=pos_abs,
+                thread_id=thread_id,
+                node_type=node_type,
+                radius=self.radius,
+            )
+            inter_flags = edge_dict.pop("_interaction_flags")
+        else:
+            edge_dict = build_edge_sets(
+                self.edge_sets,
+                edges_material=rec["edges"],
+                pos=pos_abs,
+                thread_id=thread_id,
+                node_type=node_type,
+                radius=self.radius,
+            )
+            inter_flags = torch.zeros(0)
+
+        g = rec["globals"]
+        l0 = float(g["L"]) / max(int(g["N_t"]), 1)
+
+        feat = self._build_node_features(rec, t, v_hist, u_t, u_next, spider)
         target = torch.from_numpy(a.astype(np.float32))
         if self.normalize_target:
             target = torch.from_numpy(
                 normalize(a.astype(np.float32), self.norm["a"]["mean"], self.norm["a"]["std"])
             )
 
-        g = rec["globals"]
         data = Data(
             x=feat,
             pos=pos,
             y=target,
             node_type=node_type,
             thread_id=thread_id,
+            charge=charge_t,
             edge_index=edge_dict.get("material", torch.zeros(2, 0, dtype=torch.long)),
             num_nodes=int(pos.shape[0]),
         )
-        # attach extra edge sets
         for name, eidx in edge_dict.items():
             setattr(data, f"edge_index_{name}", eidx)
-        # globals (broadcast per-graph; PyG batching uses data attributes)
-        # float32 for MPS compatibility (absolute z still carried; shards keep float64)
+            if name == "material":
+                data.edge_attr_material = material_edge_attr(pos, eidx, l0=l0)
+            elif name == "interaction":
+                data.edge_attr_interaction = interaction_edge_attr(
+                    pos, eidx, charge_t, inter_flags
+                )
+
         data.spider_abs = torch.from_numpy(spider.astype(np.float32))
         data.spider_z = torch.tensor([float(spider[2])], dtype=torch.float32)
         data.run_N = torch.tensor([g["N"]], dtype=torch.long)
@@ -204,9 +357,11 @@ class BallooningDataset(Dataset):
         data.h = torch.tensor([g["h"]], dtype=torch.float32)
         data.z0 = torch.tensor([g["z0"]], dtype=torch.float32)
         data.t_index = torch.tensor([t], dtype=torch.long)
-        data.run_id = rid  # string; careful in batching
+        data.run_id = rid
         data.v_t = torch.from_numpy(v_hist[-1].astype(np.float32))
         data.u_t = torch.from_numpy(u_t.astype(np.float32))
+        if u_next is not None:
+            data.u_next = torch.from_numpy(u_next.astype(np.float32))
         return data
 
 

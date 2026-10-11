@@ -77,8 +77,14 @@ def verify(
     for meta in samples:
         rid = meta["run_id"]
         sh = meta["shard"]
+        from ml.data.shard_format import load_shard
+        import tempfile
         with fs.open(f"{prefix}/{sh}", "rb") as f:
-            pack = torch.load(f, weights_only=False)
+            raw = f.read()
+        with tempfile.NamedTemporaryFile(suffix=".pt") as tmp:
+            tmp.write(raw)
+            tmp.flush()
+            pack = load_shard(tmp.name)
         rec = next(r for r in pack if r["run_id"] == rid)
         name = rec["globals"].get("hdf5_name", rid + ".h5")
         shard = int(rec["globals"].get("hdf5_shard", meta.get("hdf5_shard", 0)))

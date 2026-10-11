@@ -192,11 +192,40 @@ def _run_path(out_dir: Path, run_id: str) -> Path:
     return out_dir / "runs" / f"{run_id}.pt"
 
 
+ARRAY_KEYS = (
+    "t", "x_rel", "spider_abs", "v", "u", "u_next",
+    "charge", "thread_id", "node_type", "edges", "window_ok",
+)
+
+
+def materialize_array(obj: Any) -> np.ndarray:
+    """Exact-sized contiguous copy (drops oversized parent storages / views)."""
+    if isinstance(obj, torch.Tensor):
+        t = obj.detach().cpu().contiguous().clone()
+        return t.numpy()
+    arr = np.asarray(obj)
+    return np.ascontiguousarray(arr).copy()
+
+
+def materialize_record(rec: dict[str, Any]) -> dict[str, Any]:
+    """Clone every array field to an exact contiguous ndarray; copy globals."""
+    out: dict[str, Any] = {
+        "run_id": rec["run_id"],
+        "globals": dict(rec["globals"]),
+    }
+    for k in ARRAY_KEYS:
+        if k not in rec:
+            continue
+        out[k] = materialize_array(rec[k])
+    return out
+
+
 def _records_from_shards(out_dir: Path) -> tuple[list[str], list[dict]]:
+    from ml.data.shard_format import load_shard
     shard_paths = sorted(p.name for p in out_dir.glob("shard_*.pt"))
     records_meta: list[dict] = []
     for sh in shard_paths:
-        for rec in torch.load(out_dir / sh, weights_only=False):
+        for rec in load_shard(out_dir / sh):
             g = rec["globals"]
             records_meta.append({
                 "run_id": rec["run_id"],
@@ -214,7 +243,8 @@ def pack_pending_runs(
     out_dir: Path,
     shard_size: int = 50,
 ) -> tuple[list[str], list[dict]]:
-    """Pack any remaining runs/*.pt into new shards; delete each after pack."""
+    """Pack any remaining runs/*.pt into new consolidated shards; delete each after pack."""
+    from ml.data.shard_format import pack_records_consolidated
     out_dir = Path(out_dir)
     existing = sorted(out_dir.glob("shard_*.pt"))
     shard_idx = 0
@@ -230,7 +260,7 @@ def pack_pending_runs(
         if not buf:
             return
         name = f"shard_{shard_idx:04d}.pt"
-        torch.save(buf, out_dir / name)
+        torch.save(pack_records_consolidated(buf), out_dir / name)
         for p in buf_paths:
             p.unlink(missing_ok=True)
         shard_idx += 1
@@ -238,7 +268,8 @@ def pack_pending_runs(
         buf_paths = []
 
     for p in tqdm(pending, desc="pack_shards"):
-        buf.append(torch.load(p, weights_only=False))
+        raw = torch.load(p, weights_only=False)
+        buf.append(materialize_record(raw))
         buf_paths.append(p)
         if len(buf) >= shard_size:
             flush()
@@ -251,8 +282,9 @@ def compute_train_norms(out_dir: Path, train_ids: set[str], shard_paths: list[st
     upd_u, fin_u = running_mean_var()
     upd_a, fin_a = running_mean_var()
     upd_x, fin_x = running_mean_var()
+    from ml.data.shard_format import load_shard
     for sh in tqdm(shard_paths, desc="norm"):
-        pack = torch.load(out_dir / sh, weights_only=False)
+        pack = load_shard(out_dir / sh)
         for rec in pack:
             if rec["run_id"] not in train_ids:
                 continue
@@ -324,8 +356,9 @@ def preprocess(
             packed_ids = set()
     if resume and existing_shards and not packed_ids:
         # One-time scan (slow); write a lightweight id list for next resume
+        from ml.data.shard_format import load_shard
         for sh in existing_shards:
-            for rec in torch.load(sh, weights_only=False):
+            for rec in load_shard(sh):
                 packed_ids.add(rec["run_id"])
         (out_dir / "packed_ids.json").write_text(json.dumps(sorted(packed_ids)))
     elif resume and (out_dir / "packed_ids.json").exists() and not packed_ids:

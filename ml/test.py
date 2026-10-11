@@ -24,7 +24,7 @@ def main():
         Path(args.checkpoint),
         cfg,
         _device(args.device),
-        ["test_interp", "test_unseenN", "test_unseenSigma"],
+        ["test_interp", "test_unseenN_interp", "test_unseenN", "test_unseenSigma"],
     )
 
 

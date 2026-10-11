@@ -26,6 +26,9 @@ Do **not** install `torch_scatter` / `torch_sparse` (optional compiled extension
 - Target (**check B**): velocity-based  
   `a_t = (v_{t+1} - v_t) / dt`, `dt = 0.01 s`  
   Store `x_rel` (float32), `spider_abs` (float64), `v`, `u` (float32).
+- Optional `u_next` (GNS baseline): air at **current** `x_t` and time `t+dt` via `KinematicSimulation`  
+  (not `/u_air[t+1]`, which leaks `x_{t+1}`). Present in processed version `5c60fa669a719404`  
+  (`store_u_next: true`, `shard_format: consolidated_v1`); on-the-fly compute if missing.
 - Frame mask (**check A**): float32 storage makes raw `|dt-0.01|>1e-6` common on long runs; after `round(t/0.01)` all intervals are consecutive, so we mask only true index jumps (≈0%). Rollouts use fixed `dt=0.01` and compare to GT at stored times with linear interpolation on irregular frames only.
 
 ### Preprocess
@@ -50,37 +53,46 @@ Configured in `ml/configs/splits_default.yaml` (run-level, never by frame):
 |-------|------|
 | train / val | `N∈{1,2,4}`, `σ_w∈{0.15,0.30}`, main; val=10% stratified |
 | test_interp | 10% held-out from the same grid |
-| test_unseenN | all valid `N∈{6,8}` |
+| test_unseenN_interp | all valid `N=3` (unseen N, interpolation) |
+| test_unseenN | all valid `N∈{6,8}` (unseen N, extrapolation) |
 | test_unseenSigma | all valid `σ_w=0.22` |
 
 Adding `N=12/16` later = new data + YAML edit only.
 
 ## Model interface
 
+**Worked example — MeshGraphNet / GNS** (`ml/models/gns_baseline.py`):
+
 ```python
 from ml.models.base import SurrogateModel, register_model
 
-@register_model("my_model")
-class MyModel(SurrogateModel):
+@register_model("gns_baseline")  # also registered as gns_local
+class MeshGraphNet(SurrogateModel):
     def required_edges(self) -> list[str]:
-        return ["material"]  # also: radius, all_tips, fully_connected
+        return ["material", "interaction"]  # or ["material"] for local ablation
 
     def forward(self, batch):
-        # return normalized acceleration [num_nodes, 3]
+        # Encoder MLPs → M unshared MP steps (residuals) → decoder → â [N,3]
         ...
 ```
 
-**How to add a model:** one new file in `ml/models/` + one YAML under `ml/configs/`. Import the module from `ml/models/__init__.py` (one line). Nothing else changes.
+Configs: `ml/configs/gns_baseline.yaml` (material + interaction, uses `u_next`),  
+`ml/configs/gns_local.yaml` (material only, no `u_next`). Node/edge feature lists and
+globals are switchable in the YAML; the integrator / splits / metrics stay untouched.
 
-Templates: `stub_gnn.py`. Baselines: `constant_velocity`, `follow_air`.
+**How to add a model:** one new file in `ml/models/` + one YAML under `ml/configs/`.  
+Import the module from `ml/models/__init__.py` (one line). Nothing else changes.
+
+Also: `stub_gnn.py`. Zero-param baselines: `constant_velocity`, `follow_air`.
 
 ## Train / evaluate / test / tables
 
 ```bash
-python -m ml.train --config ml/configs/stub_gnn.yaml --device mps
-python -m ml.evaluate --config ml/configs/stub_gnn.yaml \
+python -m ml.train --config ml/configs/gns_local.yaml --device mps
+python -m ml.train --config ml/configs/gns_baseline.yaml --device mps
+python -m ml.evaluate --config ml/configs/gns_local.yaml \
   --checkpoint "Tema 1/results/ml/runs/<run_id>/best.pt" --device mps
-python -m ml.test --config ml/configs/stub_gnn.yaml \
+python -m ml.test --config ml/configs/gns_local.yaml \
   --checkpoint "Tema 1/results/ml/runs/<run_id>/best.pt"
 python -m ml.make_tables
 ```

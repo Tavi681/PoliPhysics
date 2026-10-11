@@ -8,8 +8,13 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from torch.optim import AdamW
-from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, SequentialLR
+from torch.optim import Adam, AdamW
+from torch.optim.lr_scheduler import (
+    CosineAnnealingLR,
+    ExponentialLR,
+    LinearLR,
+    SequentialLR,
+)
 
 from ml.data.dataset import BallooningDataset, BallooningRunStore, make_loader
 from ml.data.integrator import step_torch, DT
@@ -87,11 +92,17 @@ def one_step_mse(model, loader, device, norm) -> float:
 
 
 @torch.no_grad()
-def rollout_mse(model, store, run_ids, device, norm, K: int = 100, C: int = 5, max_runs: int = 8) -> float:
+def rollout_mse(
+    model, store, run_ids, device, norm, K: int = 100, C: int = 5, max_runs: int = 8,
+    *,
+    node_features=None, globals_fields=None, edge_sets=None, radius: float = 0.1,
+    normalize_features: bool = True,
+) -> float:
     """Rollout K frames from stored ICs; compare positions (spider-relative)."""
     model.eval()
     a_mean = torch.as_tensor(norm["a"]["mean"], device=device)
     a_std = torch.as_tensor(norm["a"]["std"], device=device)
+    edge_sets = list(edge_sets or model.required_edges() or ["material"])
     errs = []
     for rid in list(run_ids)[:max_runs]:
         rec = store.get(rid)
@@ -101,23 +112,24 @@ def rollout_mse(model, store, run_ids, device, norm, K: int = 100, C: int = 5, m
             continue
         x = torch.from_numpy(rec["x_rel"][t0].astype(np.float32)).to(device)
         v = torch.from_numpy(rec["v"][t0].astype(np.float32)).to(device)
-        # build a minimal batch repeatedly — use dataset for features
         from ml.data.dataset import BallooningDataset
         ds = BallooningDataset(
-            store, [rid], C=C, edge_sets=model.required_edges() or ["material"],
+            store, [rid], C=C,
+            node_features=node_features,
+            globals_fields=globals_fields,
+            edge_sets=edge_sets,
+            radius=radius,
+            normalize_features=normalize_features,
             normalize_target=True, noise_std=0.0,
         )
-        # map t -> dataset index
         idx_map = {t: i for i, (_, t) in enumerate(ds.index)}
         for k in range(K):
             t = t0 + k
             if t not in idx_map:
                 break
             data = ds[idx_map[t]].to(device)
-            # override pos/v with current rollout state
             data.pos = x
             data.v_t = v
-            # crude: keep u from GT at that time (open-loop air); full eval uses KS
             pred_n = model(data)
             a = pred_n * a_std + a_mean
             x, v = step_torch(x, v, a, dt=DT)
@@ -130,24 +142,41 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
     _set_seed(seed)
     data_dir = _resolve(cfg["data"]["data_dir"])
     splits = load_splits(_resolve(cfg["data"]["splits"]))
-    store = BallooningRunStore(data_dir)
     dcfg = cfg["data"]
+    store = BallooningRunStore(
+        data_dir, cache_shards=int(dcfg.get("cache_shards", 4)),
+    )
     edge_sets = dcfg.get("edge_sets", ["material"])
 
-    train_ds = BallooningDataset(
-        store, splits["train"], C=dcfg.get("C", 5),
+    ds_kwargs = dict(
+        C=dcfg.get("C", 5),
         history_u=dcfg.get("history_u", False),
         node_features=dcfg.get("node_features"),
-        edge_sets=edge_sets, radius=dcfg.get("radius", 0.1),
-        noise_std=dcfg.get("noise_std", 0.0),
+        globals_fields=dcfg.get("globals_fields"),
+        edge_sets=edge_sets,
+        radius=dcfg.get("radius", 0.1),
+        normalize_features=dcfg.get("normalize_features", True),
         sample_weight=dcfg.get("sample_weight", "per_run"),
+        rotate_augment=bool(dcfg.get("rotate_augment", False)),
         seed=seed,
     )
+    train_ds = BallooningDataset(
+        store, splits["train"],
+        noise_std=dcfg.get("noise_std", 0.0),
+        **ds_kwargs,
+    )
     val_ds = BallooningDataset(
-        store, splits["val"], C=dcfg.get("C", 5),
-        node_features=dcfg.get("node_features"),
-        edge_sets=edge_sets, radius=dcfg.get("radius", 0.1),
-        noise_std=0.0, sample_weight="per_frame", seed=seed,
+        store, splits["val"],
+        noise_std=0.0, sample_weight="per_frame",
+        C=ds_kwargs["C"],
+        history_u=ds_kwargs["history_u"],
+        node_features=ds_kwargs["node_features"],
+        globals_fields=ds_kwargs["globals_fields"],
+        edge_sets=edge_sets,
+        radius=ds_kwargs["radius"],
+        normalize_features=ds_kwargs["normalize_features"],
+        rotate_augment=False,
+        seed=seed,
     )
     tcfg = cfg["train"]
     train_loader = make_loader(
@@ -159,7 +188,7 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         num_workers=0, device=str(device),
     )
 
-    # infer node_dim
+    # infer node_dim / edge_dims from a sample
     sample = train_ds[0]
     node_dim = int(sample.x.shape[-1])
     mcfg = dict(cfg["model"])
@@ -169,6 +198,15 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         mcfg["a_std"] = store.norm["a"]["std"]
     else:
         mcfg["node_dim"] = node_dim
+        mcfg.setdefault("edge_sets", edge_sets)
+        edge_dims = dict(mcfg.get("edge_dims") or {})
+        for s in edge_sets:
+            attr = getattr(sample, f"edge_attr_{s}", None)
+            if attr is not None and attr.ndim == 2 and attr.shape[-1] > 0:
+                edge_dims[s] = int(attr.shape[-1])
+            else:
+                edge_dims.setdefault(s, 5 if s == "material" else 7)
+        mcfg["edge_dims"] = edge_dims
     model = build_model(name, **mcfg).to(device)
     # ensure required edges present in dataset
     need = model.required_edges()
@@ -203,9 +241,17 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         print(f"baseline checkpoint → {ckpt_dir}")
         return ckpt_dir
 
-    opt = AdamW(model.parameters(), lr=tcfg.get("lr", 1e-3), weight_decay=tcfg.get("weight_decay", 1e-4))
-    warmup = int(tcfg.get("lr_schedule", {}).get("warmup_steps", 0))
-    if tcfg.get("lr_schedule", {}).get("type") == "cosine":
+    opt_name = str(tcfg.get("optimizer", "adamw")).lower()
+    lr = float(tcfg.get("lr", 1e-3))
+    wd = float(tcfg.get("weight_decay", 1e-4))
+    if opt_name == "adam":
+        opt = Adam(model.parameters(), lr=lr, weight_decay=wd)
+    else:
+        opt = AdamW(model.parameters(), lr=lr, weight_decay=wd)
+    sched_cfg = tcfg.get("lr_schedule") or {}
+    sched_type = sched_cfg.get("type", "cosine")
+    warmup = int(sched_cfg.get("warmup_steps", 0))
+    if sched_type == "cosine":
         sched = SequentialLR(
             opt,
             [
@@ -214,6 +260,11 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
             ],
             milestones=[max(warmup, 1)],
         )
+    elif sched_type == "exponential":
+        # lr_end = lr * gamma^max_steps  (Sanchez-Gonzalez-style decay)
+        lr_end = float(sched_cfg.get("lr_end", 1e-6))
+        gamma = (lr_end / max(lr, 1e-12)) ** (1.0 / max(max_steps, 1))
+        sched = ExponentialLR(opt, gamma=gamma)
     else:
         sched = None
 
@@ -272,6 +323,11 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
             rom = rollout_mse(
                 model, store, splits["val"], device, store.norm,
                 K=int(tcfg.get("rollout_K", 100)), C=dcfg.get("C", 5),
+                node_features=dcfg.get("node_features"),
+                globals_fields=dcfg.get("globals_fields"),
+                edge_sets=edge_sets,
+                radius=dcfg.get("radius", 0.1),
+                normalize_features=dcfg.get("normalize_features", True),
             )
             print(f"step {step}: train_loss={float(loss):.4e} val_1step={osm:.4e} val_rollout={rom:.4e}")
             if wb is not None:

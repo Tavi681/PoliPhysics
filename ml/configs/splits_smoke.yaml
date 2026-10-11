@@ -11,5 +11,9 @@ test_unseenN:
   N: [6, 8]
   sources: [main, gen_N, gen_sigma]
 
+test_unseenN_interp:
+  N: [3]
+  sources: [main, gen_N, gen_sigma]
+
 test_unseenSigma:
   sigma_w: [0.22]

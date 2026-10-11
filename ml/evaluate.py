@@ -13,7 +13,7 @@ import torch
 from ml.data.dataset import BallooningDataset, BallooningRunStore, make_loader
 from ml.data.integrator import step_np, DT
 from ml.data.normalize import denormalize
-from ml.data.splits import load_splits
+from ml.data.splits import load_splits, split_display_name
 from ml.metrics.physics import (
     edge_length_drift,
     mean_vertical_spider_velocity,
@@ -79,6 +79,14 @@ def _interp_gt(t_src: np.ndarray, y_src: np.ndarray, t_query: np.ndarray) -> np.
     return out
 
 
+def _norm_blocks(arr_c_n_3: np.ndarray, stats: dict | None) -> np.ndarray:
+    from ml.data.normalize import normalize
+    if stats is None:
+        return arr_c_n_3.reshape(arr_c_n_3.shape[1], -1).astype(np.float32)
+    blocks = [normalize(arr_c_n_3[k], stats["mean"], stats["std"]) for k in range(arr_c_n_3.shape[0])]
+    return np.concatenate(blocks, axis=-1)
+
+
 @torch.no_grad()
 def full_rollout_surrogate(
     model,
@@ -89,25 +97,42 @@ def full_rollout_surrogate(
     C: int = 5,
     t_end: float = 60.0,
     include_air_time: bool = True,
+    node_features: list[str] | None = None,
+    globals_fields: list[str] | None = None,
+    edge_sets: list[str] | None = None,
+    radius: float = 0.1,
+    normalize_features: bool = True,
 ) -> dict:
-    """Roll from release until z=0, z=h, or t_end. Air from KinematicSimulation."""
+    """Roll from release until z=0, z=h, or t_end.
+
+    Air: u_t and (if requested) u_next from KinematicSimulation at the *current*
+    predicted positions — same definition as stored u_next (no /u_air leak).
+    """
+    from torch_geometric.data import Data
+    from ml.data.air import u_at
+    from ml.data.edge_features import (
+        build_edge_sets_gns,
+        interaction_edge_attr,
+        material_edge_attr,
+    )
+    from ml.data.graph import build_edge_sets, material_edges
+    from ml.data.normalize import normalize
+
     g = rec["globals"]
     flow = _make_flow(g["seed"], g["sigma_w"], g["ell"], g["U_h"])
-    h, z0 = float(g["h"]), float(g["z0"])
+    h = float(g["h"])
     a_mean = np.asarray(norm["a"]["mean"], dtype=np.float32)
     a_std = np.asarray(norm["a"]["std"], dtype=np.float32)
+    node_features = list(node_features or ["v_hist", "u", "charge", "node_type"])
+    globals_fields = list(globals_fields or [])
+    edge_sets = list(edge_sets or model.required_edges() or ["material"])
 
-    # start after history warmup at frame C
     t0 = C
     x_rel = rec["x_rel"][t0].astype(np.float32).copy()
     spider = rec["spider_abs"][t0].astype(np.float64).copy()
     v = rec["v"][t0].astype(np.float32).copy()
-    # velocity history buffer
     v_hist = rec["v"][t0 - C + 1 : t0 + 1].astype(np.float32).copy()
-
-    from ml.data.dataset import BallooningDataset
-    # dummy dataset for feature plumbing — we'll override fields
-    store_stub = None
+    u_hist = rec["u"][t0 - C + 1 : t0 + 1].astype(np.float32).copy()
 
     xs_abs = [spider + x_rel.astype(np.float64)]
     vs = [v.copy()]
@@ -124,39 +149,98 @@ def full_rollout_surrogate(
     t = float(rec["t"][t0])
     step = 0
     max_steps = int(t_end / DT) + 5
-    from ml.data.graph import material_edges
-    from torch_geometric.data import Data
+    l0 = float(g["L"]) / max(int(g["N_t"]), 1)
+    nt_np = rec["node_type"].astype(np.int64)
+    tid_np = rec["thread_id"].astype(np.int64)
+    charge_np = rec["charge"].astype(np.float32)
 
     while t < t_end and step < max_steps:
         x_abs = spider + x_rel.astype(np.float64)
+        n = x_rel.shape[0]
         t_air0 = time.perf_counter()
-        u = flow.u(x_abs, t).astype(np.float32)
+        u = u_at(flow, x_abs, t)
+        u_next = None
+        if "u_next" in node_features:
+            u_next = u_at(flow, x_abs, t + DT)
         air_time += time.perf_counter() - t_air0
 
-        n = x_rel.shape[0]
-        feat_parts = [
-            v_hist.transpose(1, 0, 2).reshape(n, -1),
-            u,
-            rec["charge"][:, None].astype(np.float32),
-            np.eye(3, dtype=np.float32)[rec["node_type"].astype(np.int64)],
-        ]
-        x_feat = torch.from_numpy(np.concatenate(feat_parts, axis=-1)).to(device)
-        e = material_edges(rec["edges"]).to(device)
+        feats = []
+        for name in node_features:
+            if name == "v_hist":
+                feats.append(_norm_blocks(v_hist, norm.get("v") if normalize_features else None))
+            elif name == "u":
+                feats.append(
+                    normalize(u, norm["u"]["mean"], norm["u"]["std"]) if normalize_features else u
+                )
+            elif name == "u_next":
+                feats.append(
+                    normalize(u_next, norm["u"]["mean"], norm["u"]["std"])
+                    if normalize_features else u_next
+                )
+            elif name == "u_hist":
+                uh = u_hist[:-1] if u_hist.shape[0] == C else u_hist
+                feats.append(_norm_blocks(uh, norm.get("u") if normalize_features else None))
+            elif name == "charge":
+                feats.append(charge_np[:, None])
+            elif name == "node_type":
+                feats.append(np.eye(3, dtype=np.float32)[nt_np])
+            elif name == "spider_z":
+                feats.append(np.full((n, 1), float(spider[2]), dtype=np.float32))
+            else:
+                raise KeyError(name)
+        for gf in globals_fields:
+            if gf == "qE":
+                val = float(g["q"]) * float(g["E"])
+            elif gf == "m":
+                val = float(g["m"])
+            elif gf == "N":
+                val = float(g["N"])
+            elif gf == "sigma_w":
+                val = float(g["sigma_w"])
+            elif gf == "ell":
+                val = float(g["ell"])
+            elif gf == "spider_z":
+                val = float(spider[2])
+            else:
+                raise KeyError(gf)
+            feats.append(np.full((n, 1), val, dtype=np.float32))
+        x_feat = torch.from_numpy(np.concatenate(feats, axis=-1).astype(np.float32)).to(device)
+
+        pos = torch.from_numpy(x_rel).to(device)
+        pos_abs = pos + torch.from_numpy(spider.astype(np.float32)).to(device)
+        node_type = torch.from_numpy(nt_np).to(device)
+        thread_id = torch.from_numpy(tid_np).to(device)
+        charge_t = torch.from_numpy(charge_np).to(device)
+
+        if "interaction" in edge_sets:
+            edge_dict = build_edge_sets_gns(
+                edge_sets, edges_material=rec["edges"], pos=pos_abs.cpu(),
+                thread_id=thread_id.cpu(), node_type=node_type.cpu(), radius=radius,
+            )
+            inter_flags = edge_dict.pop("_interaction_flags")
+        else:
+            edge_dict = build_edge_sets(
+                edge_sets, edges_material=rec["edges"], pos=pos_abs.cpu(),
+                thread_id=thread_id.cpu(), node_type=node_type.cpu(), radius=radius,
+            )
+            inter_flags = torch.zeros(0)
+
+        e_mat = edge_dict.get("material", material_edges(rec["edges"])).to(device)
         data = Data(
-            x=x_feat,
-            pos=torch.from_numpy(x_rel).to(device),
-            edge_index=e,
-            edge_index_material=e,
-            node_type=torch.from_numpy(rec["node_type"].astype(np.int64)).to(device),
-            thread_id=torch.from_numpy(rec["thread_id"].astype(np.int64)).to(device),
-            v_t=torch.from_numpy(v).to(device),
-            u_t=torch.from_numpy(u).to(device),
+            x=x_feat, pos=pos, edge_index=e_mat, edge_index_material=e_mat,
+            node_type=node_type, thread_id=thread_id, charge=charge_t,
+            v_t=torch.from_numpy(v).to(device), u_t=torch.from_numpy(u).to(device),
             num_nodes=n,
         )
-        data.w_s = torch.tensor(
-            [_settling_speed(int(g["N"]), m=float(g["m"]), L=float(g["L"]), N_t=int(g["N_t"]))],
-            device=device,
-        )
+        for name, eidx in edge_dict.items():
+            eidx_d = eidx.to(device)
+            setattr(data, f"edge_index_{name}", eidx_d)
+            if name == "material":
+                data.edge_attr_material = material_edge_attr(pos, eidx_d, l0=l0)
+            elif name == "interaction":
+                data.edge_attr_interaction = interaction_edge_attr(
+                    pos, eidx_d, charge_t, inter_flags.to(device)
+                )
 
         t_m0 = time.perf_counter()
         pred_n = model(data)
@@ -173,6 +257,7 @@ def full_rollout_surrogate(
         x_abs = np.vstack([spider[None, :], (spider + x_rel[1:].astype(np.float64))])
         x_rel = (x_abs - spider[None, :]).astype(np.float32)
         v_hist = np.concatenate([v_hist[1:], v[None]], axis=0)
+        u_hist = np.concatenate([u_hist[1:], u[None]], axis=0)
         integ_time += time.perf_counter() - t_i0
 
         t = t + DT
@@ -224,14 +309,33 @@ def evaluate_checkpoint(
     data_dir = _resolve(cfg["data"]["data_dir"])
     store = BallooningRunStore(data_dir)
     splits = load_splits(_resolve(cfg["data"]["splits"]))
+    dcfg = cfg["data"]
+    edge_sets = list(dcfg.get("edge_sets", ["material"]))
     mcfg = dict(cfg["model"])
     name = mcfg.pop("name")
-    sample = BallooningDataset(store, splits.get("train") or next(iter(splits.values())), C=cfg["data"].get("C", 5))[0]
+    sample = BallooningDataset(
+        store, splits.get("train") or next(iter(splits.values())),
+        C=dcfg.get("C", 5),
+        node_features=dcfg.get("node_features"),
+        globals_fields=dcfg.get("globals_fields"),
+        edge_sets=edge_sets,
+        radius=dcfg.get("radius", 0.1),
+        normalize_features=dcfg.get("normalize_features", True),
+    )[0]
     if name in ("constant_velocity", "follow_air"):
         mcfg["a_mean"] = store.norm["a"]["mean"]
         mcfg["a_std"] = store.norm["a"]["std"]
     else:
         mcfg["node_dim"] = int(sample.x.shape[-1])
+        mcfg.setdefault("edge_sets", edge_sets)
+        edge_dims = dict(mcfg.get("edge_dims") or {})
+        for s in edge_sets:
+            attr = getattr(sample, f"edge_attr_{s}", None)
+            if attr is not None and attr.ndim == 2 and attr.shape[-1] > 0:
+                edge_dims[s] = int(attr.shape[-1])
+            else:
+                edge_dims.setdefault(s, 5 if s == "material" else 7)
+        mcfg["edge_dims"] = edge_dims
     model = build_model(name, **mcfg)
     model.load_state_dict(ckpt["model"], strict=False)
     model.to(device).eval()
@@ -241,7 +345,9 @@ def evaluate_checkpoint(
     out_dir = repo_root() / "Tema 1" / "results" / "ml" / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    split_names = splits_to_eval or ["test_interp", "test_unseenN", "test_unseenSigma"]
+    split_names = splits_to_eval or [
+        "test_interp", "test_unseenN_interp", "test_unseenN", "test_unseenSigma",
+    ]
     rows = []
     cost_rows = []
     metrics = {"git": prov, "run_id": run_id, "model": name, "splits": {}}
@@ -251,9 +357,12 @@ def evaluate_checkpoint(
         if not ids:
             continue
         ds = BallooningDataset(
-            store, ids, C=cfg["data"].get("C", 5),
-            node_features=cfg["data"].get("node_features"),
-            edge_sets=cfg["data"].get("edge_sets", ["material"]),
+            store, ids, C=dcfg.get("C", 5),
+            node_features=dcfg.get("node_features"),
+            globals_fields=dcfg.get("globals_fields"),
+            edge_sets=edge_sets,
+            radius=dcfg.get("radius", 0.1),
+            normalize_features=dcfg.get("normalize_features", True),
             noise_std=0.0, sample_weight="per_frame",
         )
         loader = make_loader(ds, batch_size=4, shuffle=False, device=str(device))
@@ -261,7 +370,12 @@ def evaluate_checkpoint(
         rom = rollout_mse(
             model, store, ids, device, store.norm,
             K=int(cfg.get("eval", {}).get("rollout_K", 100)),
-            C=cfg["data"].get("C", 5), max_runs=min(8, len(ids)),
+            C=dcfg.get("C", 5), max_runs=min(8, len(ids)),
+            node_features=dcfg.get("node_features"),
+            globals_fields=dcfg.get("globals_fields"),
+            edge_sets=edge_sets,
+            radius=dcfg.get("radius", 0.1),
+            normalize_features=dcfg.get("normalize_features", True),
         )
 
         # full rollouts on available runs in local subset
@@ -286,8 +400,13 @@ def evaluate_checkpoint(
             gt_out = rec["globals"]["outcome"]
             pred = full_rollout_surrogate(
                 model, rec, store.norm, device,
-                C=cfg["data"].get("C", 5),
+                C=dcfg.get("C", 5),
                 t_end=t_end_cfg,
+                node_features=dcfg.get("node_features"),
+                globals_fields=dcfg.get("globals_fields"),
+                edge_sets=edge_sets,
+                radius=dcfg.get("radius", 0.1),
+                normalize_features=dcfg.get("normalize_features", True),
             )
             walls.append(pred["wall_time_s"])
             airs.append(pred["air_time_s"])
@@ -360,7 +479,8 @@ def evaluate_checkpoint(
         metrics["splits"][sp] = split_metrics
         rows.append({
             "Model": name,
-            "Split": sp,
+            "Split": split_display_name(sp),
+            "SplitKey": sp,
             "Rollout MSE": rom,
             "Delta V/V (%)": 100 * split_metrics["delta_V_over_V"] if np.isfinite(split_metrics["delta_V_over_V"]) else float("nan"),
             "Delta(R/L) (%)": 100 * split_metrics["delta_R_over_L"] if np.isfinite(split_metrics["delta_R_over_L"]) else float("nan"),
