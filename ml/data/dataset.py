@@ -25,7 +25,14 @@ from ml.data.normalize import load_norm_stats, normalize
 class BallooningRunStore:
     """Shard-backed run store with an LRU cache (full pack fits on disk, not RAM)."""
 
-    def __init__(self, data_dir: Path, *, cache_shards: int = 4, preload: bool = False):
+    def __init__(
+        self,
+        data_dir: Path,
+        *,
+        cache_shards: int = 4,
+        preload: bool = False,
+        mmap: bool = True,
+    ):
         self.data_dir = Path(data_dir)
         with open(self.data_dir / "manifest.json") as f:
             self.manifest = json.load(f)
@@ -34,6 +41,7 @@ class BallooningRunStore:
             r["run_id"]: r["shard"] for r in self.manifest["records"]
         }
         self._cache_shards = max(1, int(cache_shards))
+        self._mmap = bool(mmap)
         self._shard_cache: OrderedDict[str, dict[str, dict]] = OrderedDict()
         self.runs = _RunIdView(self)
         if preload:
@@ -54,7 +62,10 @@ class BallooningRunStore:
             self._shard_cache.move_to_end(sh)
             return self._shard_cache[sh]
         from ml.data.shard_format import load_shard
-        pack = {rec["run_id"]: rec for rec in load_shard(self.data_dir / sh)}
+        pack = {
+            rec["run_id"]: rec
+            for rec in load_shard(self.data_dir / sh, mmap=self._mmap)
+        }
         self._shard_cache[sh] = pack
         self._shard_cache.move_to_end(sh)
         while len(self._shard_cache) > self._cache_shards:
@@ -143,9 +154,12 @@ class BallooningDataset(Dataset):
 
         self.index: list[tuple[str, int]] = []
         self._run_sample_count: dict[str, int] = {}
-        for rid in run_ids:
-            if rid not in store:
-                continue
+        # Visit runs in shard order so the LRU fills sequentially at index build.
+        ordered = sorted(
+            (rid for rid in run_ids if rid in store),
+            key=lambda r: store._rid_to_shard.get(r, ""),
+        )
+        for rid in ordered:
             rec = store.get(rid)
             ok = rec["window_ok"]
             T = rec["v"].shape[0]
@@ -387,20 +401,34 @@ def make_loader(
     shuffle: bool = True,
     num_workers: int = 0,
     device: str = "cpu",
+    prefetch_factor: int | None = None,
+    shard_aware: bool = True,
+    seed: int = 0,
 ):
     from torch_geometric.loader import DataLoader
 
-    pin = device == "cuda"
+    from ml.data.shard_sampler import ShardAwareSampler
+
+    pin = str(device).startswith("cuda")
     sampler = None
-    if shuffle and dataset.sample_weight == "per_run":
-        sampler = WeightedRandomSampler(
-            weights=dataset.weights(),
-            num_samples=len(dataset),
-            replacement=True,
-        )
-        shuffle = False
-    return DataLoader(
-        dataset,
+    if shuffle:
+        if shard_aware and hasattr(dataset.store, "_rid_to_shard"):
+            w = dataset.weights() if dataset.sample_weight == "per_run" else None
+            sampler = ShardAwareSampler(
+                dataset.index,
+                dataset.store._rid_to_shard,
+                weights=w,
+                seed=seed,
+            )
+            shuffle = False
+        elif dataset.sample_weight == "per_run":
+            sampler = WeightedRandomSampler(
+                weights=dataset.weights(),
+                num_samples=len(dataset),
+                replacement=True,
+            )
+            shuffle = False
+    kwargs: dict[str, Any] = dict(
         batch_size=batch_size,
         shuffle=shuffle,
         sampler=sampler,
@@ -408,3 +436,6 @@ def make_loader(
         pin_memory=pin,
         persistent_workers=num_workers > 0,
     )
+    if num_workers > 0:
+        kwargs["prefetch_factor"] = int(prefetch_factor if prefetch_factor is not None else 4)
+    return DataLoader(dataset, **kwargs)

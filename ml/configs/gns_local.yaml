@@ -21,6 +21,8 @@ data:
   rotate_augment: false
   sample_weight: per_run
   cache_shards: 4
+  mmap: true
+  shard_aware: true
 
 train:
   seed: 42
@@ -41,6 +43,7 @@ train:
     metric: val_rollout_mse
     patience: 20
   num_workers: 0
+  prefetch_factor: 2
   checkpoint_dir: Tema 1/results/ml/runs
 
 wandb:

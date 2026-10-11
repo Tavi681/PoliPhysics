@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Runs on the GPU VM: sync data, compute noise_stats, train configs one after another.
+# Runs on the GPU VM: ensure local data + noise_stats, train configs sequentially.
 # Env: DATA_VERSION, BUCKET, CONFIGS, UTIL_GATE_MIN, UTIL_GATE_PCT, REMOTE_DIR
 set -euo pipefail
 cd "${REMOTE_DIR:-/home/octav/poliphysics}"
 export PYTHONPATH=.
 export WANDB_PROJECT="${WANDB_PROJECT:-poliphysics-ballooning-ml}"
+export DATA_VERSION="${DATA_VERSION:-5c60fa669a719404}"
 
-DATA_VERSION="${DATA_VERSION:-5c60fa669a719404}"
 BUCKET="${BUCKET:-gs://authorship-verification-poliphysics/tema1-ml}"
 DEST="/data/processed/${DATA_VERSION}"
 CONFIGS="${CONFIGS:-ml/configs/gns_local_gpu.yaml ml/configs/gns_baseline_gpu.yaml}"
@@ -17,74 +17,31 @@ HOUR_REPORT_S="${HOUR_REPORT_S:-3600}"
 mkdir -p "${DEST}" "Tema 1/results/ml/runs" "Tema 1/results/ml/logs"
 if [[ ! -f "${DEST}/DATA_VERSION" ]]; then
   echo "Syncing ${BUCKET}/processed/${DATA_VERSION} → ${DEST}"
-  gsutil -m rsync -r "${BUCKET}/processed/${DATA_VERSION}" "${DEST}"
+  gcloud storage rsync --recursive "${BUCKET}/processed/${DATA_VERSION}" "${DEST}" \
+    || gsutil -m rsync -r "${BUCKET}/processed/${DATA_VERSION}" "${DEST}"
 fi
 
 python3 -m pip install -q pandas pyyaml wandb 2>/dev/null || true
 
-python3 - <<'PY'
-import json
-import os
-from pathlib import Path
-
-from ml.data.frames import DT
-from ml.data.noise_stats import (
-    TYPE_NAMES,
-    compute_dv_std_by_type,
-    dv_std_from_a_std,
-    save_noise_stats,
-)
-
-root = Path("/data/processed") / os.environ.get("DATA_VERSION", "5c60fa669a719404")
-out = root / "noise_stats.json"
-if out.exists():
-    print("noise_stats exists", out)
-else:
-    norm_path = root / "norm_stats.json"
-    if norm_path.exists():
-        a_std = json.loads(norm_path.read_text())["a"]["std"]
-        overall_rms = dv_std_from_a_std(a_std, DT)
-        by_type = {
-            name: {
-                "mean": [0.0, 0.0, 0.0],
-                "std": list(a_std),
-                "rms": overall_rms,
-                "count": 0,
-            }
-            for name in TYPE_NAMES
-        }
-        stats = {
-            "dt": float(DT),
-            "overall_rms": overall_rms,
-            "by_type": by_type,
-            "use_per_type": False,
-            "ratio_max_min": 1.0,
-            "source": "norm_stats_fast",
-        }
-        save_noise_stats(stats, out)
-        print("wrote fast noise_stats from norm_stats", overall_rms)
-    else:
-        from ml.data.dataset import BallooningRunStore
-        from ml.data.splits import load_splits
-
-        store = BallooningRunStore(root, cache_shards=2)
-        splits = load_splits(root / "splits" / "splits.json")
-        train = list(splits["train"])
-        step = max(len(train) // 20, 1)
-        sample = train[::step][:20]
-        stats = compute_dv_std_by_type(store, sample, max_frames_per_run=20)
-        stats["source"] = "train_subsample"
-        save_noise_stats(stats, out)
-        print(stats)
-PY
+# Full train-split noise_stats once (checksummed); never recompute if present.
+if [[ ! -f "${DEST}/noise_stats.json" || ! -f "${DEST}/noise_stats.sha256" ]]; then
+  echo "Computing full-train noise_stats (one-time)..."
+  python3 -m ml.scripts.compute_noise_stats \
+    --data-dir "${DEST}" \
+    --upload-gcs "${BUCKET}/processed/${DATA_VERSION}/"
+else
+  echo "noise_stats present with checksum — skipping recompute"
+  cat "${DEST}/noise_stats.sha256"
+fi
 
 first=1
 for CFG in ${CONFIGS}; do
   echo "=== TRAIN ${CFG} @ $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
   LOG="Tema 1/results/ml/logs/$(basename "${CFG}" .yaml)_train.log"
+  # Fail loud if CUDA missing
+  python3 -c "import torch; assert torch.cuda.is_available(), 'CUDA unavailable'"
   python3 -m ml.train --config "${CFG}" --device cuda 2>&1 | tee "${LOG}" &
   TPID=$!
-  # sample GPU util for the first UTIL_GATE_MIN minutes (local ablation first)
   if [[ ${first} -eq 1 ]]; then
     first=0
     end=$((SECONDS + UTIL_GATE_MIN * 60))
@@ -99,13 +56,12 @@ for CFG in ${CONFIGS}; do
     (( n > 0 )) && avg=$((sum / n))
     echo "UTIL_GATE_AVG_${UTIL_GATE_MIN}m=${avg} (n=${n})"
     if (( n > 0 && avg < UTIL_GATE_PCT )); then
-      echo "GPU util ${avg}% < ${UTIL_GATE_PCT}% — STOP. Propose g2-standard-16; do not auto-switch."
+      echo "GPU util ${avg}% < ${UTIL_GATE_PCT}% — STOP. Stop (not delete) VM after report."
       kill "${TPID}" 2>/dev/null || true
       wait "${TPID}" 2>/dev/null || true
       exit 42
     fi
   fi
-  # 1h progress snapshot (non-fatal)
   (
     sleep "${HOUR_REPORT_S}"
     echo "=== 1h REPORT $(basename "${CFG}") $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
@@ -118,7 +74,6 @@ for CFG in ${CONFIGS}; do
   python3 -m ml.evaluate --config "${CFG}" --checkpoint "${RUN}/best.pt" --device cuda \
     --splits test_interp test_unseenN_interp test_unseenN test_unseenSigma
   RID=$(basename "${RUN}")
-  gsutil -m rsync -r "${RUN}" "${BUCKET}/runs/${RID}/"
-  gsutil -m rsync -r "Tema 1/results/ml/${RID}" "${BUCKET}/runs/${RID}/metrics/" 2>/dev/null || true
+  gsutil -m rsync -r "${RUN}" "${BUCKET}/runs/${RID}/" || true
 done
 echo DONE_TRAIN

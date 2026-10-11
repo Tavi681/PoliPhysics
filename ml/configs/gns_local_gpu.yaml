@@ -20,13 +20,15 @@ data:
   normalize_features: true
   rotate_augment: false
   sample_weight: per_run
-  cache_shards: 8
+  cache_shards: 16          # keep hot shards in LRU (shard-aware sampler)
+  mmap: true
+  shard_aware: true
 
 train:
   seed: 42
   seeds: [42]
   optimizer: adam
-  batch_size: 8
+  batch_size: 16
   lr: 1.0e-4
   weight_decay: 0.0
   max_steps: 500000
@@ -40,7 +42,8 @@ train:
   early_stopping:
     metric: val_rollout_mse
     patience: 50
-  num_workers: 4
+  num_workers: 6
+  prefetch_factor: 4
   checkpoint_dir: Tema 1/results/ml/runs
 
 wandb:

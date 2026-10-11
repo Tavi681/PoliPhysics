@@ -161,9 +161,27 @@ def expand_consolidated(blob: dict[str, Any]) -> list[dict[str, Any]]:
     return out
 
 
-def load_shard(path) -> list[dict[str, Any]]:
-    """Load shard as list of run dicts (supports legacy list and consolidated_v1)."""
-    obj = torch.load(path, weights_only=False)
+def load_shard(path, *, mmap: bool = True) -> list[dict[str, Any]]:
+    """Load shard as list of run dicts (supports legacy list and consolidated_v1).
+
+    ``mmap=True`` memory-maps tensor storage when the file format allows it
+    (PyTorch zip / pickle with tensor pages), reducing peak RAM and relying on
+    the OS page cache for repeated access.
+    """
+    kwargs: dict[str, Any] = {"weights_only": False}
+    if mmap:
+        kwargs["mmap"] = True
+    try:
+        obj = torch.load(path, **kwargs)
+    except TypeError:
+        # older torch without mmap kw
+        obj = torch.load(path, weights_only=False)
+    except Exception:
+        # some pickles reject mmap; fall back to full load
+        if mmap:
+            obj = torch.load(path, weights_only=False)
+        else:
+            raise
     if isinstance(obj, list):
         return obj
     if isinstance(obj, dict) and obj.get("format") == FORMAT:

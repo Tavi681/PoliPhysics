@@ -27,11 +27,18 @@ from ml.utils.git_info import git_provenance, repo_root, format_git_tag
 
 def _device(name: str | None) -> torch.device:
     if name:
+        requested = str(name).lower()
+        if requested.startswith("cuda"):
+            if not torch.cuda.is_available():
+                raise RuntimeError(
+                    f"device={name!r} requested but torch.cuda.is_available() is False"
+                )
+            return torch.device(name)
         return torch.device(name)
-    if torch.backends.mps.is_available():
-        return torch.device("mps")
     if torch.cuda.is_available():
         return torch.device("cuda")
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
     return torch.device("cpu")
 
 
@@ -40,6 +47,26 @@ def _set_seed(seed: int) -> None:
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
+
+def pin_memory_ok(device: torch.device) -> bool:
+    return device.type == "cuda"
+
+
+def _log_first_step_devices(model, batch, device: torch.device) -> None:
+    pdev = next(model.parameters()).device
+    print(
+        f"device_check: cuda_available={torch.cuda.is_available()} "
+        f"requested={device} model={pdev}"
+    )
+    for name in ("x", "y", "pos", "edge_index"):
+        t = getattr(batch, name, None)
+        if t is not None and torch.is_tensor(t):
+            print(f"  batch.{name}.device={t.device} shape={tuple(t.shape)}")
+    if device.type == "cuda" and pdev.type != "cuda":
+        raise RuntimeError(f"model on {pdev} but cuda was requested")
+    if device.type == "cuda" and hasattr(batch, "x") and batch.x.device.type != "cuda":
+        raise RuntimeError(f"batch.x on {batch.x.device} after .to(cuda)")
 
 
 def _resolve(path: str | Path) -> Path:
@@ -154,7 +181,9 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
     splits = load_splits(_resolve(cfg["data"]["splits"]))
     dcfg = cfg["data"]
     store = BallooningRunStore(
-        data_dir, cache_shards=int(dcfg.get("cache_shards", 4)),
+        data_dir,
+        cache_shards=int(dcfg.get("cache_shards", 4)),
+        mmap=bool(dcfg.get("mmap", True)),
     )
     edge_sets = dcfg.get("edge_sets", ["material"])
 
@@ -206,10 +235,15 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
     train_loader = make_loader(
         train_ds, batch_size=tcfg.get("batch_size", 4), shuffle=True,
         num_workers=tcfg.get("num_workers", 0), device=str(device),
+        prefetch_factor=tcfg.get("prefetch_factor"),
+        shard_aware=bool(dcfg.get("shard_aware", True)),
+        seed=seed,
     )
     val_loader = make_loader(
         val_ds, batch_size=tcfg.get("batch_size", 4), shuffle=False,
         num_workers=0, device=str(device),
+        shard_aware=False,
+        seed=seed,
     )
 
     # infer node_dim / edge_dims from a sample
@@ -300,19 +334,29 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
     patience = int(tcfg.get("early_stopping", {}).get("patience", 20))
     bad = 0
     step = 0
+    epoch = 0
     t0 = time.time()
     model.train()
+    if hasattr(train_loader.sampler, "set_epoch"):
+        train_loader.sampler.set_epoch(epoch)
     it = iter(train_loader)
     log_every = int(tcfg.get("log_every", 10))
+    logged_devices = False
     while step < max_steps:
         t_wait0 = time.perf_counter()
         try:
             batch = next(it)
         except StopIteration:
+            epoch += 1
+            if hasattr(train_loader.sampler, "set_epoch"):
+                train_loader.sampler.set_epoch(epoch)
             it = iter(train_loader)
             batch = next(it)
         data_wait_s = time.perf_counter() - t_wait0
-        batch = batch.to(device)
+        batch = batch.to(device, non_blocking=pin_memory_ok(device))
+        if not logged_devices:
+            _log_first_step_devices(model, batch, device)
+            logged_devices = True
         opt.zero_grad(set_to_none=True)
         pred = model(batch)
         loss = (pred - batch.y).pow(2).mean()
