@@ -420,10 +420,57 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
     with open(ckpt_dir / "run_meta.json", "w") as f:
         json.dump(run_meta, f, indent=2)
 
+    # Schedule: prefer max_epochs × steps_per_epoch over a raw max_steps cap.
+    steps_per_epoch = max(1, int(np.ceil(len(train_ds) / max(int(tcfg.get("batch_size", 4)), 1))))
+    max_epochs = tcfg.get("max_epochs", None)
+    if max_epochs is not None:
+        max_epochs = int(max_epochs)
+        max_steps = int(max_epochs * steps_per_epoch)
+    else:
+        max_steps = int(tcfg.get("max_steps", 1000))
+        max_epochs = int(np.ceil(max_steps / steps_per_epoch)) if max_steps > 0 else 0
+
+    run_meta["max_epochs"] = max_epochs
+    run_meta["steps_per_epoch"] = steps_per_epoch
+    run_meta["max_steps"] = max_steps
+    run_meta["n_train_frames"] = len(train_ds)
+
+    # Cost cap for this VM session (shared across sequential configs via env).
+    cost_usd_per_hour = float(
+        os.environ.get(
+            "VM_USD_PER_HOUR",
+            str(tcfg.get("vm_usd_per_hour", 0.853624312)),  # g2-standard-8 + L4 us-central1
+        )
+    )
+    cost_cap_usd = float(os.environ.get("COST_CAP_USD", str(tcfg.get("cost_cap_usd", 40.0))))
+    session_t0 = float(os.environ.get("TRAIN_SESSION_T0", time.time()))
+    run_meta["vm_usd_per_hour"] = cost_usd_per_hour
+    run_meta["cost_cap_usd"] = cost_cap_usd
+
     t_wb = _phase("wandb_init", t_start)
     wb = _init_wandb(cfg, run_meta)
     _phase("wandb_ready", t_wb)
-    max_steps = int(tcfg.get("max_steps", 1000))
+    if wb is not None:
+        try:
+            import wandb
+            wandb.config.update(
+                {
+                    "max_epochs": max_epochs,
+                    "steps_per_epoch": steps_per_epoch,
+                    "max_steps": max_steps,
+                    "batch_size": int(tcfg.get("batch_size", 4)),
+                    "lr": float(tcfg.get("lr", 1e-4)),
+                    "lr_end": float((tcfg.get("lr_schedule") or {}).get("lr_end", 1e-6)),
+                    "early_stopping_patience_epochs": int(
+                        (tcfg.get("early_stopping") or {}).get("patience_epochs", 2)
+                    ),
+                    "cost_cap_usd": cost_cap_usd,
+                    "vm_usd_per_hour": cost_usd_per_hour,
+                },
+                allow_val_change=True,
+            )
+        except Exception:
+            pass
     if max_steps <= 0 or name in ("constant_velocity", "follow_air"):
         # save baseline checkpoint and exit
         torch.save({"model": model.state_dict(), "meta": run_meta, "cfg": cfg}, ckpt_dir / "best.pt")
@@ -451,7 +498,7 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
             milestones=[max(warmup, 1)],
         )
     elif sched_type == "exponential":
-        # lr_end = lr * gamma^max_steps  (Sanchez-Gonzalez-style decay)
+        # lr_end = lr * gamma^(max_epochs * steps_per_epoch)
         lr_end = float(sched_cfg.get("lr_end", 1e-6))
         gamma = (lr_end / max(lr, 1e-12)) ** (1.0 / max(max_steps, 1))
         sched = ExponentialLR(opt, gamma=gamma)
@@ -459,11 +506,19 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         sched = None
 
     best = float("inf")
-    patience = int(tcfg.get("early_stopping", {}).get("patience", 20))
-    bad = 0
+    es_cfg = tcfg.get("early_stopping") or {}
+    patience_epochs = int(es_cfg.get("patience_epochs", es_cfg.get("patience", 2)))
+    best_epoch = 0
     step = 0
     epoch = 0
     t0 = time.time()
+    print(
+        f"PHASE schedule max_epochs={max_epochs} steps_per_epoch={steps_per_epoch} "
+        f"max_steps={max_steps} lr={lr}→{sched_cfg.get('lr_end', None)} "
+        f"early_stop_patience_epochs={patience_epochs} "
+        f"cost_cap_usd={cost_cap_usd} @ ${cost_usd_per_hour}/h",
+        flush=True,
+    )
     model.train()
     if hasattr(train_loader.sampler, "set_epoch"):
         train_loader.sampler.set_epoch(epoch)
@@ -509,14 +564,52 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         f"val_rollout_runs={len(val_rollout_ids)} val_one_step_frames={len(val_frame_idx)}",
         flush=True,
     )
+    stop_reason = None
     while step < max_steps:
+        # Cost cap (session wall clock × $/h).
+        session_cost = (time.time() - session_t0) / 3600.0 * cost_usd_per_hour
+        if session_cost > cost_cap_usd:
+            stop_reason = f"cost_cap (${session_cost:.2f} > ${cost_cap_usd:.2f})"
+            print(f"COST_CAP STOP: {stop_reason}", flush=True)
+            torch.save(
+                {"model": model.state_dict(), "meta": run_meta, "cfg": cfg, "step": step, "epoch": epoch},
+                ckpt_dir / "last.pt",
+            )
+            if not (ckpt_dir / "best.pt").exists():
+                torch.save(
+                    {"model": model.state_dict(), "meta": run_meta, "cfg": cfg, "step": step, "epoch": epoch},
+                    ckpt_dir / "best.pt",
+                )
+            run_meta["stop_reason"] = stop_reason
+            run_meta["session_cost_usd"] = session_cost
+            with open(ckpt_dir / "run_meta.json", "w") as f:
+                json.dump(run_meta, f, indent=2)
+            if wb is not None:
+                import wandb
+                wandb.finish()
+            raise SystemExit(43)
+
         t_wait0 = time.perf_counter()
+        epoch_ended = False
         try:
             batch = next(it)
         except StopIteration:
             epoch += 1
+            epoch_ended = True
             if hasattr(train_loader.sampler, "set_epoch"):
                 train_loader.sampler.set_epoch(epoch)
+            if epoch >= max_epochs:
+                stop_reason = f"max_epochs={max_epochs}"
+                print(f"EPOCH STOP: completed {epoch} epochs", flush=True)
+                break
+            # Early stop after `patience_epochs` full epochs with no rollout improve.
+            if epoch - best_epoch > patience_epochs and best < float("inf"):
+                stop_reason = (
+                    f"early_stopping (no rollout improve for {patience_epochs} epochs; "
+                    f"best_epoch={best_epoch} best={best:.4e})"
+                )
+                print(f"EARLY_STOP: {stop_reason}", flush=True)
+                break
             it = iter(train_loader)
             batch = next(it)
         data_wait_s = time.perf_counter() - t_wait0
@@ -549,11 +642,13 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
                         flush=True,
                     )
         now = time.time()
+        session_cost = (now - session_t0) / 3600.0 * cost_usd_per_hour
         # Log every step for the first 50 (stall diagnosis); then every log_every.
         if step <= 50 or step % log_every == 0:
             print(
-                f"STEP {step} loss={float(loss):.4e} data_wait_s={data_wait_s:.4f} "
-                f"elapsed_s={now - t0:.1f}",
+                f"STEP {step} epoch={epoch} loss={float(loss):.4e} "
+                f"data_wait_s={data_wait_s:.4f} elapsed_s={now - t0:.1f} "
+                f"session_cost_usd={session_cost:.2f}",
                 flush=True,
             )
         if now >= next_mem_t:
@@ -604,11 +699,14 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         if wb is not None and (step % log_every == 0 or step == 1):
             import wandb
             wall = max(train_time_s + val_time_s, 1e-9)
+            cur_lr = float(opt.param_groups[0]["lr"])
             payload = {
                 "train/loss_step": float(loss),
                 "train/data_wait_s": data_wait_s,
                 "train/batch_size": int(tcfg.get("batch_size", 4)),
-                "train/lr": lr,
+                "train/lr": cur_lr,
+                "train/epoch": epoch,
+                "train/session_cost_usd": session_cost,
                 "val/wall_frac": val_time_s / wall,
                 "step": step,
             }
@@ -688,6 +786,8 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
                 import wandb
                 payload = {
                     "train/loss": float(loss),
+                    "train/epoch": epoch,
+                    "train/session_cost_usd": (time.time() - session_t0) / 3600.0 * cost_usd_per_hour,
                     "val/wall_frac": val_frac,
                     "val/dt_s": dt_val,
                     "step": step,
@@ -698,30 +798,52 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
                     payload["val/rollout_mse"] = rom
                     payload["val/rollout_every"] = int(val_rollout_every or 0)
                 wandb.log(payload)
-            # Checkpoint selection driven by rollout when available.
-            metric = rom if np.isfinite(rom) else osm
-            torch.save({"model": model.state_dict(), "meta": run_meta, "cfg": cfg, "step": step}, ckpt_dir / "last.pt")
-            if np.isfinite(metric) and metric < best:
-                best = metric
-                bad = 0
-                torch.save({"model": model.state_dict(), "meta": run_meta, "cfg": cfg, "step": step}, ckpt_dir / "best.pt")
-            elif np.isfinite(rom):
-                bad += 1
-                if bad >= patience:
-                    print("early stopping", flush=True)
-                    break
+            # Checkpoint selection driven by rollout metric.
+            torch.save(
+                {"model": model.state_dict(), "meta": run_meta, "cfg": cfg, "step": step, "epoch": epoch},
+                ckpt_dir / "last.pt",
+            )
+            if np.isfinite(rom) and rom < best:
+                best = rom
+                best_epoch = epoch
+                torch.save(
+                    {"model": model.state_dict(), "meta": run_meta, "cfg": cfg, "step": step, "epoch": epoch},
+                    ckpt_dir / "best.pt",
+                )
+                print(f"NEW_BEST rollout={rom:.4e} epoch={epoch} step={step}", flush=True)
             model.train()
             if nvml is not None:
                 nvml.resume()
             last_train_t = time.perf_counter()
+
+        if epoch_ended and wb is not None:
+            import wandb
+            wandb.log({
+                "train/epoch": epoch,
+                "train/session_cost_usd": (time.time() - session_t0) / 3600.0 * cost_usd_per_hour,
+                "step": step,
+            })
 
     if nvml is not None:
         run_meta["nvml_util"] = nvml.stop()
     run_meta["train_time_s"] = time.time() - t0
     run_meta["val_time_s"] = val_time_s
     run_meta["val_wall_frac"] = val_time_s / max(train_time_s + val_time_s, 1e-9)
+    run_meta["epochs_completed"] = epoch
+    run_meta["best_rollout_mse"] = best if best < float("inf") else None
+    run_meta["best_epoch"] = best_epoch
+    run_meta["stop_reason"] = stop_reason or ("max_steps" if step >= max_steps else "completed")
+    run_meta["session_cost_usd"] = (time.time() - session_t0) / 3600.0 * cost_usd_per_hour
     if val_rollout_every is not None:
         run_meta["val_rollout_every"] = int(val_rollout_every)
+    if not (ckpt_dir / "best.pt").exists() and (ckpt_dir / "last.pt").exists():
+        import shutil
+        shutil.copy2(ckpt_dir / "last.pt", ckpt_dir / "best.pt")
+    print(
+        f"TRAIN_DONE reason={run_meta['stop_reason']} steps={step} epoch={epoch} "
+        f"best_rollout={best} session_cost_usd={run_meta['session_cost_usd']:.2f}",
+        flush=True,
+    )
     with open(ckpt_dir / "run_meta.json", "w") as f:
         json.dump(run_meta, f, indent=2)
     # Refresh ckpt meta so evaluate can read C_train without run_meta fallback

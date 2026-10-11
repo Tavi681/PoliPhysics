@@ -28,10 +28,10 @@ train:
   seed: 42
   seeds: [42]
   optimizer: adam
-  batch_size: 64            # L4 batch_sweep: ~840 graphs/s, ~22.8% VRAM; lr=1e-4 + exponential decay
+  batch_size: 64
   lr: 1.0e-4
   weight_decay: 0.0
-  max_steps: 500000
+  max_epochs: 15
   grad_clip: 1.0
   log_every: 10
   lr_schedule:
@@ -44,7 +44,9 @@ train:
   rollout_K: 20
   early_stopping:
     metric: val_rollout_mse
-    patience: 50
+    patience_epochs: 2
+  cost_cap_usd: 40.0
+  vm_usd_per_hour: 0.853624312
   num_workers: 4
   prefetch_factor: 2
   checkpoint_dir: Tema 1/results/ml/runs

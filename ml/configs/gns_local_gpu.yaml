@@ -20,8 +20,6 @@ data:
   normalize_features: true
   rotate_augment: false
   sample_weight: per_run
-  # mmap + lazy expand: small LRU of raw blobs; OS page cache is the real cache.
-  # Was 16 — with full-shard expand × 6 workers that blew 32 GB and stalled index build.
   cache_shards: 2
   mmap: true
   shard_aware: true
@@ -30,25 +28,27 @@ train:
   seed: 42
   seeds: [42]
   optimizer: adam
-  batch_size: 128           # L4 batch_sweep: ~1604 graphs/s, ~11.8% VRAM; lr=1e-4 + exponential decay
+  batch_size: 128
   lr: 1.0e-4
   weight_decay: 0.0
-  max_steps: 500000
+  max_epochs: 15                  # over ~4.24M train frames
+  # max_steps derived as max_epochs * ceil(n_train / batch_size)
   grad_clip: 1.0
   log_every: 10
   lr_schedule:
     type: exponential
-    lr_end: 1.0e-6
-  val_every: 1000                 # cheap one-step sample (GPU)
+    lr_end: 1.0e-6                # decay over max_epochs * steps_per_epoch
+  val_every: 1000
   val_one_step_frames: 256
-  val_rollout_runs: 32            # stratified by N, sigma_w
-  # val_rollout_every: auto-sized so rollout ≤10% wall (printed at first probe)
-  val_rollout_every: null
+  val_rollout_runs: 32
+  val_rollout_every: null         # auto ≤10% wall
   rollout_K: 20
   early_stopping:
     metric: val_rollout_mse
-    patience: 50
-  num_workers: 4            # was 6; leave RAM margin on g2-standard-8 (32 GB)
+    patience_epochs: 2
+  cost_cap_usd: 40.0
+  vm_usd_per_hour: 0.853624312    # g2-standard-8 + L4 us-central1 on-demand
+  num_workers: 4
   prefetch_factor: 2
   checkpoint_dir: Tema 1/results/ml/runs
 

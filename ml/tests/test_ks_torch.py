@@ -38,6 +38,7 @@ def test_torch_ks_vs_simulator_three_runs_per_N():
     assert by_n, "no HDF5 files"
     rng = np.random.default_rng(0)
     max_abs = 0.0
+    max_rel = 0.0
     n_checked = 0
     for n, paths in sorted(by_n.items()):
         for p in paths[:3]:
@@ -63,21 +64,25 @@ def test_torch_ks_vs_simulator_three_runs_per_N():
             for _ in range(50):
                 x = rng.normal(0.0, 2.0, size=(8, 3))
                 t = float(rng.uniform(0.0, 30.0))
-                ref = np.asarray(flow.u(x, t), dtype=np.float32)
+                ref = np.asarray(flow.u(x, t), dtype=np.float64)
                 got = ks_u_torch(
                     torch.from_numpy(x.astype(np.float64)),
                     t,
                     modes_h5,
-                    dtype=torch.float64,
-                ).numpy().astype(np.float32)
-                max_abs = max(max_abs, float(np.max(np.abs(got - ref))))
+                    dtype=torch.float32,
+                ).numpy().astype(np.float64)
+                diff = np.abs(got - ref)
+                max_abs = max(max_abs, float(np.max(diff)))
+                denom = np.maximum(np.abs(ref), 1e-30)
+                max_rel = max(max_rel, float(np.max(diff / denom)))
                 n_checked += 1
-    # float32 round-off: both paths are f32-cast of f64 KS; allow a few ulps
-    tol = 50 * np.finfo(np.float32).eps * 10.0  # generous absolute floor ~1e-5
-    # Prefer relative-to-magnitude: report value; assert tight
     assert n_checked >= 50
-    print(f"test_torch_ks max_abs_diff={max_abs:.6e} n={n_checked}")
-    assert max_abs <= max(1e-5, tol), f"max_abs={max_abs}"
+    print(
+        f"test_torch_ks max_abs_diff={max_abs:.6e} max_rel_diff={max_rel:.6e} n={n_checked}",
+        flush=True,
+    )
+    # Amplitude sum is float32 after f64 phase; typical max_abs ~1.2e-5 vs f64 ref.
+    assert max_abs <= 1.5e-5, f"max_abs={max_abs}"
 
 
 def test_torch_u_next_matches_stored_local_subset():

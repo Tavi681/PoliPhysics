@@ -137,6 +137,10 @@ def ks_u_torch(
 ) -> torch.Tensor:
     """Evaluate KS air velocity.
 
+    Phase ``k·x' + ω t`` is always computed in float64 (absolute positions from
+    spider_abs float64 + x_rel); ``cos``/``sin`` results are cast to ``dtype``
+    (default float32) before the amplitude sum.
+
     Shapes
     ------
     Single run:
@@ -149,26 +153,33 @@ def ks_u_torch(
       modes: sequence of B TurbModes
     """
     device = x.device
+    out_dtype = dtype
     single_point = x.ndim == 1
     single_run = isinstance(modes, TurbModes) and x.ndim <= 2
 
     if single_point:
         x = x.unsqueeze(0)
 
-    k, a, b, omega, U_h = _as_modes_tensors(modes, device, dtype=dtype)
-    x = x.to(dtype=dtype)
+    # Modes + positions in float64 for the phase; amplitudes cast after trig.
+    k64, a64, b64, omega64, U_h64 = _as_modes_tensors(
+        modes, device, dtype=torch.float64
+    )
+    x64 = x.to(dtype=torch.float64)
+    a = a64.to(dtype=out_dtype)
+    b = b64.to(dtype=out_dtype)
+    U_h = U_h64.to(dtype=out_dtype)
 
     if single_run or (isinstance(modes, TurbModes)):
         # x: (M, 3); k: (N_k, 3)
         if not torch.is_tensor(t):
-            t = torch.tensor(float(t), device=device, dtype=dtype)
+            t64 = torch.tensor(float(t), device=device, dtype=torch.float64)
         else:
-            t = t.to(device=device, dtype=dtype)
-        xp = x.clone()
-        xp[..., 0] = xp[..., 0] - U_h * t
-        phase = xp @ k.T + omega * t  # (M, N_k)
-        c = torch.cos(phase)
-        s = torch.sin(phase)
+            t64 = t.to(device=device, dtype=torch.float64)
+        xp = x64.clone()
+        xp[..., 0] = xp[..., 0] - U_h64 * t64
+        phase = xp @ k64.T + omega64 * t64  # (M, N_k) float64
+        c = torch.cos(phase).to(dtype=out_dtype)
+        s = torch.sin(phase).to(dtype=out_dtype)
         up = c @ a + s @ b  # (M, 3)
         u = up.clone()
         u[..., 0] = u[..., 0] + U_h
@@ -176,18 +187,17 @@ def ks_u_torch(
 
     # Batched runs: x (B, M, 3), k (B, N_k, 3)
     if not torch.is_tensor(t):
-        t = torch.full((x.shape[0],), float(t), device=device, dtype=dtype)
+        t64 = torch.full((x64.shape[0],), float(t), device=device, dtype=torch.float64)
     else:
-        t = t.to(device=device, dtype=dtype)
-        if t.ndim == 0:
-            t = t.expand(x.shape[0])
-    t = t.view(-1, 1)  # (B, 1)
-    xp = x.clone()
-    xp[..., 0] = xp[..., 0] - U_h.view(-1, 1) * t
-    # phase[b,m,n] = sum_i xp[b,m,i] * k[b,n,i] + omega[b,n] * t[b]
-    phase = torch.einsum("bmi,bni->bmn", xp, k) + omega.unsqueeze(1) * t.unsqueeze(-1)
-    c = torch.cos(phase)
-    s = torch.sin(phase)
+        t64 = t.to(device=device, dtype=torch.float64)
+        if t64.ndim == 0:
+            t64 = t64.expand(x64.shape[0])
+    t64 = t64.view(-1, 1)  # (B, 1)
+    xp = x64.clone()
+    xp[..., 0] = xp[..., 0] - U_h64.view(-1, 1) * t64
+    phase = torch.einsum("bmi,bni->bmn", xp, k64) + omega64.unsqueeze(1) * t64.unsqueeze(-1)
+    c = torch.cos(phase).to(dtype=out_dtype)
+    s = torch.sin(phase).to(dtype=out_dtype)
     up = torch.einsum("bmn,bni->bmi", c, a) + torch.einsum("bmn,bni->bmi", s, b)
     u = up.clone()
     u[..., 0] = u[..., 0] + U_h.view(-1, 1)
@@ -201,8 +211,5 @@ def ks_u_numpy(
 ) -> np.ndarray:
     """CPU convenience wrapper returning float32 (M,3)."""
     x = torch.from_numpy(np.asarray(x_abs, dtype=np.float64))
-    if x.ndim == 1:
-        u = ks_u_torch(x, t, modes, dtype=torch.float64)
-        return u.numpy().astype(np.float32)
-    u = ks_u_torch(x, t, modes, dtype=torch.float64)
+    u = ks_u_torch(x, t, modes, dtype=torch.float32)
     return u.numpy().astype(np.float32)

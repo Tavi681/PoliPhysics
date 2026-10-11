@@ -35,13 +35,17 @@ else
   cat "${DEST}/noise_stats.sha256"
 fi
 
-# UTIL_GATE is enforced inside ml.train (NVML 1 Hz from first training step;
-# train-only util + val wall-fraction ≤ 10%).
-export UTIL_GATE="${UTIL_GATE:-1}"
+# Gate accepted at ~68% train util / 2.6% val — skip re-gate for production trains.
+export UTIL_GATE="${UTIL_GATE:-0}"
 export UTIL_GATE_MIN
 export UTIL_GATE_PCT
 export UTIL_GATE_VAL_FRAC="${UTIL_GATE_VAL_FRAC:-0.10}"
+# Session cost cap shared across sequential configs (wall clock from this script).
+export TRAIN_SESSION_T0="${TRAIN_SESSION_T0:-$(date +%s)}"
+export COST_CAP_USD="${COST_CAP_USD:-40}"
+export VM_USD_PER_HOUR="${VM_USD_PER_HOUR:-0.853624312}"
 python3 -m pip install -q nvidia-ml-py psutil 2>/dev/null || true
+echo "SESSION_T0=${TRAIN_SESSION_T0} COST_CAP_USD=${COST_CAP_USD} VM_USD_PER_HOUR=${VM_USD_PER_HOUR}"
 
 # W&B API key: prefer env already set at VM start; else GCP Secret Manager.
 # Never write the key into the repo or into logs.
@@ -85,6 +89,13 @@ for CFG in ${CONFIGS}; do
     echo "GPU util gate failed — STOP. Stop (not delete) VM after report."
     exit 42
   fi
+  # 43 = cost cap: still evaluate current run, then stop session (no next config).
+  COST_HIT=0
+  if [[ ${RC} -eq 43 ]]; then
+    echo "COST_CAP hit — evaluate current run then stop session."
+    COST_HIT=1
+    RC=0
+  fi
   if [[ ${RC} -ne 0 ]]; then
     echo "train exited rc=${RC}"
     exit "${RC}"
@@ -95,5 +106,9 @@ for CFG in ${CONFIGS}; do
     --splits test_interp test_unseenN_interp test_unseenN test_unseenSigma
   RID=$(basename "${RUN}")
   gsutil -m rsync -r "${RUN}" "${BUCKET}/runs/${RID}/" || true
+  if [[ ${COST_HIT} -eq 1 ]]; then
+    echo "COST_CAP_SESSION_STOP"
+    exit 43
+  fi
 done
 echo DONE_TRAIN
