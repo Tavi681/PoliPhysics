@@ -28,7 +28,7 @@ train:
   seed: 42
   seeds: [42]
   optimizer: adam
-  batch_size: 8             # batch_sweep may raise; keep lr=1e-4 + exponential decay
+  batch_size: 64            # L4 batch_sweep: ~840 graphs/s, ~22.8% VRAM; lr=1e-4 + exponential decay
   lr: 1.0e-4
   weight_decay: 0.0
   max_steps: 500000
