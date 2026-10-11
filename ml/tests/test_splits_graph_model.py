@@ -63,11 +63,18 @@ def test_material_edges_bidirectional_and_count():
 
 
 def test_radius_and_tips():
-    pos = torch.tensor([[0.0, 0, 0], [0.05, 0, 0], [1.0, 0, 0]], dtype=torch.float32)
-    tid = torch.tensor([-1, 0, 1])
+    # spider (tid=-1) must be excluded from the radius graph
+    pos = torch.tensor(
+        [[0.0, 0, 0], [0.05, 0, 0], [0.08, 0, 0], [1.0, 0, 0]],
+        dtype=torch.float32,
+    )
+    tid = torch.tensor([-1, 0, 1, 1])
     e = radius_cross_thread(pos, tid, radius=0.1)
-    assert e.shape[1] >= 2
-    nt = torch.tensor([0, 2, 2])
+    pairs = set(map(tuple, e.T.tolist()))
+    assert (0, 1) not in pairs and (1, 0) not in pairs  # spider excluded
+    assert (1, 2) in pairs and (2, 1) in pairs          # different threads, in radius
+    assert (2, 3) not in pairs                            # same thread
+    nt = torch.tensor([0, 2, 2, 1])
     et = all_tips_edges(nt)
     assert et.shape[1] == 2
     assert fully_connected(3).shape[1] == 6

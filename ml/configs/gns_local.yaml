@@ -16,7 +16,7 @@ data:
   globals_fields: [qE, m, N]
   edge_sets: [material]
   radius: 0.05
-  noise_std: 5.4e-5
+  noise_k: 1.0
   normalize_features: true
   rotate_augment: false
   sample_weight: per_run

@@ -210,12 +210,11 @@ def test_thread_permutation(tmp_path):
         assert torch.allclose(y1, y0[perm], atol=1e-4, rtol=1e-4)
 
 
-def test_edge_counts_N1_4_8():
+def test_edge_counts_N1_3_4_6_8():
     rows = []
-    for N in (1, 4, 8):
+    for N in (1, 3, 4, 6, 8):
         rec = _synth_rec(N=N, N_t=50, T=10)
         pos = torch.from_numpy(rec["x_rel"][0])
-        # absolute: spider + relative
         pos = pos + torch.from_numpy(rec["spider_abs"][0].astype(np.float32))
         tid = torch.from_numpy(rec["thread_id"].astype(np.int64))
         nt = torch.from_numpy(rec["node_type"].astype(np.int64))
@@ -227,13 +226,29 @@ def test_edge_counts_N1_4_8():
         n_mat = int(ed["material"].shape[1])
         n_int = int(ed["interaction"].shape[1])
         rows.append((N, n_mat, n_int))
-        # material: N threads * N_t segments * 2 directions
         assert n_mat == N * 50 * 2
+        ei = ed["interaction"]
+        if ei.numel():
+            src, dst = ei[0], ei[1]
+            # no spider, no same-thread pairs
+            assert (tid[src] >= 0).all() and (tid[dst] >= 0).all()
+            assert (tid[src] != tid[dst]).all()
+            assert (nt[src] != 0).all() and (nt[dst] != 0).all()
         if N == 1:
-            # no cross-thread radius; tips: only one tip → 0 tip edges
-            assert n_int >= 0
-    # expose for report
+            assert n_int == 0
     print("edge_counts", rows)
+
+
+def test_interaction_N1_is_zero_no_spider_same_thread():
+    rec = _synth_rec(N=1, N_t=50, T=10)
+    pos = torch.from_numpy(rec["x_rel"][0]) + torch.from_numpy(
+        rec["spider_abs"][0].astype(np.float32)
+    )
+    tid = torch.from_numpy(rec["thread_id"].astype(np.int64))
+    nt = torch.from_numpy(rec["node_type"].astype(np.int64))
+    ei, flags = interaction_edges(pos, tid, nt, radius=0.05)
+    assert ei.shape[1] == 0
+    assert flags.numel() == 0
 
 
 def test_u_next_leak_three_runs():

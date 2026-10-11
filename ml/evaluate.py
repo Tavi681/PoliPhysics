@@ -455,7 +455,11 @@ def evaluate_checkpoint(
         split_metrics = {
             "n_runs": n,
             "one_step_mse": osm,
+            # rollout_mse: mean spider-relative position MSE [m²] over K steps
+            # (K=eval.rollout_K, dt=0.01 s) and up to max_runs; see train.rollout_mse
             "rollout_mse": rom,
+            "rollout_mse_units": "m^2_rel_pos",
+            "rollout_K": int(cfg.get("eval", {}).get("rollout_K", 100)),
             "outcome_accuracy": outcomes_ok / max(n, 1),
             "exit_time_mae": float(np.mean(exit_errs)) if exit_errs else float("nan"),
             "delta_V_over_V": float(np.mean(dV)) if dV else float("nan"),

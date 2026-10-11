@@ -1,0 +1,9 @@
+# Noise-scale sweep for GNS (run later on GPU; do NOT start with the baseline train).
+# Selection: validation rollout MSE (val_rollout_mse), not one-step loss.
+# noise_std = noise_k * std(dv), dv = a*dt from train-only noise_stats.json.
+base: gns_baseline_gpu.yaml   # informational; launch each child config separately
+metric: val_rollout_mse
+noise_k_values: [0.1, 0.3, 1.0, 3.0]
+note: >
+  Create per-k configs by copying gns_baseline_gpu.yaml / gns_local_gpu.yaml
+  and setting data.noise_k. Child files below are ready to launch after the k=1 baseline.

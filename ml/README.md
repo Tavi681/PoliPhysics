@@ -80,6 +80,14 @@ Configs: `ml/configs/gns_baseline.yaml` (material + interaction, uses `u_next`),
 `ml/configs/gns_local.yaml` (material only, no `u_next`). Node/edge feature lists and
 globals are switchable in the YAML; the integrator / splits / metrics stay untouched.
 
+**Interaction edges:** radius graph across *different* threads (spider excluded — it is
+already linked by material edges) plus all-tips. For `N=1` the interaction set is empty.
+
+**Training noise:** `noise_std = noise_k * std(dv)` with `dv = a·dt` from train-only
+`noise_stats.json` (GNS random walk over the velocity history). Default `noise_k: 1`.
+k-sweep configs (run later): `ml/configs/sweeps/gns_baseline_k{0.1,0.3,1,3}.yaml`;
+select on **validation rollout MSE**, not one-step loss.
+
 **How to add a model:** one new file in `ml/models/` + one YAML under `ml/configs/`.  
 Import the module from `ml/models/__init__.py` (one line). Nothing else changes.
 
@@ -88,6 +96,12 @@ Also: `stub_gnn.py`. Zero-param baselines: `constant_velocity`, `follow_air`.
 ## Train / evaluate / test / tables
 
 ```bash
+# regenerate local_subset from 5c60fa (same 27 runs, stored u_next):
+python -m ml.data.extract_subset \
+  --src-uri gs://authorship-verification-poliphysics/tema1-ml/processed/5c60fa669a719404 \
+  --run-ids-from "Tema 1/results/ml/processed/local_subset/manifest.json" \
+  --out "Tema 1/results/ml/processed/local_subset" --compute-noise-stats
+
 python -m ml.train --config ml/configs/gns_local.yaml --device mps
 python -m ml.train --config ml/configs/gns_baseline.yaml --device mps
 python -m ml.evaluate --config ml/configs/gns_local.yaml \
@@ -96,6 +110,11 @@ python -m ml.test --config ml/configs/gns_local.yaml \
   --checkpoint "Tema 1/results/ml/runs/<run_id>/best.pt"
 python -m ml.make_tables
 ```
+
+**Rollout MSE** (`train.rollout_mse` / tables): mean spider-relative **position** error in
+**m²**, averaged over nodes, over each of `K` integrated steps (`K = rollout_K`, default
+20 → horizon `0.20 s` at `dt=0.01`), and over up to `max_runs` runs. Full evaluation also
+reports per test split `|ΔP|` and relative `|Δ(R/L)|` from complete surrogate rollouts.
 
 Every run records git `commit` + `dirty` in `run_meta.json` and W&B (`poliphysics-ballooning-ml`, offline fallback).
 
@@ -111,7 +130,9 @@ Default **training** VM (create only when starting a full train run): `g2-standa
 python -m ml.cloud.propose_vm   # prints defaults — creates nothing
 # Full preprocess (CPU VM, stream from GCS):
 bash ml/cloud/run_preprocess_on_gcp.sh
-# After OK for training: create GPU VM, rsync processed data, train with resume, then:
+# Full train (L4; does not delete VM / b0a7):
+bash ml/cloud/run_train_on_gcp.sh
+# Sync a finished run:
 bash ml/cloud/sync_run.sh <run_id>
 ```
 

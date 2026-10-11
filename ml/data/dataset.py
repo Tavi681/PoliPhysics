@@ -112,6 +112,7 @@ class BallooningDataset(Dataset):
         edge_sets: Sequence[str] | None = None,
         radius: float = 0.1,
         noise_std: float = 0.0,
+        noise_std_by_type: np.ndarray | Sequence[float] | None = None,
         sample_weight: str = "per_run",
         normalize_features: bool = True,
         normalize_target: bool = True,
@@ -128,6 +129,11 @@ class BallooningDataset(Dataset):
         self.edge_sets = list(edge_sets or ["material"])
         self.radius = float(radius)
         self.noise_std = float(noise_std)
+        self.noise_std_by_type = (
+            None
+            if noise_std_by_type is None
+            else np.asarray(noise_std_by_type, dtype=np.float32).reshape(-1)
+        )
         self.normalize_features = bool(normalize_features)
         self.normalize_target = normalize_target
         self.rotate_augment = bool(rotate_augment)
@@ -263,8 +269,17 @@ class BallooningDataset(Dataset):
         v_tp1 = v[t + 1].copy()
         a = (v_tp1 - v_t) / dt
 
-        if self.noise_std > 0:
-            eps = self.rng.normal(0.0, self.noise_std, size=v_hist.shape).astype(np.float32)
+        if self.noise_std > 0 or (
+            self.noise_std_by_type is not None and np.any(self.noise_std_by_type > 0)
+        ):
+            # Random-walk noise over the velocity history (Sanchez-Gonzalez et al.).
+            eps = self.rng.normal(0.0, 1.0, size=v_hist.shape).astype(np.float32)
+            if self.noise_std_by_type is not None:
+                nt = rec["node_type"].astype(np.int64)
+                scale = self.noise_std_by_type[np.clip(nt, 0, len(self.noise_std_by_type) - 1)]
+                eps = eps * scale[None, :, None]
+            else:
+                eps = eps * np.float32(self.noise_std)
             noise_rw = np.cumsum(eps, axis=0)
             v_hist = v_hist + noise_rw
             a = (v_tp1 - v_hist[-1]) / dt

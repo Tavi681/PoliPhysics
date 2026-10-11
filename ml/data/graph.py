@@ -35,10 +35,18 @@ def radius_cross_thread(
     thread_id: torch.Tensor,
     radius: float,
 ) -> torch.Tensor:
-    """Radius graph between nodes on different threads (incl. spider)."""
+    """Radius graph between nodes on *different* threads.
+
+    The spider (``thread_id < 0``) is excluded: it is already coupled to each
+    thread via material edges. Same-thread pairs are never connected here.
+    """
     d = torch.cdist(pos, pos)
     tid = thread_id.view(-1)
-    diff_thread = tid[:, None] != tid[None, :]
+    n = tid.numel()
+    if n == 0:
+        return torch.zeros(2, 0, dtype=torch.long)
+    not_spider = tid >= 0
+    diff_thread = (tid[:, None] != tid[None, :]) & not_spider[:, None] & not_spider[None, :]
     mask = (d <= radius) & diff_thread & (d > 0)
     src, dst = mask.nonzero(as_tuple=True)
     return torch.stack([src, dst], dim=0)

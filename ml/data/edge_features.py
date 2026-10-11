@@ -17,6 +17,9 @@ def interaction_edges(
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Radius cross-thread + all-tips; returns (edge_index [2,E], type_flag [E]).
 
+    Radius edges exclude the spider and same-thread pairs (see
+    ``radius_cross_thread``). All-tips edges are kept (every tip to every other tip).
+
     type_flag: 0 = radius, 1 = tips. Tips edges that already appear as radius keep flag 1.
     """
     er = radius_cross_thread(pos, thread_id, radius)

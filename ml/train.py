@@ -98,7 +98,17 @@ def rollout_mse(
     node_features=None, globals_fields=None, edge_sets=None, radius: float = 0.1,
     normalize_features: bool = True,
 ) -> float:
-    """Rollout K frames from stored ICs; compare positions (spider-relative)."""
+    """Mean spider-relative position MSE (m²) over K one-step-integrated frames.
+
+    For each of up to ``max_runs`` runs: start at frame ``C``, predict acceleration
+    and integrate with the ecosystem integrator for ``K`` steps (horizon ``K·dt``
+    with ``dt=0.01 s``). At each step, append
+    ``mean_nodes((x_pred - x_gt_rel)²)``; return the mean of those errors across
+    steps and runs. Units: m² (relative positions). Not a single end-of-horizon
+    error — it averages the per-step position MSE along the short open-loop
+    trajectory (teacher-forced graph features from the dataset at each t, with
+    predicted ``pos`` / velocity state carried forward).
+    """
     model.eval()
     a_mean = torch.as_tensor(norm["a"]["mean"], device=device)
     a_std = torch.as_tensor(norm["a"]["std"], device=device)
@@ -160,9 +170,23 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         rotate_augment=bool(dcfg.get("rotate_augment", False)),
         seed=seed,
     )
+    from ml.data.noise_stats import load_noise_stats, resolve_noise
+
+    noise_stats = load_noise_stats(data_dir / "noise_stats.json")
+    noise_k = dcfg.get("noise_k", None)
+    noise_std_cfg = dcfg.get("noise_std", None)
+    # Explicit noise_std without noise_k keeps legacy behaviour; noise_k wins when set.
+    scalar_noise, per_type_noise = resolve_noise(
+        noise_k=float(noise_k) if noise_k is not None else None,
+        noise_std=float(noise_std_cfg) if noise_std_cfg is not None else None,
+        noise_stats=noise_stats,
+        a_std=store.norm.get("a", {}).get("std"),
+        dt=float(store.norm.get("dt", DT)),
+    )
     train_ds = BallooningDataset(
         store, splits["train"],
-        noise_std=dcfg.get("noise_std", 0.0),
+        noise_std=scalar_noise,
+        noise_std_by_type=per_type_noise,
         **ds_kwargs,
     )
     val_ds = BallooningDataset(
@@ -228,6 +252,10 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         "git_dirty": prov["dirty"],
         "device": str(device),
         "seed": seed,
+        "noise_k": noise_k,
+        "noise_std": scalar_noise,
+        "noise_std_by_type": None if per_type_noise is None else per_type_noise.tolist(),
+        "noise_stats_overall_rms": None if noise_stats is None else noise_stats.get("overall_rms"),
     }
     with open(ckpt_dir / "run_meta.json", "w") as f:
         json.dump(run_meta, f, indent=2)
