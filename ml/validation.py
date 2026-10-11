@@ -146,7 +146,7 @@ def rollout_mse_batched(
     node_features = list(node_features or ["v_hist", "u", "charge"])
     globals_fields = list(globals_fields or [])
     edge_sets = list(edge_sets or model.required_edges() or ["material"])
-    need_u = "u" in node_features or "u_hist" in node_features
+    need_u = True  # always evaluate u for baselines (follow_air) + feature builders
     need_unext = "u_next" in node_features
     mode_cache = mode_cache or TurbModeCache()
     a_mean = torch.as_tensor(norm["a"]["mean"], device=device, dtype=torch.float32)
@@ -319,6 +319,7 @@ def rollout_mse_batched(
                         thread_id=tid[b],
                         charge=charge[b],
                         v_t=v[b],
+                        u_t=u_t[b] if u_t is not None else torch.zeros_like(v[b]),
                         num_nodes=n_nodes,
                     )
                     for name, eidx in edge_dict.items():

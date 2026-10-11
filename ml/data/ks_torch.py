@@ -160,14 +160,12 @@ def ks_u_torch(
     if single_point:
         x = x.unsqueeze(0)
 
-    # Modes + positions in float64 for the phase; amplitudes cast after trig.
+    # Modes may be float32 on disk (/turb); promote everything to float64 for
+    # the full field evaluation, then cast the result to ``out_dtype``.
     k64, a64, b64, omega64, U_h64 = _as_modes_tensors(
         modes, device, dtype=torch.float64
     )
     x64 = x.to(dtype=torch.float64)
-    a = a64.to(dtype=out_dtype)
-    b = b64.to(dtype=out_dtype)
-    U_h = U_h64.to(dtype=out_dtype)
 
     if single_run or (isinstance(modes, TurbModes)):
         # x: (M, 3); k: (N_k, 3)
@@ -178,11 +176,12 @@ def ks_u_torch(
         xp = x64.clone()
         xp[..., 0] = xp[..., 0] - U_h64 * t64
         phase = xp @ k64.T + omega64 * t64  # (M, N_k) float64
-        c = torch.cos(phase).to(dtype=out_dtype)
-        s = torch.sin(phase).to(dtype=out_dtype)
-        up = c @ a + s @ b  # (M, 3)
+        c = torch.cos(phase)
+        s = torch.sin(phase)
+        up = c @ a64 + s @ b64  # (M, 3) float64
         u = up.clone()
-        u[..., 0] = u[..., 0] + U_h
+        u[..., 0] = u[..., 0] + U_h64
+        u = u.to(dtype=out_dtype)
         return u[0] if single_point else u
 
     # Batched runs: x (B, M, 3), k (B, N_k, 3)
@@ -196,12 +195,12 @@ def ks_u_torch(
     xp = x64.clone()
     xp[..., 0] = xp[..., 0] - U_h64.view(-1, 1) * t64
     phase = torch.einsum("bmi,bni->bmn", xp, k64) + omega64.unsqueeze(1) * t64.unsqueeze(-1)
-    c = torch.cos(phase).to(dtype=out_dtype)
-    s = torch.sin(phase).to(dtype=out_dtype)
-    up = torch.einsum("bmn,bni->bmi", c, a) + torch.einsum("bmn,bni->bmi", s, b)
+    c = torch.cos(phase)
+    s = torch.sin(phase)
+    up = torch.einsum("bmn,bni->bmi", c, a64) + torch.einsum("bmn,bni->bmi", s, b64)
     u = up.clone()
-    u[..., 0] = u[..., 0] + U_h.view(-1, 1)
-    return u
+    u[..., 0] = u[..., 0] + U_h64.view(-1, 1)
+    return u.to(dtype=out_dtype)
 
 
 def ks_u_numpy(

@@ -450,6 +450,20 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
     t_wb = _phase("wandb_init", t_start)
     wb = _init_wandb(cfg, run_meta)
     _phase("wandb_ready", t_wb)
+    # Rollout reference lines (constant_velocity / follow_air) if diagnose wrote them.
+    rollout_refs = None
+    for cand in (
+        Path(os.environ.get("ROLLOUT_REFS_JSON", "")),
+        _resolve("Tema 1/results/ml/logs/rollout_refs.json"),
+        Path("/home/octav/poliphysics/Tema 1/results/ml/logs/rollout_refs.json"),
+    ):
+        if cand and str(cand) and cand.is_file():
+            try:
+                rollout_refs = json.loads(cand.read_text())
+                print(f"PHASE loaded_rollout_refs {cand}", flush=True)
+                break
+            except Exception as e:
+                print(f"rollout_refs load failed {cand}: {e}", flush=True)
     if wb is not None:
         try:
             import wandb
@@ -469,6 +483,27 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
                 },
                 allow_val_change=True,
             )
+            if rollout_refs:
+                wandb.summary["ref/constant_velocity_rollout_mse"] = float(
+                    rollout_refs["constant_velocity"]
+                )
+                wandb.summary["ref/follow_air_rollout_mse"] = float(rollout_refs["follow_air"])
+                wandb.summary["ref/rollout_horizon_steps"] = int(rollout_refs["horizon_steps"])
+                wandb.summary["ref/rollout_horizon_s"] = float(rollout_refs["horizon_seconds"])
+                if "gns_local_best_reported" in rollout_refs:
+                    wandb.summary["ref/gns_local_best_rollout_mse"] = float(
+                        rollout_refs["gns_local_best_reported"]
+                    )
+                # Constant lines at step 0 for charts.
+                wandb.log(
+                    {
+                        "ref/constant_velocity_rollout_mse": float(
+                            rollout_refs["constant_velocity"]
+                        ),
+                        "ref/follow_air_rollout_mse": float(rollout_refs["follow_air"]),
+                        "step": 0,
+                    }
+                )
         except Exception:
             pass
     if max_steps <= 0 or name in ("constant_velocity", "follow_air"):
