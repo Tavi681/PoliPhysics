@@ -37,7 +37,7 @@ fi
 
 # UTIL_GATE is enforced inside ml.train (NVML 1 Hz from first training step;
 # train-only util + val wall-fraction ≤ 10%).
-export UTIL_GATE=1
+export UTIL_GATE="${UTIL_GATE:-1}"
 export UTIL_GATE_MIN
 export UTIL_GATE_PCT
 export UTIL_GATE_VAL_FRAC="${UTIL_GATE_VAL_FRAC:-0.10}"
