@@ -109,17 +109,17 @@ def full_rollout_surrogate(
     predicted positions — same definition as stored u_next (no /u_air leak).
     """
     from torch_geometric.data import Data
-    from ml.data.air import u_at
     from ml.data.edge_features import (
         build_edge_sets_gns,
         interaction_edge_attr,
         material_edge_attr,
     )
     from ml.data.graph import build_edge_sets, material_edges
+    from ml.data.ks_torch import TurbModeCache, ks_u_torch
     from ml.data.normalize import normalize
 
     g = rec["globals"]
-    flow = _make_flow(g["seed"], g["sigma_w"], g["ell"], g["U_h"])
+    modes = TurbModeCache().get(g)
     h = float(g["h"])
     a_mean = np.asarray(norm["a"]["mean"], dtype=np.float32)
     a_std = np.asarray(norm["a"]["std"], dtype=np.float32)
@@ -158,10 +158,17 @@ def full_rollout_surrogate(
         x_abs = spider + x_rel.astype(np.float64)
         n = x_rel.shape[0]
         t_air0 = time.perf_counter()
-        u = u_at(flow, x_abs, t)
+        x_dev = torch.from_numpy(x_abs).to(device)
+        u = ks_u_torch(x_dev, t, modes).detach().cpu().numpy().astype(np.float32)
         u_next = None
         if "u_next" in node_features:
-            u_next = u_at(flow, x_abs, t + DT)
+            u_next = (
+                ks_u_torch(x_dev, t + DT, modes).detach().cpu().numpy().astype(np.float32)
+            )
+        if device.type == "cuda":
+            torch.cuda.synchronize()
+        elif device.type == "mps":
+            torch.mps.synchronize()
         air_time += time.perf_counter() - t_air0
 
         feats = []

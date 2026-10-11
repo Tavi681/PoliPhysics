@@ -38,6 +38,9 @@ train:
     type: exponential
     lr_end: 1.0e-6
   val_every: 1000
+  val_one_step_frames: 256
+  val_rollout_runs: 32
+  val_rollout_every: null
   rollout_K: 20
   early_stopping:
     metric: val_rollout_mse

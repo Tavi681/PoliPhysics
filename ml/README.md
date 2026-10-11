@@ -122,7 +122,15 @@ Every run records git `commit` + `dirty` in `run_meta.json` and W&B (`poliphysic
 
 Frame sampling default: **equal weight per run** (`sample_weight: per_run`); set `per_frame` for uniform frames.
 
-Surrogate rollouts evaluate air velocity via the simulator’s `KinematicSimulation` (seed + params); that CPU time is included in speed-up / Q* and reported separately as `air_time_per_run`.
+Surrogate rollouts evaluate air velocity with a **batched torch** port of the simulator’s
+`KinematicSimulation` (modes from HDF5 `/turb` when available, else the same deterministic
+`make_ks(seed,…)` stream). That air time is still counted in speed-up / Q* as
+`air_time_per_run`.
+
+**Tiered validation (GPU configs):** every `val_every` steps — one-step MSE on a fixed
+sample of val frames; every `val_rollout_every` (auto-sized so rollout ≤10% wall) —
+batched rollouts on a stratified subset of val runs (checkpoint metric). Full test-split
+eval only at the end of training.
 
 ## Cloud
 

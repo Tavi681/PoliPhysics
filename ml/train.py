@@ -60,13 +60,14 @@ def _mem_snapshot(tag: str = "") -> None:
 
 
 class _NvmlUtilSampler:
-    """Sample GPU util via NVML every 1s, starting at first training step."""
+    """Sample GPU util via NVML every 1s during *training* (paused in validation)."""
 
     def __init__(self, device_index: int = 0, interval_s: float = 1.0):
         self.device_index = int(device_index)
         self.interval_s = float(interval_s)
         self.samples: list[float] = []
         self._stop = threading.Event()
+        self._paused = threading.Event()
         self._thread: threading.Thread | None = None
         self._nvml = None
         self._handle = None
@@ -86,9 +87,17 @@ class _NvmlUtilSampler:
         self._thread.start()
         print("PHASE nvml_util_sampling_started", flush=True)
 
+    def pause(self) -> None:
+        self._paused.set()
+
+    def resume(self) -> None:
+        self._paused.clear()
+
     def _loop(self) -> None:
         assert self._nvml is not None and self._handle is not None
         while not self._stop.wait(self.interval_s):
+            if self._paused.is_set():
+                continue
             try:
                 u = float(self._nvml.nvmlDeviceGetUtilizationRates(self._handle).gpu)
                 self.samples.append(u)
@@ -103,7 +112,7 @@ class _NvmlUtilSampler:
         avg = float(np.mean(self.samples)) if n else float("nan")
         out = {"n": n, "avg_pct": avg, "samples": self.samples[-60:]}
         print(
-            f"NVML_UTIL_SUMMARY n={n} avg_pct={avg:.2f}",
+            f"NVML_UTIL_SUMMARY n={n} avg_pct={avg:.2f} (train_steps_only)",
             flush=True,
         )
         try:
@@ -467,13 +476,37 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
     nvml = _NvmlUtilSampler(device_index=device.index or 0) if device.type == "cuda" else None
     util_gate_min = float(os.environ.get("UTIL_GATE_MIN", "15"))
     util_gate_pct = float(os.environ.get("UTIL_GATE_PCT", "70"))
+    util_gate_val_frac_max = float(os.environ.get("UTIL_GATE_VAL_FRAC", "0.10"))
     util_gate_enabled = os.environ.get("UTIL_GATE", "0") == "1"
     util_gate_deadline: float | None = None
     mem_every_s = float(os.environ.get("MEM_SAMPLE_EVERY_S", "10"))
     next_mem_t = time.time() + mem_every_s
+
+    from ml.validation import (
+        fixed_val_frame_indices,
+        one_step_mse_sample,
+        rollout_mse_batched,
+        stratified_val_runs,
+    )
+
+    val_every = int(tcfg.get("val_every", 1000))  # one-step sample cadence
+    val_one_step_frames = int(tcfg.get("val_one_step_frames", 256))
+    val_rollout_runs_n = int(tcfg.get("val_rollout_runs", 32))
+    val_rollout_K = int(tcfg.get("rollout_K", 20))
+    val_frame_idx = fixed_val_frame_indices(val_ds, n_frames=val_one_step_frames, seed=seed)
+    val_rollout_ids = stratified_val_runs(
+        store, splits["val"], n_runs=val_rollout_runs_n, seed=seed
+    )
+    # Default: defer rollout until we can size it to ≤10% wall; override via config.
+    val_rollout_every = tcfg.get("val_rollout_every", None)
+    val_time_s = 0.0
+    train_time_s = 0.0
+    last_train_t = time.perf_counter()
+    rollout_every_reported = False
     print(
         f"PHASE train_loop_enter max_steps={max_steps} batch_size={tcfg.get('batch_size')} "
-        f"lr={lr} util_gate={util_gate_enabled}",
+        f"lr={lr} util_gate={util_gate_enabled} val_every={val_every} "
+        f"val_rollout_runs={len(val_rollout_ids)} val_one_step_frames={len(val_frame_idx)}",
         flush=True,
     )
     while step < max_steps:
@@ -527,17 +560,32 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
             _mem_snapshot(f"step_{step}")
             next_mem_t = now + mem_every_s
 
+        # Accumulate pure train wall (excluding validation pauses).
+        train_time_s += time.perf_counter() - last_train_t
+        last_train_t = time.perf_counter()
+
         if util_gate_deadline is not None and now >= util_gate_deadline and nvml is not None:
             summary = nvml.stop()
             avg = float(summary["avg_pct"])
+            wall = max(train_time_s + val_time_s, 1e-9)
+            val_frac = val_time_s / wall
             print(
-                f"UTIL_GATE_AVG_{util_gate_min:g}m={avg:.2f} (n={summary['n']})",
+                f"UTIL_GATE_AVG_{util_gate_min:g}m_train={avg:.2f} (n={summary['n']}) "
+                f"val_frac={val_frac:.4f} (max={util_gate_val_frac_max})",
                 flush=True,
             )
-            run_meta["util_gate"] = summary
-            if summary["n"] > 0 and avg < util_gate_pct:
+            run_meta["util_gate"] = {
+                **summary,
+                "val_frac": val_frac,
+                "train_time_s": train_time_s,
+                "val_time_s": val_time_s,
+            }
+            fail_util = summary["n"] > 0 and avg < util_gate_pct
+            fail_val = val_frac > util_gate_val_frac_max
+            if fail_util or fail_val:
                 print(
-                    f"GPU util {avg:.1f}% < {util_gate_pct}% — STOP (gate failed).",
+                    f"UTIL_GATE FAIL util={avg:.1f}% (need>={util_gate_pct}) "
+                    f"val_frac={val_frac:.3f} (need<={util_gate_val_frac_max}) — STOP.",
                     flush=True,
                 )
                 torch.save(
@@ -548,17 +596,20 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
                     import wandb
                     wandb.finish()
                 raise SystemExit(42)
-            util_gate_deadline = None  # passed; continue training
+            print("UTIL_GATE PASS", flush=True)
+            util_gate_deadline = None
             nvml = _NvmlUtilSampler(device_index=device.index or 0)
             nvml.start()
 
         if wb is not None and (step % log_every == 0 or step == 1):
             import wandb
+            wall = max(train_time_s + val_time_s, 1e-9)
             payload = {
                 "train/loss_step": float(loss),
                 "train/data_wait_s": data_wait_s,
                 "train/batch_size": int(tcfg.get("batch_size", 4)),
                 "train/lr": lr,
+                "val/wall_frac": val_time_s / wall,
                 "step": step,
             }
             if device.type == "cuda":
@@ -576,38 +627,101 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
                     pass
             wandb.log(payload)
 
-        if step % int(tcfg.get("val_every", 50)) == 0 or step == max_steps:
+        do_one_step = step % val_every == 0 or step == max_steps
+        # Auto-size rollout cadence once we know one rollout cost.
+        if val_rollout_every is None:
+            do_rollout = step == val_every  # first probe at first one-step val
+        else:
+            do_rollout = step % int(val_rollout_every) == 0 or step == max_steps
+
+        if do_one_step or do_rollout:
+            if nvml is not None:
+                nvml.pause()
+            t_val0 = time.perf_counter()
             _phase(f"val_start_step_{step}", t_start)
-            osm = one_step_mse(model, val_loader, device, store.norm)
-            rom = rollout_mse(
-                model, store, splits["val"], device, store.norm,
-                K=int(tcfg.get("rollout_K", 100)), C=dcfg.get("C", 5),
-                node_features=dcfg.get("node_features"),
-                globals_fields=dcfg.get("globals_fields"),
-                edge_sets=edge_sets,
-                radius=dcfg.get("radius", 0.1),
-                normalize_features=dcfg.get("normalize_features", True),
+            osm = float("nan")
+            rom = float("nan")
+            rollout_dt = 0.0
+            if do_one_step:
+                osm = one_step_mse_sample(
+                    model, val_ds, val_frame_idx, device,
+                    batch_size=int(tcfg.get("batch_size", 16)),
+                )
+            if do_rollout:
+                t_roll0 = time.perf_counter()
+                rom, rtiming = rollout_mse_batched(
+                    model, store, val_rollout_ids, device, store.norm,
+                    K=val_rollout_K, C=dcfg.get("C", 5),
+                    node_features=dcfg.get("node_features"),
+                    globals_fields=dcfg.get("globals_fields"),
+                    edge_sets=edge_sets,
+                    radius=dcfg.get("radius", 0.1),
+                    normalize_features=dcfg.get("normalize_features", True),
+                )
+                rollout_dt = time.perf_counter() - t_roll0
+            dt_val = time.perf_counter() - t_val0
+            val_time_s += dt_val
+            if do_rollout and not rollout_every_reported and train_time_s > 1.0 and step > 0:
+                sps = step / max(train_time_s, 1e-9)
+                # Size cadence so *rollout* ≤ 10% wall (one-step sample is small).
+                auto_every = int(max(val_every, np.ceil(10.0 * max(rollout_dt, 1e-3) * sps)))
+                if val_rollout_every is None:
+                    val_rollout_every = auto_every
+                else:
+                    val_rollout_every = max(int(val_rollout_every), auto_every)
+                print(
+                    f"VAL_ROLLOUT_EVERY={val_rollout_every} "
+                    f"(target rollout_frac<=10%; rollout_dt={rollout_dt:.2f}s sps={sps:.2f})",
+                    flush=True,
+                )
+                run_meta["val_rollout_every"] = int(val_rollout_every)
+                rollout_every_reported = True
+            wall = max(train_time_s + val_time_s, 1e-9)
+            val_frac = val_time_s / wall
+            print(
+                f"step {step}: train_loss={float(loss):.4e} "
+                f"val_1step={osm:.4e} val_rollout={rom:.4e} "
+                f"val_frac={val_frac:.3f} val_dt={dt_val:.2f}s",
+                flush=True,
             )
-            print(f"step {step}: train_loss={float(loss):.4e} val_1step={osm:.4e} val_rollout={rom:.4e}", flush=True)
             if wb is not None:
                 import wandb
-                wandb.log({"train/loss": float(loss), "val/one_step_mse": osm, "val/rollout_mse": rom, "step": step})
+                payload = {
+                    "train/loss": float(loss),
+                    "val/wall_frac": val_frac,
+                    "val/dt_s": dt_val,
+                    "step": step,
+                }
+                if np.isfinite(osm):
+                    payload["val/one_step_mse"] = osm
+                if np.isfinite(rom):
+                    payload["val/rollout_mse"] = rom
+                    payload["val/rollout_every"] = int(val_rollout_every or 0)
+                wandb.log(payload)
+            # Checkpoint selection driven by rollout when available.
             metric = rom if np.isfinite(rom) else osm
             torch.save({"model": model.state_dict(), "meta": run_meta, "cfg": cfg, "step": step}, ckpt_dir / "last.pt")
-            if metric < best:
+            if np.isfinite(metric) and metric < best:
                 best = metric
                 bad = 0
                 torch.save({"model": model.state_dict(), "meta": run_meta, "cfg": cfg, "step": step}, ckpt_dir / "best.pt")
-            else:
+            elif np.isfinite(rom):
                 bad += 1
                 if bad >= patience:
                     print("early stopping", flush=True)
                     break
             model.train()
+            if nvml is not None:
+                nvml.resume()
+            last_train_t = time.perf_counter()
 
     if nvml is not None:
         run_meta["nvml_util"] = nvml.stop()
     run_meta["train_time_s"] = time.time() - t0
+    run_meta["val_time_s"] = val_time_s
+    run_meta["val_wall_frac"] = val_time_s / max(train_time_s + val_time_s, 1e-9)
+    if val_rollout_every is not None:
+        run_meta["val_rollout_every"] = int(val_rollout_every)
     with open(ckpt_dir / "run_meta.json", "w") as f:
         json.dump(run_meta, f, indent=2)
     # Refresh ckpt meta so evaluate can read C_train without run_meta fallback

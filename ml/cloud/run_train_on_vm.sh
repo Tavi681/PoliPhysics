@@ -35,11 +35,29 @@ else
   cat "${DEST}/noise_stats.sha256"
 fi
 
-# UTIL_GATE is enforced inside ml.train (NVML 1 Hz from first training step).
+# UTIL_GATE is enforced inside ml.train (NVML 1 Hz from first training step;
+# train-only util + val wall-fraction ≤ 10%).
 export UTIL_GATE=1
 export UTIL_GATE_MIN
 export UTIL_GATE_PCT
+export UTIL_GATE_VAL_FRAC="${UTIL_GATE_VAL_FRAC:-0.10}"
 python3 -m pip install -q nvidia-ml-py psutil 2>/dev/null || true
+
+# W&B API key: prefer env already set at VM start; else GCP Secret Manager.
+# Never write the key into the repo or into logs.
+if [[ -z "${WANDB_API_KEY:-}" ]]; then
+  WANDB_SECRET="${WANDB_SECRET:-projects/authorship-verification/secrets/wandb-api-key/versions/latest}"
+  if WANDB_API_KEY="$(gcloud secrets versions access latest --secret=wandb-api-key 2>/dev/null)"; then
+    export WANDB_API_KEY
+    echo "W&B: loaded API key from Secret Manager (wandb-api-key)"
+  else
+    echo "W&B: WANDB_API_KEY unset and Secret Manager unavailable — wandb may go offline"
+  fi
+else
+  echo "W&B: using WANDB_API_KEY from environment"
+fi
+export WANDB_MODE="${WANDB_MODE:-online}"
+unset WANDB_SECRET
 
 for CFG in ${CONFIGS}; do
   echo "=== TRAIN ${CFG} @ $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="

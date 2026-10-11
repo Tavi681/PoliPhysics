@@ -39,7 +39,11 @@ train:
   lr_schedule:
     type: exponential
     lr_end: 1.0e-6
-  val_every: 1000
+  val_every: 1000                 # cheap one-step sample (GPU)
+  val_one_step_frames: 256
+  val_rollout_runs: 32            # stratified by N, sigma_w
+  # val_rollout_every: auto-sized so rollout ≤10% wall (printed at first probe)
+  val_rollout_every: null
   rollout_K: 20
   early_stopping:
     metric: val_rollout_mse
