@@ -20,28 +20,63 @@ if [[ ! -f "${DEST}/DATA_VERSION" ]]; then
   gsutil -m rsync -r "${BUCKET}/processed/${DATA_VERSION}" "${DEST}"
 fi
 
+python3 -m pip install -q pandas pyyaml wandb 2>/dev/null || true
+
 python3 - <<'PY'
+import json
+import os
 from pathlib import Path
-from ml.data.dataset import BallooningRunStore
-from ml.data.noise_stats import compute_dv_std_by_type, save_noise_stats
-from ml.data.splits import load_splits
-root = Path("/data/processed") / __import__("os").environ.get("DATA_VERSION", "5c60fa669a719404")
+
+from ml.data.frames import DT
+from ml.data.noise_stats import (
+    TYPE_NAMES,
+    compute_dv_std_by_type,
+    dv_std_from_a_std,
+    save_noise_stats,
+)
+
+root = Path("/data/processed") / os.environ.get("DATA_VERSION", "5c60fa669a719404")
 out = root / "noise_stats.json"
 if out.exists():
     print("noise_stats exists", out)
 else:
-    store = BallooningRunStore(root, cache_shards=2)
-    splits = load_splits(root / "splits" / "splits.json")
-    # subsample train for wall-clock; 400 runs × 50 frames is enough for stds
-    train = list(splits["train"])
-    step = max(len(train) // 400, 1)
-    sample = train[::step][:400]
-    stats = compute_dv_std_by_type(store, sample, max_frames_per_run=50)
-    save_noise_stats(stats, out)
-    print(stats)
-PY
+    norm_path = root / "norm_stats.json"
+    if norm_path.exists():
+        a_std = json.loads(norm_path.read_text())["a"]["std"]
+        overall_rms = dv_std_from_a_std(a_std, DT)
+        by_type = {
+            name: {
+                "mean": [0.0, 0.0, 0.0],
+                "std": list(a_std),
+                "rms": overall_rms,
+                "count": 0,
+            }
+            for name in TYPE_NAMES
+        }
+        stats = {
+            "dt": float(DT),
+            "overall_rms": overall_rms,
+            "by_type": by_type,
+            "use_per_type": False,
+            "ratio_max_min": 1.0,
+            "source": "norm_stats_fast",
+        }
+        save_noise_stats(stats, out)
+        print("wrote fast noise_stats from norm_stats", overall_rms)
+    else:
+        from ml.data.dataset import BallooningRunStore
+        from ml.data.splits import load_splits
 
-python3 -m pip install -q wandb pyyaml 2>/dev/null || true
+        store = BallooningRunStore(root, cache_shards=2)
+        splits = load_splits(root / "splits" / "splits.json")
+        train = list(splits["train"])
+        step = max(len(train) // 20, 1)
+        sample = train[::step][:20]
+        stats = compute_dv_std_by_type(store, sample, max_frames_per_run=20)
+        stats["source"] = "train_subsample"
+        save_noise_stats(stats, out)
+        print(stats)
+PY
 
 first=1
 for CFG in ${CONFIGS}; do
