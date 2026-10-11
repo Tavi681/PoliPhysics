@@ -35,41 +35,42 @@ else
   cat "${DEST}/noise_stats.sha256"
 fi
 
-first=1
+# UTIL_GATE is enforced inside ml.train (NVML 1 Hz from first training step).
+export UTIL_GATE=1
+export UTIL_GATE_MIN
+export UTIL_GATE_PCT
+python3 -m pip install -q nvidia-ml-py psutil 2>/dev/null || true
+
 for CFG in ${CONFIGS}; do
   echo "=== TRAIN ${CFG} @ $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
   LOG="Tema 1/results/ml/logs/$(basename "${CFG}" .yaml)_train.log"
   # Fail loud if CUDA missing
   python3 -c "import torch; assert torch.cuda.is_available(), 'CUDA unavailable'"
-  python3 -m ml.train --config "${CFG}" --device cuda 2>&1 | tee "${LOG}" &
+  # Redirect (not pipe) so wait sees ml.train's exit code (42 = util gate fail).
+  python3 -m ml.train --config "${CFG}" --device cuda > "${LOG}" 2>&1 &
   TPID=$!
-  if [[ ${first} -eq 1 ]]; then
-    first=0
-    end=$((SECONDS + UTIL_GATE_MIN * 60))
-    sum=0; n=0
-    while (( SECONDS < end )); do
-      if ! kill -0 "${TPID}" 2>/dev/null; then break; fi
-      u=$(nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits 2>/dev/null | head -1 | tr -d ' ')
-      if [[ -n "${u}" ]]; then sum=$((sum + u)); n=$((n + 1)); fi
-      sleep 30
-    done
-    avg=0
-    (( n > 0 )) && avg=$((sum / n))
-    echo "UTIL_GATE_AVG_${UTIL_GATE_MIN}m=${avg} (n=${n})"
-    if (( n > 0 && avg < UTIL_GATE_PCT )); then
-      echo "GPU util ${avg}% < ${UTIL_GATE_PCT}% — STOP. Stop (not delete) VM after report."
-      kill "${TPID}" 2>/dev/null || true
-      wait "${TPID}" 2>/dev/null || true
-      exit 42
-    fi
-  fi
+  tail -F "${LOG}" &
+  TAILPID=$!
   (
     sleep "${HOUR_REPORT_S}"
     echo "=== 1h REPORT $(basename "${CFG}") $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
     nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv || true
+    grep -E '^(STEP|NVML|UTIL|PHASE)' "${LOG}" | tail -n 40 || true
     tail -n 40 "${LOG}" || true
   ) &
+  set +e
   wait "${TPID}"
+  RC=$?
+  set -e
+  kill "${TAILPID}" 2>/dev/null || true
+  if [[ ${RC} -eq 42 ]]; then
+    echo "GPU util gate failed — STOP. Stop (not delete) VM after report."
+    exit 42
+  fi
+  if [[ ${RC} -ne 0 ]]; then
+    echo "train exited rc=${RC}"
+    exit "${RC}"
+  fi
   RUN=$(ls -1dt "Tema 1/results/ml/runs"/*/ | head -1)
   echo "Evaluating ${RUN}"
   python3 -m ml.evaluate --config "${CFG}" --checkpoint "${RUN}/best.pt" --device cuda \

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import threading
 import time
 from pathlib import Path
 
@@ -23,6 +25,93 @@ from ml.data.splits import load_splits, splits_hash
 from ml.models import build_model
 from ml.utils.config import load_yaml
 from ml.utils.git_info import git_provenance, repo_root, format_git_tag
+
+
+def _phase(name: str, t0: float | None = None) -> float:
+    """Print a wall-clock phase timestamp; return now for chaining."""
+    now = time.time()
+    if t0 is None:
+        print(f"PHASE {name} t={now:.3f}", flush=True)
+    else:
+        print(f"PHASE {name} t={now:.3f} dt={now - t0:.3f}s", flush=True)
+    return now
+
+
+def _mem_snapshot(tag: str = "") -> None:
+    """Log host RAM / swap and RSS of this process (+ children if psutil)."""
+    try:
+        import psutil
+    except ImportError:
+        print(f"MEM {tag} psutil_unavailable", flush=True)
+        return
+    vm = psutil.virtual_memory()
+    sw = psutil.swap_memory()
+    proc = psutil.Process()
+    kids = proc.children(recursive=True)
+    rss = proc.memory_info().rss
+    kid_rss = [(c.pid, c.memory_info().rss) for c in kids]
+    print(
+        f"MEM {tag} host_used_gb={vm.used / 1e9:.2f}/{vm.total / 1e9:.2f} "
+        f"avail_gb={vm.available / 1e9:.2f} swap_used_gb={sw.used / 1e9:.2f} "
+        f"main_rss_gb={rss / 1e9:.3f} workers={len(kids)} "
+        f"worker_rss_gb={[round(r / 1e9, 3) for _, r in kid_rss]}",
+        flush=True,
+    )
+
+
+class _NvmlUtilSampler:
+    """Sample GPU util via NVML every 1s, starting at first training step."""
+
+    def __init__(self, device_index: int = 0, interval_s: float = 1.0):
+        self.device_index = int(device_index)
+        self.interval_s = float(interval_s)
+        self.samples: list[float] = []
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._nvml = None
+        self._handle = None
+
+    def start(self) -> None:
+        if self._thread is not None:
+            return
+        try:
+            import pynvml
+            pynvml.nvmlInit()
+            self._nvml = pynvml
+            self._handle = pynvml.nvmlDeviceGetHandleByIndex(self.device_index)
+        except Exception as e:
+            print(f"NVML util sampler unavailable: {e}", flush=True)
+            return
+        self._thread = threading.Thread(target=self._loop, name="nvml-util", daemon=True)
+        self._thread.start()
+        print("PHASE nvml_util_sampling_started", flush=True)
+
+    def _loop(self) -> None:
+        assert self._nvml is not None and self._handle is not None
+        while not self._stop.wait(self.interval_s):
+            try:
+                u = float(self._nvml.nvmlDeviceGetUtilizationRates(self._handle).gpu)
+                self.samples.append(u)
+            except Exception:
+                break
+
+    def stop(self) -> dict:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=5)
+        n = len(self.samples)
+        avg = float(np.mean(self.samples)) if n else float("nan")
+        out = {"n": n, "avg_pct": avg, "samples": self.samples[-60:]}
+        print(
+            f"NVML_UTIL_SUMMARY n={n} avg_pct={avg:.2f}",
+            flush=True,
+        )
+        try:
+            if self._nvml is not None:
+                self._nvml.nvmlShutdown()
+        except Exception:
+            pass
+        return out
 
 
 def _device(name: str | None) -> torch.device:
@@ -176,16 +265,29 @@ def rollout_mse(
 
 
 def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
+    t_start = _phase("config_load")
     _set_seed(seed)
     data_dir = _resolve(cfg["data"]["data_dir"])
     splits = load_splits(_resolve(cfg["data"]["splits"]))
     dcfg = cfg["data"]
+    tcfg = cfg["train"]
+    cache_shards = int(dcfg.get("cache_shards", 4))
+    num_workers = int(tcfg.get("num_workers", 0))
+    print(
+        f"PHASE cache_budget cache_shards={cache_shards} num_workers={num_workers} "
+        f"(each worker has its own LRU; mmap shares OS pages)",
+        flush=True,
+    )
+    _mem_snapshot("after_config")
+
+    _phase("data_index_manifest", t_start)
     store = BallooningRunStore(
         data_dir,
-        cache_shards=int(dcfg.get("cache_shards", 4)),
+        cache_shards=cache_shards,
         mmap=bool(dcfg.get("mmap", True)),
     )
     edge_sets = dcfg.get("edge_sets", ["material"])
+    _mem_snapshot("after_store")
 
     ds_kwargs = dict(
         C=dcfg.get("C", 5),
@@ -212,12 +314,15 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         a_std=store.norm.get("a", {}).get("std"),
         dt=float(store.norm.get("dt", DT)),
     )
+    t_ds = _phase("dataset_index_build_start", t_start)
     train_ds = BallooningDataset(
         store, splits["train"],
         noise_std=scalar_noise,
         noise_std_by_type=per_type_noise,
         **ds_kwargs,
     )
+    _phase(f"train_dataset_ready n={len(train_ds)}", t_ds)
+    _mem_snapshot("after_train_ds")
     val_ds = BallooningDataset(
         store, splits["val"],
         noise_std=0.0, sample_weight="per_frame",
@@ -231,10 +336,13 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         rotate_augment=False,
         seed=seed,
     )
-    tcfg = cfg["train"]
+    _phase(f"val_dataset_ready n={len(val_ds)}", t_ds)
+    _mem_snapshot("after_val_ds")
+
+    t_loader = _phase("dataloader_construct", t_start)
     train_loader = make_loader(
         train_ds, batch_size=tcfg.get("batch_size", 4), shuffle=True,
-        num_workers=tcfg.get("num_workers", 0), device=str(device),
+        num_workers=num_workers, device=str(device),
         prefetch_factor=tcfg.get("prefetch_factor"),
         shard_aware=bool(dcfg.get("shard_aware", True)),
         seed=seed,
@@ -245,12 +353,16 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         shard_aware=False,
         seed=seed,
     )
+    _phase("dataloader_ready", t_loader)
 
     # infer node_dim / edge_dims from a sample
+    t_sample = _phase("first_sample_getitem", t_start)
     sample = train_ds[0]
+    _phase("first_sample_done", t_sample)
     node_dim = int(sample.x.shape[-1])
     mcfg = dict(cfg["model"])
     name = mcfg.pop("name")
+    t_model = _phase("model_build", t_start)
     if name in ("constant_velocity", "follow_air"):
         mcfg["a_mean"] = store.norm["a"]["mean"]
         mcfg["a_std"] = store.norm["a"]["std"]
@@ -266,6 +378,7 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
                 edge_dims.setdefault(s, 5 if s == "material" else 7)
         mcfg["edge_dims"] = edge_dims
     model = build_model(name, **mcfg).to(device)
+    _phase(f"model_ready params={model.count_parameters()}", t_model)
     # ensure required edges present in dataset
     need = model.required_edges()
     if need and set(need) - set(edge_sets):
@@ -286,15 +399,21 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         "git_dirty": prov["dirty"],
         "device": str(device),
         "seed": seed,
+        "batch_size": int(tcfg.get("batch_size", 4)),
+        "lr": float(tcfg.get("lr", 1e-3)),
         "noise_k": noise_k,
         "noise_std": scalar_noise,
         "noise_std_by_type": None if per_type_noise is None else per_type_noise.tolist(),
         "noise_stats_overall_rms": None if noise_stats is None else noise_stats.get("overall_rms"),
+        "cache_shards": cache_shards,
+        "num_workers": num_workers,
     }
     with open(ckpt_dir / "run_meta.json", "w") as f:
         json.dump(run_meta, f, indent=2)
 
+    t_wb = _phase("wandb_init", t_start)
     wb = _init_wandb(cfg, run_meta)
+    _phase("wandb_ready", t_wb)
     max_steps = int(tcfg.get("max_steps", 1000))
     if max_steps <= 0 or name in ("constant_velocity", "follow_air"):
         # save baseline checkpoint and exit
@@ -339,9 +458,24 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
     model.train()
     if hasattr(train_loader.sampler, "set_epoch"):
         train_loader.sampler.set_epoch(epoch)
+    t_iter = _phase("dataloader_worker_start_iter", t_start)
     it = iter(train_loader)
+    _phase("dataloader_iter_ready", t_iter)
+    _mem_snapshot("after_loader_iter")
     log_every = int(tcfg.get("log_every", 10))
     logged_devices = False
+    nvml = _NvmlUtilSampler(device_index=device.index or 0) if device.type == "cuda" else None
+    util_gate_min = float(os.environ.get("UTIL_GATE_MIN", "15"))
+    util_gate_pct = float(os.environ.get("UTIL_GATE_PCT", "70"))
+    util_gate_enabled = os.environ.get("UTIL_GATE", "0") == "1"
+    util_gate_deadline: float | None = None
+    mem_every_s = float(os.environ.get("MEM_SAMPLE_EVERY_S", "10"))
+    next_mem_t = time.time() + mem_every_s
+    print(
+        f"PHASE train_loop_enter max_steps={max_steps} batch_size={tcfg.get('batch_size')} "
+        f"lr={lr} util_gate={util_gate_enabled}",
+        flush=True,
+    )
     while step < max_steps:
         t_wait0 = time.perf_counter()
         try:
@@ -353,6 +487,9 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
             it = iter(train_loader)
             batch = next(it)
         data_wait_s = time.perf_counter() - t_wait0
+        if step == 0:
+            _phase("first_batch_fetched", t_start)
+            _mem_snapshot("first_batch")
         batch = batch.to(device, non_blocking=pin_memory_ok(device))
         if not logged_devices:
             _log_first_step_devices(model, batch, device)
@@ -367,12 +504,61 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         if sched is not None:
             sched.step()
         step += 1
+        if step == 1:
+            _phase("first_step_done", t_start)
+            if nvml is not None:
+                nvml.start()
+                if util_gate_enabled:
+                    util_gate_deadline = time.time() + util_gate_min * 60.0
+                    print(
+                        f"UTIL_GATE armed: avg>={util_gate_pct}% over {util_gate_min} min "
+                        f"from first step",
+                        flush=True,
+                    )
+        now = time.time()
+        # Log every step for the first 50 (stall diagnosis); then every log_every.
+        if step <= 50 or step % log_every == 0:
+            print(
+                f"STEP {step} loss={float(loss):.4e} data_wait_s={data_wait_s:.4f} "
+                f"elapsed_s={now - t0:.1f}",
+                flush=True,
+            )
+        if now >= next_mem_t:
+            _mem_snapshot(f"step_{step}")
+            next_mem_t = now + mem_every_s
+
+        if util_gate_deadline is not None and now >= util_gate_deadline and nvml is not None:
+            summary = nvml.stop()
+            avg = float(summary["avg_pct"])
+            print(
+                f"UTIL_GATE_AVG_{util_gate_min:g}m={avg:.2f} (n={summary['n']})",
+                flush=True,
+            )
+            run_meta["util_gate"] = summary
+            if summary["n"] > 0 and avg < util_gate_pct:
+                print(
+                    f"GPU util {avg:.1f}% < {util_gate_pct}% — STOP (gate failed).",
+                    flush=True,
+                )
+                torch.save(
+                    {"model": model.state_dict(), "meta": run_meta, "cfg": cfg, "step": step},
+                    ckpt_dir / "last.pt",
+                )
+                if wb is not None:
+                    import wandb
+                    wandb.finish()
+                raise SystemExit(42)
+            util_gate_deadline = None  # passed; continue training
+            nvml = _NvmlUtilSampler(device_index=device.index or 0)
+            nvml.start()
 
         if wb is not None and (step % log_every == 0 or step == 1):
             import wandb
             payload = {
                 "train/loss_step": float(loss),
                 "train/data_wait_s": data_wait_s,
+                "train/batch_size": int(tcfg.get("batch_size", 4)),
+                "train/lr": lr,
                 "step": step,
             }
             if device.type == "cuda":
@@ -391,6 +577,7 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
             wandb.log(payload)
 
         if step % int(tcfg.get("val_every", 50)) == 0 or step == max_steps:
+            _phase(f"val_start_step_{step}", t_start)
             osm = one_step_mse(model, val_loader, device, store.norm)
             rom = rollout_mse(
                 model, store, splits["val"], device, store.norm,
@@ -401,7 +588,7 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
                 radius=dcfg.get("radius", 0.1),
                 normalize_features=dcfg.get("normalize_features", True),
             )
-            print(f"step {step}: train_loss={float(loss):.4e} val_1step={osm:.4e} val_rollout={rom:.4e}")
+            print(f"step {step}: train_loss={float(loss):.4e} val_1step={osm:.4e} val_rollout={rom:.4e}", flush=True)
             if wb is not None:
                 import wandb
                 wandb.log({"train/loss": float(loss), "val/one_step_mse": osm, "val/rollout_mse": rom, "step": step})
@@ -414,16 +601,18 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
             else:
                 bad += 1
                 if bad >= patience:
-                    print("early stopping")
+                    print("early stopping", flush=True)
                     break
             model.train()
 
+    if nvml is not None:
+        run_meta["nvml_util"] = nvml.stop()
     run_meta["train_time_s"] = time.time() - t0
     with open(ckpt_dir / "run_meta.json", "w") as f:
         json.dump(run_meta, f, indent=2)
     # Refresh ckpt meta so evaluate can read C_train without run_meta fallback
-    for name in ("last.pt", "best.pt"):
-        p = ckpt_dir / name
+    for ckpt_name in ("last.pt", "best.pt"):
+        p = ckpt_dir / ckpt_name
         if not p.exists():
             continue
         try:

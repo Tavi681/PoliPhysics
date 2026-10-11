@@ -23,7 +23,12 @@ from ml.data.normalize import load_norm_stats, normalize
 
 
 class BallooningRunStore:
-    """Shard-backed run store with an LRU cache (full pack fits on disk, not RAM)."""
+    """Shard-backed run store with an LRU of *raw* consolidated blobs.
+
+    Consolidated shards stay memory-mapped; individual runs are sliced on
+    ``get()`` (no full-shard expand into RAM). Legacy list shards are still
+    expanded once into a rid→record map.
+    """
 
     def __init__(
         self,
@@ -42,11 +47,12 @@ class BallooningRunStore:
         }
         self._cache_shards = max(1, int(cache_shards))
         self._mmap = bool(mmap)
-        self._shard_cache: OrderedDict[str, dict[str, dict]] = OrderedDict()
+        # sh -> ("consolidated", blob, rid->i) | ("legacy", rid->rec)
+        self._shard_cache: OrderedDict[str, tuple] = OrderedDict()
         self.runs = _RunIdView(self)
         if preload:
             for sh in self.manifest["shards"]:
-                self._load_shard(sh)
+                self._ensure_shard(sh)
 
     def __contains__(self, run_id: str) -> bool:
         return run_id in self._rid_to_shard
@@ -55,22 +61,81 @@ class BallooningRunStore:
         sh = self._rid_to_shard.get(run_id)
         if sh is None:
             raise KeyError(run_id)
-        return self._load_shard(sh)[run_id]
+        kind, payload, index = self._ensure_shard(sh)
+        if kind == "legacy":
+            return payload[run_id]
+        from ml.data.shard_format import expand_one_run
+        return expand_one_run(payload, index[run_id], copy=False)
 
-    def _load_shard(self, sh: str) -> dict[str, dict]:
+    def build_frame_index(
+        self, run_ids: Sequence[str], *, C: int
+    ) -> tuple[list[tuple[str, int]], dict[str, int]]:
+        """Build (run_id, t) index from window_ok only — no heavy array expand."""
+        from ml.data.shard_format import iter_window_ok
+
+        index: list[tuple[str, int]] = []
+        run_sample_count: dict[str, int] = {}
+        by_shard: dict[str, list[str]] = {}
+        for rid in run_ids:
+            if rid not in self._rid_to_shard:
+                continue
+            by_shard.setdefault(self._rid_to_shard[rid], []).append(rid)
+        for sh in sorted(by_shard.keys()):
+            kind, payload, _index = self._ensure_shard(sh)
+            want_sh = set(by_shard[sh])
+            if kind == "consolidated":
+                for rid, wok, T in iter_window_ok(payload):
+                    if rid not in want_sh:
+                        continue
+                    n_ok = 0
+                    for t in range(C, T - 1):
+                        if not bool(wok[t]):
+                            continue
+                        index.append((rid, t))
+                        n_ok += 1
+                    run_sample_count[rid] = n_ok
+            else:
+                for rid in by_shard[sh]:
+                    rec = payload[rid]
+                    wok = rec["window_ok"]
+                    T = int(rec["v"].shape[0])
+                    n_ok = 0
+                    for t in range(C, T - 1):
+                        if not bool(wok[t]):
+                            continue
+                        index.append((rid, t))
+                        n_ok += 1
+                    run_sample_count[rid] = n_ok
+        return index, run_sample_count
+
+    def _ensure_shard(self, sh: str) -> tuple:
         if sh in self._shard_cache:
             self._shard_cache.move_to_end(sh)
             return self._shard_cache[sh]
-        from ml.data.shard_format import load_shard
-        pack = {
-            rec["run_id"]: rec
-            for rec in load_shard(self.data_dir / sh, mmap=self._mmap)
-        }
-        self._shard_cache[sh] = pack
+        from ml.data.shard_format import FORMAT, load_shard_raw
+
+        obj = load_shard_raw(self.data_dir / sh, mmap=self._mmap)
+        if isinstance(obj, dict) and obj.get("format") == FORMAT:  # consolidated_v1
+            rid_i = {rid: i for i, rid in enumerate(obj["run_ids"])}
+            entry: tuple = ("consolidated", obj, rid_i)
+        elif isinstance(obj, list):
+            pack = {rec["run_id"]: rec for rec in obj}
+            entry = ("legacy", pack, None)
+        else:
+            raise TypeError(f"unknown shard type {type(obj)} at {sh}")
+        self._shard_cache[sh] = entry
         self._shard_cache.move_to_end(sh)
         while len(self._shard_cache) > self._cache_shards:
             self._shard_cache.popitem(last=False)
-        return pack
+        return entry
+
+    # backward-compat alias used by older tests
+    def _load_shard(self, sh: str) -> dict[str, dict]:
+        kind, payload, index = self._ensure_shard(sh)
+        if kind == "legacy":
+            return payload
+        from ml.data.shard_format import expand_one_run
+        return {rid: expand_one_run(payload, i, copy=True) for rid, i in index.items()}
 
 
 class _RunIdView:
@@ -152,25 +217,10 @@ class BallooningDataset(Dataset):
         self.dt = float(store.norm.get("dt", DT))
         self.norm = store.norm
 
-        self.index: list[tuple[str, int]] = []
-        self._run_sample_count: dict[str, int] = {}
-        # Visit runs in shard order so the LRU fills sequentially at index build.
-        ordered = sorted(
-            (rid for rid in run_ids if rid in store),
-            key=lambda r: store._rid_to_shard.get(r, ""),
+        # Index via window_ok metadata only (no per-run expand of v/x/u).
+        self.index, self._run_sample_count = store.build_frame_index(
+            run_ids, C=self.C
         )
-        for rid in ordered:
-            rec = store.get(rid)
-            ok = rec["window_ok"]
-            T = rec["v"].shape[0]
-            n_ok = 0
-            for t in range(self.C, T - 1):
-                if not bool(ok[t]):
-                    continue
-                self.index.append((rid, t))
-                n_ok += 1
-            self._run_sample_count[rid] = n_ok
-
         self.sample_weight = sample_weight
 
     def __len__(self) -> int:
@@ -286,7 +336,9 @@ class BallooningDataset(Dataset):
         if self.noise_std > 0 or (
             self.noise_std_by_type is not None and np.any(self.noise_std_by_type > 0)
         ):
-            # Random-walk noise over the velocity history (Sanchez-Gonzalez et al.).
+            # Random-walk noise over C velocity steps (Sanchez-Gonzalez et al.):
+            # std at the most recent velocity = k * std_type(dv), not per increment.
+            # With C i.i.d. increments, that means per-step std = target / sqrt(C).
             eps = self.rng.normal(0.0, 1.0, size=v_hist.shape).astype(np.float32)
             if self.noise_std_by_type is not None:
                 nt = rec["node_type"].astype(np.int64)
@@ -294,6 +346,7 @@ class BallooningDataset(Dataset):
                 eps = eps * scale[None, :, None]
             else:
                 eps = eps * np.float32(self.noise_std)
+            eps = eps * np.float32(1.0 / np.sqrt(max(self.C, 1)))
             noise_rw = np.cumsum(eps, axis=0)
             v_hist = v_hist + noise_rw
             a = (v_tp1 - v_hist[-1]) / dt

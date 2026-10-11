@@ -104,61 +104,88 @@ def pack_records_consolidated(records: list[dict[str, Any]]) -> dict[str, Any]:
     return out
 
 
+def _tensor_as_np(v: Any) -> np.ndarray:
+    if isinstance(v, torch.Tensor):
+        return v.numpy()  # view into mmap pages when applicable
+    return np.asarray(v)
+
+
+def expand_one_run(blob: dict[str, Any], i: int, *, copy: bool = False) -> dict[str, Any]:
+    """Expand a single run from a consolidated blob (views by default)."""
+    if blob.get("format") != FORMAT:
+        raise ValueError(f"not consolidated: {blob.get('format')}")
+    n_frames = _tensor_as_np(blob["n_frames"])
+    n_nodes = _tensor_as_np(blob["n_nodes"])
+    frame_ptr = _tensor_as_np(blob["frame_ptr"])
+    node_ptr = _tensor_as_np(blob["node_ptr"])
+    static_ptr = _tensor_as_np(blob["static_ptr"])
+    edge_ptr = _tensor_as_np(blob["edge_ptr"])
+    T = int(n_frames[i])
+    n = int(n_nodes[i])
+    f0, f1 = int(frame_ptr[i]), int(frame_ptr[i + 1])
+    n0, n1 = int(node_ptr[i]), int(node_ptr[i + 1])
+    s0, s1 = int(static_ptr[i]), int(static_ptr[i + 1])
+    e0, e1 = int(edge_ptr[i]), int(edge_ptr[i + 1])
+
+    def sl(key: str, a: int, b: int, shape=None):
+        x = _tensor_as_np(blob[key])[a:b]
+        if shape is not None:
+            x = x.reshape(shape)
+        return np.array(x, copy=True) if copy else x
+
+    rec: dict[str, Any] = {
+        "run_id": blob["run_ids"][i],
+        "globals": dict(blob["globals"][i]),
+        "t": sl("t", f0, f1),
+        "spider_abs": sl("spider_abs", f0, f1),
+        "window_ok": sl("window_ok", f0, f1),
+        "x_rel": sl("x_rel", n0, n1, (T, n, 3)),
+        "v": sl("v", n0, n1, (T, n, 3)),
+        "u": sl("u", n0, n1, (T, n, 3)),
+        "charge": sl("charge", s0, s1),
+        "thread_id": sl("thread_id", s0, s1),
+        "node_type": sl("node_type", s0, s1),
+        "edges": sl("edges", e0, e1) if e1 > e0 else np.zeros((0, 2), dtype=np.int64),
+    }
+    if "u_next" in blob:
+        rec["u_next"] = sl("u_next", n0, n1, (T, n, 3))
+    return rec
+
+
 def expand_consolidated(blob: dict[str, Any]) -> list[dict[str, Any]]:
     """Expand consolidated shard to list of per-run dicts (numpy arrays)."""
     if blob.get("format") != FORMAT:
         raise ValueError(f"not consolidated: {blob.get('format')}")
-    run_ids = blob["run_ids"]
-    globals_ = blob["globals"]
-    n_frames = np.asarray(blob["n_frames"])
-    n_nodes = np.asarray(blob["n_nodes"])
-    frame_ptr = np.asarray(blob["frame_ptr"])
-    node_ptr = np.asarray(blob["node_ptr"])
-    static_ptr = np.asarray(blob["static_ptr"])
-    edge_ptr = np.asarray(blob["edge_ptr"])
+    return [expand_one_run(blob, i, copy=True) for i in range(len(blob["run_ids"]))]
 
-    def arr(key: str) -> np.ndarray:
-        v = blob[key]
-        return v.numpy() if isinstance(v, torch.Tensor) else np.asarray(v)
 
-    t = arr("t")
-    spider = arr("spider_abs")
-    wok = arr("window_ok")
-    x_rel = arr("x_rel")
-    v = arr("v")
-    u = arr("u")
-    u_next = arr("u_next") if "u_next" in blob else None
-    charge = arr("charge")
-    thread_id = arr("thread_id")
-    node_type = arr("node_type")
-    edges = arr("edges")
-
-    out = []
-    for i, rid in enumerate(run_ids):
-        T = int(n_frames[i])
-        n = int(n_nodes[i])
+def iter_window_ok(blob: dict[str, Any]):
+    """Yield (run_id, window_ok[T], T) without copying heavy arrays."""
+    if blob.get("format") != FORMAT:
+        raise ValueError(f"not consolidated: {blob.get('format')}")
+    wok = _tensor_as_np(blob["window_ok"])
+    n_frames = _tensor_as_np(blob["n_frames"])
+    frame_ptr = _tensor_as_np(blob["frame_ptr"])
+    for i, rid in enumerate(blob["run_ids"]):
         f0, f1 = int(frame_ptr[i]), int(frame_ptr[i + 1])
-        n0, n1 = int(node_ptr[i]), int(node_ptr[i + 1])
-        s0, s1 = int(static_ptr[i]), int(static_ptr[i + 1])
-        e0, e1 = int(edge_ptr[i]), int(edge_ptr[i + 1])
-        rec: dict[str, Any] = {
-            "run_id": rid,
-            "globals": dict(globals_[i]),
-            "t": np.ascontiguousarray(t[f0:f1]),
-            "spider_abs": np.ascontiguousarray(spider[f0:f1]),
-            "window_ok": np.ascontiguousarray(wok[f0:f1]),
-            "x_rel": np.ascontiguousarray(x_rel[n0:n1].reshape(T, n, 3)),
-            "v": np.ascontiguousarray(v[n0:n1].reshape(T, n, 3)),
-            "u": np.ascontiguousarray(u[n0:n1].reshape(T, n, 3)),
-            "charge": np.ascontiguousarray(charge[s0:s1]),
-            "thread_id": np.ascontiguousarray(thread_id[s0:s1]),
-            "node_type": np.ascontiguousarray(node_type[s0:s1]),
-            "edges": np.ascontiguousarray(edges[e0:e1]),
-        }
-        if u_next is not None:
-            rec["u_next"] = np.ascontiguousarray(u_next[n0:n1].reshape(T, n, 3))
-        out.append(rec)
-    return out
+        yield rid, wok[f0:f1], int(n_frames[i])
+
+
+def load_shard_raw(path, *, mmap: bool = True) -> dict[str, Any] | list:
+    """Load shard object without expanding consolidated runs."""
+    kwargs: dict[str, Any] = {"weights_only": False}
+    if mmap:
+        kwargs["mmap"] = True
+    try:
+        obj = torch.load(path, **kwargs)
+    except TypeError:
+        obj = torch.load(path, weights_only=False)
+    except Exception:
+        if mmap:
+            obj = torch.load(path, weights_only=False)
+        else:
+            raise
+    return obj
 
 
 def load_shard(path, *, mmap: bool = True) -> list[dict[str, Any]]:
@@ -168,20 +195,7 @@ def load_shard(path, *, mmap: bool = True) -> list[dict[str, Any]]:
     (PyTorch zip / pickle with tensor pages), reducing peak RAM and relying on
     the OS page cache for repeated access.
     """
-    kwargs: dict[str, Any] = {"weights_only": False}
-    if mmap:
-        kwargs["mmap"] = True
-    try:
-        obj = torch.load(path, **kwargs)
-    except TypeError:
-        # older torch without mmap kw
-        obj = torch.load(path, weights_only=False)
-    except Exception:
-        # some pickles reject mmap; fall back to full load
-        if mmap:
-            obj = torch.load(path, weights_only=False)
-        else:
-            raise
+    obj = load_shard_raw(path, mmap=mmap)
     if isinstance(obj, list):
         return obj
     if isinstance(obj, dict) and obj.get("format") == FORMAT:
