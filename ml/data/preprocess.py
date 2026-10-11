@@ -282,6 +282,8 @@ def compute_train_norms(out_dir: Path, train_ids: set[str], shard_paths: list[st
     upd_u, fin_u = running_mean_var()
     upd_a, fin_a = running_mean_var()
     upd_x, fin_x = running_mean_var()
+    type_upds = [running_mean_var() for _ in range(3)]
+    type_names = ("spider", "interior", "tip")
     from ml.data.shard_format import load_shard
     for sh in tqdm(shard_paths, desc="norm"):
         pack = load_shard(out_dir / sh)
@@ -291,6 +293,7 @@ def compute_train_norms(out_dir: Path, train_ids: set[str], shard_paths: list[st
             v = np.asarray(rec["v"], dtype=np.float32)
             u = np.asarray(rec["u"], dtype=np.float32)
             x = np.asarray(rec["x_rel"], dtype=np.float32)
+            nt = np.asarray(rec["node_type"], dtype=np.int64)
             ok = np.asarray(rec["window_ok"], dtype=bool)
             T = v.shape[0]
             if T < 7:
@@ -307,11 +310,18 @@ def compute_train_norms(out_dir: Path, train_ids: set[str], shard_paths: list[st
             upd_v(v[t_use].reshape(-1, 3))
             upd_u(u[t_use].reshape(-1, 3))
             upd_x(x[t_use].reshape(-1, 3))
+            for typ in range(3):
+                m = nt == typ
+                if not np.any(m):
+                    continue
+                type_upds[typ][0](a[:, m, :].reshape(-1, 3))
+    a_by_type = {type_names[t]: type_upds[t][1]() for t in range(3)}
     return {
         "v": fin_v(),
         "u": fin_u(),
         "x_rel": fin_x(),
         "a": fin_a(),
+        "a_by_type": a_by_type,
         "target": "velocity",
         "dt": DT,
     }

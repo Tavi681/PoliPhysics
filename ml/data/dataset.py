@@ -189,6 +189,7 @@ class BallooningDataset(Dataset):
         radius: float = 0.1,
         noise_std: float = 0.0,
         noise_std_by_type: np.ndarray | Sequence[float] | None = None,
+        noise_std_by_type_comp: np.ndarray | Sequence[Sequence[float]] | None = None,
         noise_std_components: np.ndarray | Sequence[float] | None = None,
         sample_weight: str = "per_run",
         normalize_features: bool = True,
@@ -210,6 +211,11 @@ class BallooningDataset(Dataset):
             None
             if noise_std_by_type is None
             else np.asarray(noise_std_by_type, dtype=np.float32).reshape(-1)
+        )
+        self.noise_std_by_type_comp = (
+            None
+            if noise_std_by_type_comp is None
+            else np.asarray(noise_std_by_type_comp, dtype=np.float32).reshape(3, 3)
         )
         self.noise_std_components = (
             None
@@ -342,17 +348,27 @@ class BallooningDataset(Dataset):
         if (
             self.noise_std > 0
             or (self.noise_std_by_type is not None and np.any(self.noise_std_by_type > 0))
+            or (
+                self.noise_std_by_type_comp is not None
+                and np.any(self.noise_std_by_type_comp > 0)
+            )
             or (self.noise_std_components is not None and np.any(self.noise_std_components > 0))
         ):
             # Random-walk noise over C velocity steps (Sanchez-Gonzalez et al.).
             # Std at the most recent velocity equals the configured velocity scale
-            # (default: k * a_std * dt per component). Increments are /sqrt(C).
+            # (per_type: k * a_std_type[c] * dt; global: k * a_std[c] * dt).
+            # Increments are /sqrt(C).
             #
             # Target convention (implemented): clean next velocity, noisy current:
             #   a = (v_{t+1}^{gt} - v_t^{noisy}) / dt
             # so the model must undo the injected noise. Next-state is NOT shifted.
+            # Target normalization stays global (a - a_mean) / a_std.
             eps = self.rng.normal(0.0, 1.0, size=v_hist.shape).astype(np.float32)
-            if self.noise_std_components is not None:
+            if self.noise_std_by_type_comp is not None:
+                nt = rec["node_type"].astype(np.int64)
+                scale = self.noise_std_by_type_comp[np.clip(nt, 0, 2)]  # (n, 3)
+                eps = eps * scale[None, :, :]
+            elif self.noise_std_components is not None:
                 eps = eps * self.noise_std_components.reshape(1, 1, -1)
             elif self.noise_std_by_type is not None:
                 nt = rec["node_type"].astype(np.int64)

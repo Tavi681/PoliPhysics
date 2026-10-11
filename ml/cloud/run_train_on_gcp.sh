@@ -45,6 +45,12 @@ if ! gcloud compute instances describe "${INSTANCE}" --zone="${ZONE}" &>/dev/nul
     --service-account="${SERVICE_ACCOUNT}" \
     --scopes=https://www.googleapis.com/auth/cloud-platform \
     --metadata=install-nvidia-driver=True
+else
+  STATUS="$(gcloud compute instances describe "${INSTANCE}" --zone="${ZONE}" --format='get(status)' 2>/dev/null || true)"
+  if [[ "${STATUS}" != "RUNNING" ]]; then
+    echo "Starting existing ${INSTANCE} (status=${STATUS}) — no resize/recreate/delete..."
+    gcloud compute instances start "${INSTANCE}" --zone="${ZONE}"
+  fi
 fi
 
 for _ in $(seq 1 90); do
@@ -69,11 +75,12 @@ gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="mkdir -p ${REMOTE_D
 
 echo "Launching remote train (DETACH)..."
 gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="
+  mkdir -p ${REMOTE_DIR}/Tema\\ 1/results/ml/logs
+  rm -f ${REMOTE_DIR}/Tema\\ 1/results/ml/logs/sanity_fail.code
   nohup env REMOTE_DIR=${REMOTE_DIR} DATA_VERSION=5c60fa669a719404 \
     bash ${REMOTE_DIR}/ml/cloud/run_train_on_vm.sh \
-    > ${REMOTE_DIR}/Tema\\ 1/results/ml/logs/train_vm.log 2>&1 &
+    > ${REMOTE_DIR}/Tema\\ 1/results/ml/logs/train_vm.log 2>&1 < /dev/null &
   echo STARTED_PID=\$!
-  mkdir -p ${REMOTE_DIR}/Tema\\ 1/results/ml/logs
 " | tee "${LOCAL_LOG}"
 
 echo "Train launched on ${INSTANCE}. VM will NOT be deleted. Log: ${LOCAL_LOG}"

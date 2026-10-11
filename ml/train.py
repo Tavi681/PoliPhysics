@@ -310,24 +310,36 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         rotate_augment=bool(dcfg.get("rotate_augment", False)),
         seed=seed,
     )
-    from ml.data.noise_stats import load_noise_stats, resolve_noise
+    from ml.data.noise_stats import a_std_by_type_matrix, resolve_noise
 
-    noise_stats = load_noise_stats(data_dir / "noise_stats.json")
     noise_k = dcfg.get("noise_k", None)
     noise_std_cfg = dcfg.get("noise_std", None)
+    noise_mode = str(dcfg.get("noise_mode", "per_type"))
+    a_std_type = a_std_by_type_matrix(store.norm)
     # Explicit noise_std without noise_k keeps legacy behaviour; noise_k wins when set.
-    scalar_noise, per_type_noise, comp_noise = resolve_noise(
+    scalar_noise, per_type_comp, comp_noise = resolve_noise(
         noise_k=float(noise_k) if noise_k is not None else None,
         noise_std=float(noise_std_cfg) if noise_std_cfg is not None else None,
-        noise_stats=noise_stats,
+        noise_mode=noise_mode,
         a_std=store.norm.get("a", {}).get("std"),
+        a_std_by_type=a_std_type,
         dt=float(store.norm.get("dt", DT)),
     )
+    if noise_mode == "per_type" and a_std_type is None and noise_k is not None:
+        print(
+            "WARN: noise_mode=per_type but norm_stats lacks a_by_type; "
+            "falling back to global a_std broadcast",
+            flush=True,
+        )
     t_ds = _phase("dataset_index_build_start", t_start)
     train_ds = BallooningDataset(
         store, splits["train"],
-        noise_std=scalar_noise if comp_noise is None and per_type_noise is None else 0.0,
-        noise_std_by_type=per_type_noise,
+        noise_std=(
+            scalar_noise
+            if per_type_comp is None and comp_noise is None
+            else 0.0
+        ),
+        noise_std_by_type_comp=per_type_comp,
         noise_std_components=comp_noise,
         **ds_kwargs,
     )
@@ -412,10 +424,10 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         "batch_size": int(tcfg.get("batch_size", 4)),
         "lr": float(tcfg.get("lr", 1e-3)),
         "noise_k": noise_k,
+        "noise_mode": noise_mode,
         "noise_std": scalar_noise,
-        "noise_std_by_type": None if per_type_noise is None else per_type_noise.tolist(),
+        "noise_std_by_type_comp": None if per_type_comp is None else per_type_comp.tolist(),
         "noise_std_components": None if comp_noise is None else comp_noise.tolist(),
-        "noise_stats_overall_rms": None if noise_stats is None else noise_stats.get("overall_rms"),
         "cache_shards": cache_shards,
         "num_workers": num_workers,
     }

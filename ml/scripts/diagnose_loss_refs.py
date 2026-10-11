@@ -18,7 +18,7 @@ import numpy as np
 import torch
 
 from ml.data.dataset import BallooningDataset, BallooningRunStore, make_loader
-from ml.data.noise_stats import load_noise_stats, resolve_noise
+from ml.data.noise_stats import a_std_by_type_matrix, resolve_noise
 from ml.data.splits import load_splits
 from ml.models import build_model
 from ml.models.baselines import ConstantVelocity, FollowAir
@@ -27,6 +27,7 @@ from ml.utils.config import load_yaml
 from ml.utils.git_info import repo_root
 from ml.validation import (
     fixed_val_frame_indices,
+    one_step_mse_by_type,
     one_step_mse_sample,
     rollout_mse_batched,
     stratified_val_runs,
@@ -81,6 +82,11 @@ def main():
                     help="rollout_refs.json for train.py / W&B (default next to --out)")
     ap.add_argument("--wandb-run-path", type=str, default=None,
                     help="optional entity/project/run_id to summary-log refs onto existing run")
+    ap.add_argument(
+        "--require-below-zero-acc",
+        action="store_true",
+        help="exit 44 if clean ckpt loss is not below zero-acc overall on train and val",
+    )
     args = ap.parse_args()
 
     cfg = load_yaml(_resolve(args.config) if not Path(args.config).is_absolute() else args.config)
@@ -99,12 +105,13 @@ def main():
         mmap=bool(dcfg.get("mmap", True)),
     )
     edge_sets = dcfg.get("edge_sets", ["material"])
-    noise_stats = load_noise_stats(data_dir / "noise_stats.json")
-    scalar_noise, per_type, comp_noise = resolve_noise(
+    noise_mode = str(dcfg.get("noise_mode", "per_type"))
+    scalar_noise, per_type_comp, comp_noise = resolve_noise(
         noise_k=dcfg.get("noise_k"),
         noise_std=dcfg.get("noise_std"),
-        noise_stats=noise_stats,
+        noise_mode=noise_mode,
         a_std=store.norm.get("a", {}).get("std"),
+        a_std_by_type=a_std_by_type_matrix(store.norm),
         dt=float(store.norm.get("dt", 0.01)),
     )
     ds_kw = dict(
@@ -120,14 +127,14 @@ def main():
     )
     train_noisy = BallooningDataset(
         store, splits["train"],
-        noise_std=scalar_noise if comp_noise is None and per_type is None else 0.0,
-        noise_std_by_type=per_type,
+        noise_std=scalar_noise if per_type_comp is None and comp_noise is None else 0.0,
+        noise_std_by_type_comp=per_type_comp,
         noise_std_components=comp_noise,
         **ds_kw,
     )
     train_clean = BallooningDataset(
         store, splits["train"],
-        noise_std=0.0, noise_std_by_type=None, **ds_kw,
+        noise_std=0.0, noise_std_by_type_comp=None, noise_std_components=None, **ds_kw,
     )
     val_ds = BallooningDataset(
         store, splits["val"],
@@ -155,13 +162,25 @@ def main():
         "a_mean": np.asarray(store.norm["a"]["mean"]).tolist(),
         "a_std": np.asarray(store.norm["a"]["std"]).tolist(),
         "noise": (
-            "RW over C velocities; std at latest v = k*a_std*dt per component "
-            "(falls back to k*noise_stats RMS only if a_std missing); increments /sqrt(C); "
-            "target a=(v_{t+1}^gt - v_t^noisy)/dt"
+            "RW over C velocities; noise_mode=per_type → sigma[type,c]=k*a_std_type[c]*dt; "
+            "global → k*a_std[c]*dt; increments /sqrt(C); "
+            "target a=(v_{t+1}^gt - v_t^noisy)/dt; target norm stays global"
         ),
         "noise_k": dcfg.get("noise_k"),
+        "noise_mode": noise_mode,
+        "noise_std_by_type_comp": (
+            None if per_type_comp is None else np.asarray(per_type_comp).tolist()
+        ),
         "noise_std_components": (
             None if comp_noise is None else np.asarray(comp_noise).tolist()
+        ),
+        "a_by_type": (
+            None
+            if "a_by_type" not in store.norm
+            else {
+                k: {"std": np.asarray(v["std"]).tolist(), "count": int(v["count"])}
+                for k, v in store.norm["a_by_type"].items()
+            }
         ),
         "zero_acc_note": "physical a=0 → normalized pred = -a_mean/a_std",
     }
@@ -189,17 +208,18 @@ def main():
             return (zeros - a_mean) / a_std
 
     zero_model = _ZeroAcc()
-    zero_train_fixed = one_step_mse_sample(
-        zero_model, train_clean, train_idx, device, batch_size=int(tcfg.get("batch_size", 16))
-    )
-    zero_val_fixed = one_step_mse_sample(
-        zero_model, val_ds, val_idx, device, batch_size=int(tcfg.get("batch_size", 16))
-    )
+    bs = int(tcfg.get("batch_size", 16))
+    zero_train_by_type = one_step_mse_by_type(zero_model, train_clean, train_idx, device, batch_size=bs)
+    zero_val_by_type = one_step_mse_by_type(zero_model, val_ds, val_idx, device, batch_size=bs)
+    zero_train_fixed = zero_train_by_type["overall"]
+    zero_val_fixed = zero_val_by_type["overall"]
     print(
         f"zero_noisy={zero_noisy:.6e} zero_clean={zero_clean:.6e} "
         f"zero_train_fixed256={zero_train_fixed:.6e} zero_val_fixed256={zero_val_fixed:.6e}",
         flush=True,
     )
+    print(f"zero_train_by_type={zero_train_by_type}", flush=True)
+    print(f"zero_val_by_type={zero_val_by_type}", flush=True)
 
     ckpt_noisy = ckpt_clean = val_one_step = train_one_step_fixed = float("nan")
     ckpt_path = args.checkpoint
@@ -224,17 +244,20 @@ def main():
         print("Computing checkpoint losses...", flush=True)
         ckpt_noisy = _loss_batches(model, loader_noisy, device, args.n_batches)
         ckpt_clean = _loss_batches(model, loader_clean, device, args.n_batches)
-        train_one_step_fixed = one_step_mse_sample(
-            model, train_clean, train_idx, device, batch_size=int(tcfg.get("batch_size", 16)),
-        )
-        val_one_step = one_step_mse_sample(
-            model, val_ds, val_idx, device, batch_size=int(tcfg.get("batch_size", 16)),
-        )
+        train_by_type = one_step_mse_by_type(model, train_clean, train_idx, device, batch_size=bs)
+        val_by_type = one_step_mse_by_type(model, val_ds, val_idx, device, batch_size=bs)
+        train_one_step_fixed = train_by_type["overall"]
+        val_one_step = val_by_type["overall"]
         print(
             f"ckpt_noisy={ckpt_noisy:.6e} ckpt_clean={ckpt_clean:.6e} "
             f"train_1step_fixed={train_one_step_fixed:.6e} val_1step={val_one_step:.6e}",
             flush=True,
         )
+        print(f"ckpt_train_by_type={train_by_type}", flush=True)
+        print(f"ckpt_val_by_type={val_by_type}", flush=True)
+    else:
+        train_by_type = {k: float("nan") for k in ("overall", "spider", "interior", "tip")}
+        val_by_type = {k: float("nan") for k in ("overall", "spider", "interior", "tip")}
 
     # Irreducible noise: excess of noisy zero-acc over clean zero-acc,
     # and excess of noisy ckpt over clean ckpt.
@@ -304,10 +327,34 @@ def main():
             "zero_acc_clean": zero_clean,
             "zero_acc_train_fixed256": zero_train_fixed,
             "zero_acc_val_fixed256": zero_val_fixed,
+            "zero_acc_train_by_type": zero_train_by_type,
+            "zero_acc_val_by_type": zero_val_by_type,
             "best_ckpt_noisy": ckpt_noisy,
             "best_ckpt_clean": ckpt_clean,
             "train_one_step_clean_fixed256": train_one_step_fixed,
             "val_one_step_clean": val_one_step,
+            "ckpt_train_by_type": train_by_type,
+            "ckpt_val_by_type": val_by_type,
+        },
+        "sanity_below_zero_acc": {
+            "train_overall": (
+                bool(train_one_step_fixed < zero_train_fixed)
+                if np.isfinite(train_one_step_fixed)
+                else None
+            ),
+            "val_overall": (
+                bool(val_one_step < zero_val_fixed) if np.isfinite(val_one_step) else None
+            ),
+            "train_by_type": {
+                k: bool(train_by_type[k] < zero_train_by_type[k])
+                for k in ("spider", "interior", "tip")
+                if np.isfinite(train_by_type.get(k, float("nan")))
+            },
+            "val_by_type": {
+                k: bool(val_by_type[k] < zero_val_by_type[k])
+                for k in ("spider", "interior", "tip")
+                if np.isfinite(val_by_type.get(k, float("nan")))
+            },
         },
         "frame_sets": {
             "n_fixed": n_fixed,
@@ -350,6 +397,19 @@ def main():
             print(f"updated W&B summary {args.wandb_run_path}", flush=True)
         except Exception as e:
             print(f"W&B summary update failed: {e}", flush=True)
+
+    if args.require_below_zero_acc and ckpt_path is not None:
+        ok = report["sanity_below_zero_acc"]
+        train_ok = bool(ok.get("train_overall"))
+        val_ok = bool(ok.get("val_overall"))
+        # Require overall; per-type is reported but spider can be sparse on tiny subsets.
+        if not (train_ok and val_ok):
+            print(
+                f"SANITY_FAIL train_ok={train_ok} val_ok={val_ok} detail={ok}",
+                flush=True,
+            )
+            raise SystemExit(44)
+        print(f"SANITY_OK below zero-acc: {ok}", flush=True)
 
 
 if __name__ == "__main__":

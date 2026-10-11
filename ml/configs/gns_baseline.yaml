@@ -18,8 +18,9 @@ data:
   globals_fields: [qE, m, N]   # sigma_w, ell, spider_z off by default
   edge_sets: [material, interaction]
   radius: 0.05                 # cross-thread neighbourhood near the spider
-  # noise_std = noise_k * std(dv); dv = a*dt from train-only stats (see noise_stats.json)
+  # sigma = noise_k * a_std[_type] * dt from norm_stats (noise_mode: per_type|global)
   noise_k: 1.0
+  noise_mode: per_type
   normalize_features: true
   rotate_augment: false        # yaw augmentation OFF for baseline
   sample_weight: per_run

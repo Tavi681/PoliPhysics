@@ -110,6 +110,43 @@ def one_step_mse_sample(
     return total / max(n, 1)
 
 
+@torch.no_grad()
+def one_step_mse_by_type(
+    model,
+    dataset: BallooningDataset,
+    indices: Sequence[int],
+    device: torch.device,
+    *,
+    batch_size: int = 16,
+) -> dict[str, float]:
+    """Overall + per node_type (spider/interior/tip) one-step MSE on fixed indices."""
+    model.eval()
+    names = ("spider", "interior", "tip")
+    sum_err = {n: 0.0 for n in names}
+    sum_err["overall"] = 0.0
+    count = {n: 0 for n in names}
+    count["overall"] = 0
+    if not indices:
+        return {k: float("nan") for k in ("overall",) + names}
+    for start in range(0, len(indices), batch_size):
+        chunk = indices[start : start + batch_size]
+        graphs = [dataset[i] for i in chunk]
+        batch = Batch.from_data_list(graphs).to(device)
+        pred = model(batch)
+        err = (pred - batch.y).pow(2)  # (N, 3)
+        per_node = err.mean(dim=-1)
+        sum_err["overall"] += float(per_node.sum())
+        count["overall"] += int(per_node.numel())
+        nt = batch.node_type
+        for typ, name in enumerate(names):
+            m = nt == typ
+            if not bool(m.any()):
+                continue
+            sum_err[name] += float(per_node[m].sum())
+            count[name] += int(m.sum().item())
+    return {k: (sum_err[k] / max(count[k], 1)) for k in ("overall",) + names}
+
+
 def _norm_blocks_torch(v_hist: torch.Tensor, mean, std, *, do_norm: bool) -> torch.Tensor:
     """v_hist (C,n,3) → (n, 3C)."""
     C, n, _ = v_hist.shape

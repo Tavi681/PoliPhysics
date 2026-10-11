@@ -16,7 +16,7 @@ import numpy as np
 import torch
 
 from ml.data.dataset import BallooningDataset, BallooningRunStore, make_loader
-from ml.data.noise_stats import load_noise_stats, resolve_noise
+from ml.data.noise_stats import a_std_by_type_matrix, resolve_noise
 from ml.data.splits import load_splits
 from ml.models import build_model
 from ml.train import _device, _resolve, _set_seed, pin_memory_ok
@@ -54,12 +54,12 @@ def main():
         mmap=bool(dcfg.get("mmap", True)),
     )
     edge_sets = dcfg.get("edge_sets", ["material"])
-    noise_stats = load_noise_stats(data_dir / "noise_stats.json")
-    scalar_noise, per_type, comp_noise = resolve_noise(
+    scalar_noise, per_type_comp, comp_noise = resolve_noise(
         noise_k=dcfg.get("noise_k"),
         noise_std=dcfg.get("noise_std"),
-        noise_stats=noise_stats,
+        noise_mode=str(dcfg.get("noise_mode", "per_type")),
         a_std=store.norm.get("a", {}).get("std"),
+        a_std_by_type=a_std_by_type_matrix(store.norm),
         dt=float(store.norm.get("dt", 0.01)),
     )
     ds = BallooningDataset(
@@ -69,8 +69,8 @@ def main():
         globals_fields=dcfg.get("globals_fields"),
         edge_sets=edge_sets,
         radius=dcfg.get("radius", 0.1),
-        noise_std=scalar_noise if comp_noise is None and per_type is None else 0.0,
-        noise_std_by_type=per_type,
+        noise_std=scalar_noise if per_type_comp is None and comp_noise is None else 0.0,
+        noise_std_by_type_comp=per_type_comp,
         noise_std_components=comp_noise,
         normalize_features=dcfg.get("normalize_features", True),
         sample_weight=dcfg.get("sample_weight", "per_run"),

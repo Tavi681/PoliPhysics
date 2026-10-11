@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs on the GPU VM: ensure local data + noise_stats, train configs sequentially.
+# Runs on the GPU VM: patch norms (a_by_type; delete noise_stats), train configs sequentially.
 # Env: DATA_VERSION, BUCKET, CONFIGS, UTIL_GATE_MIN, UTIL_GATE_PCT, REMOTE_DIR
 set -euo pipefail
 cd "${REMOTE_DIR:-/home/octav/poliphysics}"
@@ -24,16 +24,20 @@ fi
 
 python3 -m pip install -q pandas pyyaml wandb 2>/dev/null || true
 
-# Full train-split noise_stats once (checksummed); never recompute if present.
-if [[ ! -f "${DEST}/noise_stats.json" || ! -f "${DEST}/noise_stats.sha256" ]]; then
-  echo "Computing full-train noise_stats (one-time)..."
-  python3 -m ml.scripts.compute_noise_stats \
+# Ensure a_by_type in norm_stats; delete legacy noise_stats; refresh checksums (+GCS).
+if python3 -c "import json; d=json.load(open('${DEST}/norm_stats.json')); raise SystemExit(0 if 'a_by_type' in d else 1)"; then
+  echo "norm_stats already has a_by_type"
+  # Still purge any leftover noise_stats locally + on GCS.
+  rm -f "${DEST}/noise_stats.json" "${DEST}/noise_stats.sha256"
+else
+  echo "Patching norm_stats with a_by_type (full train Welford)..."
+  python3 -m ml.scripts.patch_norm_a_by_type \
     --data-dir "${DEST}" \
     --upload-gcs "${BUCKET}/processed/${DATA_VERSION}/"
-else
-  echo "noise_stats present with checksum — skipping recompute"
-  cat "${DEST}/noise_stats.sha256"
 fi
+# Ensure GCS noise_stats is gone even if local already patched.
+gcloud storage rm "${BUCKET}/processed/${DATA_VERSION}/noise_stats.json" 2>/dev/null || true
+gcloud storage rm "${BUCKET}/processed/${DATA_VERSION}/noise_stats.sha256" 2>/dev/null || true
 
 # Gate accepted at ~68% train util / 2.6% val — skip re-gate for production trains.
 export UTIL_GATE="${UTIL_GATE:-0}"
@@ -48,9 +52,7 @@ python3 -m pip install -q nvidia-ml-py psutil 2>/dev/null || true
 echo "SESSION_T0=${TRAIN_SESSION_T0} COST_CAP_USD=${COST_CAP_USD} VM_USD_PER_HOUR=${VM_USD_PER_HOUR}"
 
 # W&B API key: prefer env already set at VM start; else GCP Secret Manager.
-# Never write the key into the repo or into logs.
 if [[ -z "${WANDB_API_KEY:-}" ]]; then
-  WANDB_SECRET="${WANDB_SECRET:-projects/authorship-verification/secrets/wandb-api-key/versions/latest}"
   if WANDB_API_KEY="$(gcloud secrets versions access latest --secret=wandb-api-key 2>/dev/null)"; then
     export WANDB_API_KEY
     echo "W&B: loaded API key from Secret Manager (wandb-api-key)"
@@ -61,14 +63,11 @@ else
   echo "W&B: using WANDB_API_KEY from environment"
 fi
 export WANDB_MODE="${WANDB_MODE:-online}"
-unset WANDB_SECRET
 
 for CFG in ${CONFIGS}; do
   echo "=== TRAIN ${CFG} @ $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
   LOG="Tema 1/results/ml/logs/$(basename "${CFG}" .yaml)_train.log"
-  # Fail loud if CUDA missing
   python3 -c "import torch; assert torch.cuda.is_available(), 'CUDA unavailable'"
-  # Redirect (not pipe) so wait sees ml.train's exit code (42 = util gate fail).
   python3 -m ml.train --config "${CFG}" --device cuda > "${LOG}" 2>&1 &
   TPID=$!
   tail -F "${LOG}" &
@@ -77,19 +76,40 @@ for CFG in ${CONFIGS}; do
     sleep "${HOUR_REPORT_S}"
     echo "=== 1h REPORT $(basename "${CFG}") $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
     nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv || true
-    grep -E '^(STEP|NVML|UTIL|PHASE)' "${LOG}" | tail -n 40 || true
+    grep -E '^(STEP|NVML|UTIL|PHASE|wandb)' "${LOG}" | tail -n 40 || true
+    RUN=$(ls -1dt "Tema 1/results/ml/runs"/*/ 2>/dev/null | head -1 || true)
+    if [[ -n "${RUN}" && -f "${RUN}/best.pt" ]]; then
+      echo "1h sanity diagnose on ${RUN}"
+      SANITY_OUT="Tema 1/results/ml/logs/sanity_1h_$(basename "${CFG}" .yaml).json"
+      if ! python3 -m ml.scripts.diagnose_loss_refs \
+          --config "${CFG}" --checkpoint "${RUN}/best.pt" --device cuda \
+          --out "${SANITY_OUT}" --n-batches 20 --require-below-zero-acc; then
+        echo "SANITY_FAIL — killing train PID ${TPID}"
+        kill "${TPID}" 2>/dev/null || true
+        echo 44 > "Tema 1/results/ml/logs/sanity_fail.code"
+      else
+        echo "SANITY_OK — continuing"
+      fi
+    else
+      echo "1h sanity skipped (no best.pt yet)"
+    fi
     tail -n 40 "${LOG}" || true
   ) &
+  SANITY_PID=$!
   set +e
   wait "${TPID}"
   RC=$?
   set -e
   kill "${TAILPID}" 2>/dev/null || true
+  kill "${SANITY_PID}" 2>/dev/null || true
+  if [[ -f "Tema 1/results/ml/logs/sanity_fail.code" ]]; then
+    echo "Sanity check failed after 1h — stop session (VM stop left to launcher)."
+    exit 44
+  fi
   if [[ ${RC} -eq 42 ]]; then
-    echo "GPU util gate failed — STOP. Stop (not delete) VM after report."
+    echo "GPU util gate failed — STOP."
     exit 42
   fi
-  # 43 = cost cap: still evaluate current run, then stop session (no next config).
   COST_HIT=0
   if [[ ${RC} -eq 43 ]]; then
     echo "COST_CAP hit — evaluate current run then stop session."

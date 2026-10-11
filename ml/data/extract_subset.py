@@ -5,7 +5,7 @@ Example (local_subset from 5c60fa with stored u_next):
     --src-uri gs://authorship-verification-poliphysics/tema1-ml/processed/5c60fa669a719404 \\
     --run-ids-from \"Tema 1/results/ml/processed/local_subset/manifest.json\" \\
     --out \"Tema 1/results/ml/processed/local_subset\" \\
-    --compute-noise-stats --splits \"Tema 1/results/ml/splits/splits.json\"
+    --splits \"Tema 1/results/ml/splits/splits.json\"
 """
 from __future__ import annotations
 
@@ -18,9 +18,7 @@ from pathlib import Path
 
 import torch
 
-from ml.data.noise_stats import compute_dv_std_by_type, save_noise_stats
 from ml.data.shard_format import load_shard, pack_records_consolidated
-from ml.data.splits import load_splits
 from ml.utils.git_info import git_provenance, repo_root
 
 
@@ -75,7 +73,6 @@ def extract_subset(
     run_ids: list[str],
     out_dir: Path,
     splits_path: Path | None = None,
-    compute_noise: bool = True,
     shard_size: int = 50,
 ) -> dict:
     out_dir = Path(out_dir)
@@ -168,20 +165,7 @@ def extract_subset(
             "records": records,
         }
         (out_dir / "manifest.json").write_text(json.dumps(out_man, indent=2))
-
-        noise_report = None
-        if compute_noise:
-            from ml.data.dataset import BallooningRunStore
-
-            store = BallooningRunStore(out_dir, cache_shards=2)
-            train_ids = list(want)
-            if splits_path and Path(splits_path).exists():
-                spl = load_splits(Path(splits_path))
-                train_ids = [r for r in spl.get("train", []) if r in want] or list(want)
-            noise_report = compute_dv_std_by_type(store, train_ids)
-            save_noise_stats(noise_report, out_dir / "noise_stats.json")
-
-        return {"manifest": out_man, "noise_stats": noise_report, "n_shards": len(shard_names)}
+        return {"manifest": out_man, "n_shards": len(shard_names)}
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -192,7 +176,6 @@ def main():
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--run-ids-from", type=Path, required=True)
     ap.add_argument("--splits", type=Path, default=None)
-    ap.add_argument("--compute-noise-stats", action="store_true")
     ap.add_argument("--shard-size", type=int, default=50)
     args = ap.parse_args()
     man = json.loads(Path(args.run_ids_from).read_text())
@@ -206,10 +189,9 @@ def main():
         run_ids=ids,
         out_dir=args.out,
         splits_path=splits,
-        compute_noise=args.compute_noise_stats,
         shard_size=args.shard_size,
     )
-    print(json.dumps({"n_runs": out["manifest"]["n_runs"], "noise_stats": out["noise_stats"]}, indent=2))
+    print(json.dumps({"n_runs": out["manifest"]["n_runs"], "n_shards": out["n_shards"]}, indent=2))
 
 
 if __name__ == "__main__":

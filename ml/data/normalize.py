@@ -8,6 +8,8 @@ from typing import Any
 import numpy as np
 import torch
 
+TYPE_NAMES = ("spider", "interior", "tip")
+
 
 def running_mean_var():
     """Welford online mean/variance; update() accepts a batch [N, D]."""
@@ -49,33 +51,48 @@ def running_mean_var():
     return update, finalize
 
 
+def _to_jsonable(obj: Any) -> Any:
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, dict):
+        return {k: _to_jsonable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_to_jsonable(v) for v in obj]
+    if isinstance(obj, (np.floating, np.integer)):
+        return obj.item()
+    return obj
+
+
 def save_norm_stats(stats: dict[str, Any], path: Path) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    serial = {}
-    for k, v in stats.items():
-        if isinstance(v, dict):
-            serial[k] = {
-                kk: (vv.tolist() if isinstance(vv, np.ndarray) else vv)
-                for kk, vv in v.items()
-            }
-        else:
-            serial[k] = v
     with open(path, "w") as f:
-        json.dump(serial, f, indent=2)
+        json.dump(_to_jsonable(stats), f, indent=2)
+
+
+def _load_mean_std_block(v: dict) -> dict[str, Any]:
+    return {
+        "mean": np.asarray(v["mean"], dtype=np.float32),
+        "std": np.asarray(v["std"], dtype=np.float32),
+        "count": int(v.get("count", 0)),
+    }
 
 
 def load_norm_stats(path: Path) -> dict[str, Any]:
     with open(path) as f:
         raw = json.load(f)
-    out = {}
+    out: dict[str, Any] = {}
     for k, v in raw.items():
-        if isinstance(v, dict) and "mean" in v:
-            out[k] = {
-                "mean": np.asarray(v["mean"], dtype=np.float32),
-                "std": np.asarray(v["std"], dtype=np.float32),
-                "count": v.get("count", 0),
-            }
+        if k == "a_by_type" and isinstance(v, dict):
+            by = {}
+            for name, entry in v.items():
+                if isinstance(entry, dict) and "mean" in entry and "std" in entry:
+                    by[name] = _load_mean_std_block(entry)
+                else:
+                    by[name] = entry
+            out[k] = by
+        elif isinstance(v, dict) and "mean" in v and "std" in v:
+            out[k] = _load_mean_std_block(v)
         else:
             out[k] = v
     return out
