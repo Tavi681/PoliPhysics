@@ -25,10 +25,13 @@ def compute_dv_std_by_type(
     *,
     dt: float = DT,
     max_frames_per_run: int = 200,
+    C: int = 5,
 ) -> dict[str, Any]:
     """Train-only std of per-component dv=a*dt, stratified by node type.
 
-    Returns overall RMS scalar plus per-type RMS scalars and component stds.
+    Only frames with ``window_ok[t]`` and ``t in [C, T-2]`` (same filter as
+    ``compute_train_norms`` / the training index). Returns overall RMS scalar
+    plus per-type RMS scalars and component stds.
     """
     # Welford per type for 3 components
     counts = {t: 0 for t in range(3)}
@@ -39,12 +42,16 @@ def compute_dv_std_by_type(
         rec = store.get(rid)
         v = rec["v"]
         nt = rec["node_type"].astype(np.int64)
+        ok = np.asarray(rec["window_ok"], dtype=bool)
         T = int(v.shape[0])
-        # sample evenly across the run
-        idxs = np.linspace(0, max(T - 2, 0), num=min(max_frames_per_run, max(T - 1, 1)), dtype=int)
-        for t in idxs:
-            if t + 1 >= T:
-                continue
+        # candidate frames matching the training index
+        candidates = [t for t in range(C, max(T - 1, C)) if bool(ok[t])]
+        if not candidates:
+            continue
+        if len(candidates) > max_frames_per_run:
+            idxs = np.linspace(0, len(candidates) - 1, num=max_frames_per_run, dtype=int)
+            candidates = [candidates[i] for i in idxs]
+        for t in candidates:
             dv = (v[t + 1] - v[t]).astype(np.float64)  # already a*dt
             for typ in (0, 1, 2):
                 mask = nt == typ
@@ -98,15 +105,23 @@ def resolve_noise(
     noise_stats: dict[str, Any] | None,
     a_std: Sequence[float] | None,
     dt: float = DT,
-) -> tuple[float, np.ndarray | None]:
-    """Return (scalar_noise_std, per_type_std_array[3] or None).
+) -> tuple[float, np.ndarray | None, np.ndarray | None]:
+    """Return (scalar_vel_std, per_type_vel_std[3] or None, per_component_vel_std[3] or None).
 
-    If ``noise_k`` is set → ``k * std(dv)`` (from noise_stats, else RMS of a_std·dt).
-    Else if ``noise_std`` is set → that scalar (legacy / explicit override).
-    Else → no noise.
+    When ``noise_k`` is set and ``a_std`` is available (normal path), velocity
+    noise is ``k * a_std * dt`` **per component** so that adjusting
+    ``a ← (v_{t+1} - v_noisy_t)/dt`` adds variance ``k²`` to each *normalized*
+    acceleration component (GNS-consistent with the training normalizer).
+
+    Legacy: ``noise_stats`` per-type RMS is only used if ``a_std`` is missing.
     """
     if noise_k is not None:
         k = float(noise_k)
+        if a_std is not None:
+            comp = (np.asarray(a_std, dtype=np.float64).reshape(-1) * float(dt) * k).astype(
+                np.float32
+            )
+            return float(np.sqrt(np.mean(comp.astype(np.float64) ** 2))), None, comp
         if noise_stats is not None:
             overall = float(noise_stats["overall_rms"])
             if noise_stats.get("use_per_type"):
@@ -114,14 +129,12 @@ def resolve_noise(
                     [float(noise_stats["by_type"][n]["rms"]) * k for n in TYPE_NAMES],
                     dtype=np.float32,
                 )
-                return float(overall * k), arr
-            return float(overall * k), None
-        if a_std is not None:
-            return float(k * dv_std_from_a_std(a_std, dt)), None
-        return 0.0, None
+                return float(overall * k), arr, None
+            return float(overall * k), None, None
+        return 0.0, None, None
     if noise_std is not None:
-        return float(noise_std), None
-    return 0.0, None
+        return float(noise_std), None, None
+    return 0.0, None, None
 
 
 def load_noise_stats(path: Path) -> dict[str, Any] | None:

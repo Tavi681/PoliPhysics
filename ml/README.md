@@ -83,10 +83,13 @@ globals are switchable in the YAML; the integrator / splits / metrics stay untou
 **Interaction edges:** radius graph across *different* threads (spider excluded — it is
 already linked by material edges) plus all-tips. For `N=1` the interaction set is empty.
 
-**Training noise:** per-type `σ = noise_k * std(dv)` with `dv = a·dt` from train-only
-`noise_stats.json`. Random walk over the C velocity history is scaled so the **std at
-the most recent velocity** equals `σ` (Sanchez-Gonzalez et al.): each increment has
-std `σ/√C`, then `cumsum`. Default `noise_k: 1`.
+**Training noise:** velocity RW with std at the latest step
+`σ_c = noise_k * a_std[c] * dt` **per component** (matched to `norm_stats` /
+training target). Increments use `σ/√C` then `cumsum` (Sanchez-Gonzalez et al.).
+Target uses clean next velocity: `a = (v_{t+1}^{gt} - v_t^{noisy}) / dt`, so
+`k=1` adds ~1 variance per normalized acceleration component. Legacy
+`noise_stats.json` per-type RMS is only a fallback if `a_std` is missing (that
+scale was ~14× too large and broke training). Default `noise_k: 1`.
 k-sweep configs (run later): `ml/configs/sweeps/gns_baseline_k{0.1,0.3,1,3}.yaml`;
 select on **validation rollout MSE**, not one-step loss.
 

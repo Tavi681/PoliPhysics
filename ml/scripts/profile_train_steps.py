@@ -55,7 +55,7 @@ def main():
     )
     edge_sets = dcfg.get("edge_sets", ["material"])
     noise_stats = load_noise_stats(data_dir / "noise_stats.json")
-    scalar_noise, per_type = resolve_noise(
+    scalar_noise, per_type, comp_noise = resolve_noise(
         noise_k=dcfg.get("noise_k"),
         noise_std=dcfg.get("noise_std"),
         noise_stats=noise_stats,
@@ -69,8 +69,9 @@ def main():
         globals_fields=dcfg.get("globals_fields"),
         edge_sets=edge_sets,
         radius=dcfg.get("radius", 0.1),
-        noise_std=scalar_noise,
+        noise_std=scalar_noise if comp_noise is None and per_type is None else 0.0,
         noise_std_by_type=per_type,
+        noise_std_components=comp_noise,
         normalize_features=dcfg.get("normalize_features", True),
         sample_weight=dcfg.get("sample_weight", "per_run"),
         rotate_augment=False,

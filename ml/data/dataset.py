@@ -189,6 +189,7 @@ class BallooningDataset(Dataset):
         radius: float = 0.1,
         noise_std: float = 0.0,
         noise_std_by_type: np.ndarray | Sequence[float] | None = None,
+        noise_std_components: np.ndarray | Sequence[float] | None = None,
         sample_weight: str = "per_run",
         normalize_features: bool = True,
         normalize_target: bool = True,
@@ -209,6 +210,11 @@ class BallooningDataset(Dataset):
             None
             if noise_std_by_type is None
             else np.asarray(noise_std_by_type, dtype=np.float32).reshape(-1)
+        )
+        self.noise_std_components = (
+            None
+            if noise_std_components is None
+            else np.asarray(noise_std_components, dtype=np.float32).reshape(-1)
         )
         self.normalize_features = bool(normalize_features)
         self.normalize_target = normalize_target
@@ -333,14 +339,22 @@ class BallooningDataset(Dataset):
         v_tp1 = v[t + 1].copy()
         a = (v_tp1 - v_t) / dt
 
-        if self.noise_std > 0 or (
-            self.noise_std_by_type is not None and np.any(self.noise_std_by_type > 0)
+        if (
+            self.noise_std > 0
+            or (self.noise_std_by_type is not None and np.any(self.noise_std_by_type > 0))
+            or (self.noise_std_components is not None and np.any(self.noise_std_components > 0))
         ):
-            # Random-walk noise over C velocity steps (Sanchez-Gonzalez et al.):
-            # std at the most recent velocity = k * std_type(dv), not per increment.
-            # With C i.i.d. increments, that means per-step std = target / sqrt(C).
+            # Random-walk noise over C velocity steps (Sanchez-Gonzalez et al.).
+            # Std at the most recent velocity equals the configured velocity scale
+            # (default: k * a_std * dt per component). Increments are /sqrt(C).
+            #
+            # Target convention (implemented): clean next velocity, noisy current:
+            #   a = (v_{t+1}^{gt} - v_t^{noisy}) / dt
+            # so the model must undo the injected noise. Next-state is NOT shifted.
             eps = self.rng.normal(0.0, 1.0, size=v_hist.shape).astype(np.float32)
-            if self.noise_std_by_type is not None:
+            if self.noise_std_components is not None:
+                eps = eps * self.noise_std_components.reshape(1, 1, -1)
+            elif self.noise_std_by_type is not None:
                 nt = rec["node_type"].astype(np.int64)
                 scale = self.noise_std_by_type[np.clip(nt, 0, len(self.noise_std_by_type) - 1)]
                 eps = eps * scale[None, :, None]

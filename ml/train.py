@@ -316,7 +316,7 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
     noise_k = dcfg.get("noise_k", None)
     noise_std_cfg = dcfg.get("noise_std", None)
     # Explicit noise_std without noise_k keeps legacy behaviour; noise_k wins when set.
-    scalar_noise, per_type_noise = resolve_noise(
+    scalar_noise, per_type_noise, comp_noise = resolve_noise(
         noise_k=float(noise_k) if noise_k is not None else None,
         noise_std=float(noise_std_cfg) if noise_std_cfg is not None else None,
         noise_stats=noise_stats,
@@ -326,8 +326,9 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
     t_ds = _phase("dataset_index_build_start", t_start)
     train_ds = BallooningDataset(
         store, splits["train"],
-        noise_std=scalar_noise,
+        noise_std=scalar_noise if comp_noise is None and per_type_noise is None else 0.0,
         noise_std_by_type=per_type_noise,
+        noise_std_components=comp_noise,
         **ds_kwargs,
     )
     _phase(f"train_dataset_ready n={len(train_ds)}", t_ds)
@@ -413,6 +414,7 @@ def train_one(cfg: dict, device: torch.device, seed: int) -> Path:
         "noise_k": noise_k,
         "noise_std": scalar_noise,
         "noise_std_by_type": None if per_type_noise is None else per_type_noise.tolist(),
+        "noise_std_components": None if comp_noise is None else comp_noise.tolist(),
         "noise_stats_overall_rms": None if noise_stats is None else noise_stats.get("overall_rms"),
         "cache_shards": cache_shards,
         "num_workers": num_workers,

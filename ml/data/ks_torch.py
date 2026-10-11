@@ -162,17 +162,19 @@ def ks_u_torch(
 
     # Modes may be float32 on disk (/turb); promote everything to float64 for
     # the full field evaluation, then cast the result to ``out_dtype``.
+    # MPS has no float64: evaluate the field on CPU and move the result back.
+    cdev = torch.device("cpu") if device.type == "mps" else device
     k64, a64, b64, omega64, U_h64 = _as_modes_tensors(
-        modes, device, dtype=torch.float64
+        modes, cdev, dtype=torch.float64
     )
-    x64 = x.to(dtype=torch.float64)
+    x64 = x.to(device=cdev, dtype=torch.float64)
 
     if single_run or (isinstance(modes, TurbModes)):
         # x: (M, 3); k: (N_k, 3)
         if not torch.is_tensor(t):
-            t64 = torch.tensor(float(t), device=device, dtype=torch.float64)
+            t64 = torch.tensor(float(t), device=cdev, dtype=torch.float64)
         else:
-            t64 = t.to(device=device, dtype=torch.float64)
+            t64 = t.to(device=cdev, dtype=torch.float64)
         xp = x64.clone()
         xp[..., 0] = xp[..., 0] - U_h64 * t64
         phase = xp @ k64.T + omega64 * t64  # (M, N_k) float64
@@ -181,14 +183,14 @@ def ks_u_torch(
         up = c @ a64 + s @ b64  # (M, 3) float64
         u = up.clone()
         u[..., 0] = u[..., 0] + U_h64
-        u = u.to(dtype=out_dtype)
+        u = u.to(device=device, dtype=out_dtype)
         return u[0] if single_point else u
 
     # Batched runs: x (B, M, 3), k (B, N_k, 3)
     if not torch.is_tensor(t):
-        t64 = torch.full((x64.shape[0],), float(t), device=device, dtype=torch.float64)
+        t64 = torch.full((x64.shape[0],), float(t), device=cdev, dtype=torch.float64)
     else:
-        t64 = t.to(device=device, dtype=torch.float64)
+        t64 = t.to(device=cdev, dtype=torch.float64)
         if t64.ndim == 0:
             t64 = t64.expand(x64.shape[0])
     t64 = t64.view(-1, 1)  # (B, 1)
@@ -200,7 +202,7 @@ def ks_u_torch(
     up = torch.einsum("bmn,bni->bmi", c, a64) + torch.einsum("bmn,bni->bmi", s, b64)
     u = up.clone()
     u[..., 0] = u[..., 0] + U_h64.view(-1, 1)
-    return u.to(dtype=out_dtype)
+    return u.to(device=device, dtype=out_dtype)
 
 
 def ks_u_numpy(

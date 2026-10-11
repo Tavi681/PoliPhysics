@@ -100,7 +100,7 @@ def main():
     )
     edge_sets = dcfg.get("edge_sets", ["material"])
     noise_stats = load_noise_stats(data_dir / "noise_stats.json")
-    scalar_noise, per_type = resolve_noise(
+    scalar_noise, per_type, comp_noise = resolve_noise(
         noise_k=dcfg.get("noise_k"),
         noise_std=dcfg.get("noise_std"),
         noise_stats=noise_stats,
@@ -120,7 +120,10 @@ def main():
     )
     train_noisy = BallooningDataset(
         store, splits["train"],
-        noise_std=scalar_noise, noise_std_by_type=per_type, **ds_kw,
+        noise_std=scalar_noise if comp_noise is None and per_type is None else 0.0,
+        noise_std_by_type=per_type,
+        noise_std_components=comp_noise,
+        **ds_kw,
     )
     train_clean = BallooningDataset(
         store, splits["train"],
@@ -151,19 +154,57 @@ def main():
         "target": "a_t = (v_{t+1}-v_t)/dt, then normalize: (a - a_mean)/a_std from TRAIN norm_stats",
         "a_mean": np.asarray(store.norm["a"]["mean"]).tolist(),
         "a_std": np.asarray(store.norm["a"]["std"]).tolist(),
-        "noise": "RW over C velocities; std at latest v = k*std_type(dv); increments /sqrt(C)",
+        "noise": (
+            "RW over C velocities; std at latest v = k*a_std*dt per component "
+            "(falls back to k*noise_stats RMS only if a_std missing); increments /sqrt(C); "
+            "target a=(v_{t+1}^gt - v_t^noisy)/dt"
+        ),
         "noise_k": dcfg.get("noise_k"),
+        "noise_std_components": (
+            None if comp_noise is None else np.asarray(comp_noise).tolist()
+        ),
         "zero_acc_note": "physical a=0 → normalized pred = -a_mean/a_std",
     }
+
+    n_fixed = int(tcfg.get("val_one_step_frames", 256))
+    train_idx = fixed_val_frame_indices(train_clean, n_frames=n_fixed, seed=seed)
+    val_idx = fixed_val_frame_indices(val_ds, n_frames=n_fixed, seed=seed)
 
     print("Computing zero-acc losses...", flush=True)
     zero_noisy = _zero_acc_loss(loader_noisy, store, device, args.n_batches)
     zero_clean = _zero_acc_loss(loader_clean, store, device, args.n_batches)
-    print(f"zero_noisy={zero_noisy:.6e} zero_clean={zero_clean:.6e}", flush=True)
+    # Zero-acc on the same fixed index sets used for one-step ckpt comparison.
+    class _ZeroAcc:
+        def eval(self):
+            return self
 
-    ckpt_noisy = ckpt_clean = val_one_step = float("nan")
+        def __call__(self, batch):
+            a_mean = torch.as_tensor(
+                store.norm["a"]["mean"], dtype=torch.float32, device=batch.y.device
+            ).view(1, 3)
+            a_std = torch.as_tensor(
+                store.norm["a"]["std"], dtype=torch.float32, device=batch.y.device
+            ).view(1, 3)
+            zeros = torch.zeros(batch.y.shape[0], 3, device=batch.y.device, dtype=batch.y.dtype)
+            return (zeros - a_mean) / a_std
+
+    zero_model = _ZeroAcc()
+    zero_train_fixed = one_step_mse_sample(
+        zero_model, train_clean, train_idx, device, batch_size=int(tcfg.get("batch_size", 16))
+    )
+    zero_val_fixed = one_step_mse_sample(
+        zero_model, val_ds, val_idx, device, batch_size=int(tcfg.get("batch_size", 16))
+    )
+    print(
+        f"zero_noisy={zero_noisy:.6e} zero_clean={zero_clean:.6e} "
+        f"zero_train_fixed256={zero_train_fixed:.6e} zero_val_fixed256={zero_val_fixed:.6e}",
+        flush=True,
+    )
+
+    ckpt_noisy = ckpt_clean = val_one_step = train_one_step_fixed = float("nan")
     ckpt_path = args.checkpoint
     model = None
+    blob = {}
     if ckpt_path is not None:
         ckpt_path = Path(ckpt_path) if Path(ckpt_path).is_absolute() else _resolve(ckpt_path)
         blob = torch.load(ckpt_path, map_location="cpu", weights_only=False)
@@ -183,12 +224,15 @@ def main():
         print("Computing checkpoint losses...", flush=True)
         ckpt_noisy = _loss_batches(model, loader_noisy, device, args.n_batches)
         ckpt_clean = _loss_batches(model, loader_clean, device, args.n_batches)
-        val_idx = fixed_val_frame_indices(val_ds, n_frames=int(tcfg.get("val_one_step_frames", 256)), seed=seed)
+        train_one_step_fixed = one_step_mse_sample(
+            model, train_clean, train_idx, device, batch_size=int(tcfg.get("batch_size", 16)),
+        )
         val_one_step = one_step_mse_sample(
             model, val_ds, val_idx, device, batch_size=int(tcfg.get("batch_size", 16)),
         )
         print(
-            f"ckpt_noisy={ckpt_noisy:.6e} ckpt_clean={ckpt_clean:.6e} val_1step={val_one_step:.6e}",
+            f"ckpt_noisy={ckpt_noisy:.6e} ckpt_clean={ckpt_clean:.6e} "
+            f"train_1step_fixed={train_one_step_fixed:.6e} val_1step={val_one_step:.6e}",
             flush=True,
         )
 
@@ -258,9 +302,21 @@ def main():
         "losses": {
             "zero_acc_noisy": zero_noisy,
             "zero_acc_clean": zero_clean,
+            "zero_acc_train_fixed256": zero_train_fixed,
+            "zero_acc_val_fixed256": zero_val_fixed,
             "best_ckpt_noisy": ckpt_noisy,
             "best_ckpt_clean": ckpt_clean,
+            "train_one_step_clean_fixed256": train_one_step_fixed,
             "val_one_step_clean": val_one_step,
+        },
+        "frame_sets": {
+            "n_fixed": n_fixed,
+            "train_indices_head": train_idx[:8],
+            "val_indices_head": val_idx[:8],
+            "same_norm": True,
+            "same_window_ok_filter": True,
+            "same_u_source": "stored rec['u'] / u_next_frame (not ks_torch)",
+            "graph": "built per sample from absolute positions at t",
         },
         "irreducible_noise": irreducible,
         "rollout_refs": refs,
