@@ -409,7 +409,10 @@ def make_loader(
 
     from ml.data.shard_sampler import ShardAwareSampler
 
-    pin = str(device).startswith("cuda")
+    # mmap shard tensors use FD-backed storage; pin_memory + workers can break ancdata IPC.
+    pin = str(device).startswith("cuda") and not getattr(
+        getattr(dataset, "store", None), "_mmap", False
+    )
     sampler = None
     if shuffle:
         if shard_aware and hasattr(dataset.store, "_rid_to_shard"):

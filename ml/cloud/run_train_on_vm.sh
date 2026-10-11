@@ -4,6 +4,7 @@
 set -euo pipefail
 cd "${REMOTE_DIR:-/home/octav/poliphysics}"
 export PYTHONPATH=.
+export PYTHONUNBUFFERED=1
 export WANDB_PROJECT="${WANDB_PROJECT:-poliphysics-ballooning-ml}"
 export DATA_VERSION="${DATA_VERSION:-5c60fa669a719404}"
 
