@@ -5,7 +5,7 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 INSTANCE="${INSTANCE:-poliphysics-tema1-ml-train}"
-ZONE="${ZONE:-us-central1-a}"
+ZONE="${ZONE:-us-central1-b}"
 MACHINE="${MACHINE:-g2-standard-8}"
 DISK_GB="${DISK_GB:-200}"
 EXPECTED_PROJECT="${EXPECTED_PROJECT:-authorship-verification}"
@@ -38,7 +38,7 @@ if ! gcloud compute instances describe "${INSTANCE}" --zone="${ZONE}" &>/dev/nul
     --accelerator=type=nvidia-l4,count=1 \
     --maintenance-policy=TERMINATE \
     --provisioning-model=STANDARD \
-    --image-family=pytorch-2-4-cu124-ubuntu-2204-nvidia-570 \
+    --image-family=pytorch-2-9-cu129-ubuntu-2204-nvidia-580 \
     --image-project=deeplearning-platform-release \
     --boot-disk-size="${DISK_GB}GB" \
     --boot-disk-type=pd-balanced \
