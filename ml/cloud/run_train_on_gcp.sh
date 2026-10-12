@@ -73,11 +73,19 @@ COPYFILE_DISABLE=1 tar --disable-copyfile -C "${REPO}" -czf "${TAR}" \
 gcloud compute scp "${TAR}" "${INSTANCE}:/tmp/tema1_ml.tgz" --zone="${ZONE}"
 gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="mkdir -p ${REMOTE_DIR} && tar -xzf /tmp/tema1_ml.tgz -C ${REMOTE_DIR} && chmod +x ${REMOTE_DIR}/ml/cloud/run_train_on_vm.sh"
 
-echo "Launching remote train (DETACH)..."
+# Optional overrides (defaults keep full local→baseline pipeline).
+CONFIGS="${CONFIGS:-ml/configs/gns_local_gpu.yaml ml/configs/gns_baseline_gpu.yaml}"
+COST_CAP_USD="${COST_CAP_USD:-40}"
+TRAIN_SESSION_T0="${TRAIN_SESSION_T0:-}"
+
+echo "Launching remote train (DETACH) CONFIGS=${CONFIGS} COST_CAP_USD=${COST_CAP_USD}..."
 gcloud compute ssh "${INSTANCE}" --zone="${ZONE}" --command="
   mkdir -p ${REMOTE_DIR}/Tema\\ 1/results/ml/logs
   rm -f ${REMOTE_DIR}/Tema\\ 1/results/ml/logs/sanity_fail.code
+  rm -f ${REMOTE_DIR}/Tema\\ 1/results/ml/logs/sanity_error.code
   nohup env REMOTE_DIR=${REMOTE_DIR} DATA_VERSION=5c60fa669a719404 \
+    CONFIGS='${CONFIGS}' COST_CAP_USD='${COST_CAP_USD}' \
+    TRAIN_SESSION_T0='${TRAIN_SESSION_T0}' \
     bash ${REMOTE_DIR}/ml/cloud/run_train_on_vm.sh \
     > ${REMOTE_DIR}/Tema\\ 1/results/ml/logs/train_vm.log 2>&1 < /dev/null &
   echo STARTED_PID=\$!

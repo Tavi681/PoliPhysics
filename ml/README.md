@@ -98,6 +98,12 @@ Increments use `σ/√C` then `cumsum`. Default `noise_k: 1`.
 k-sweep configs (run later): `ml/configs/sweeps/gns_baseline_k{0.1,0.3,1,3}.yaml`;
 select on **validation rollout MSE**, not one-step loss.
 
+**1h sanity (GPU VM):** `ml.scripts.sanity_check_cpu` runs with
+`CUDA_VISIBLE_DEVICES=""` on a **copy** of `best.pt` (never a second model on
+the training GPU). Exit **44 = SANITY_FAIL** (clean loss not below zero-acc
+overall or per node type) stops training; any other non-zero =
+**SANITY_ERROR** (exception / OOM / timeout) is logged and training continues.
+
 **How to add a model:** one new file in `ml/models/` + one YAML under `ml/configs/`.  
 Import the module from `ml/models/__init__.py` (one line). Nothing else changes.
 
