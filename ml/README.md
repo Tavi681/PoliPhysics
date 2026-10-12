@@ -100,8 +100,8 @@ select on **validation rollout MSE**, not one-step loss.
 
 **1h sanity (GPU VM):** `ml.scripts.sanity_check_cpu` runs with
 `CUDA_VISIBLE_DEVICES=""` on a **copy** of `best.pt` (never a second model on
-the training GPU). Exit **44 = SANITY_FAIL** (clean loss not below zero-acc
-overall or per node type) stops training; any other non-zero =
+the training GPU). Exit **44 = SANITY_FAIL** (overall clean loss not below
+zero-acc; per-type is logged only) stops training; any other non-zero =
 **SANITY_ERROR** (exception / OOM / timeout) is logged and training continues.
 
 **How to add a model:** one new file in `ml/models/` + one YAML under `ml/configs/`.  

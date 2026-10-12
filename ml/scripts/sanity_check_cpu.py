@@ -4,8 +4,8 @@ Forces CUDA_VISIBLE_DEVICES="" before importing torch CUDA paths via diagnose.
 Copies the checkpoint so the training process's file is not mmap'd for the check.
 
 Exit codes:
-  0  — SANITY_OK (clean ckpt below zero-acc overall + per node type)
-  44 — SANITY_FAIL (metric failure: not below zero-acc)
+  0  — SANITY_OK (clean overall loss below zero-acc; per-type logged only)
+  44 — SANITY_FAIL (overall clean loss not below zero-acc)
   45 — SANITY_ERROR (exception / timeout / unexpected failure — do NOT stop train)
 """
 from __future__ import annotations
