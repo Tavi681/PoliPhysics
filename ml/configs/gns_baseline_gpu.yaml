@@ -58,8 +58,10 @@ wandb:
   entity: null
 
 eval:
-  rollout_K: 100
-  t_end: 10.0       # full-length rollout cap (compute); 60 s is infeasible per-run at ~50 ms/step
-  max_full_runs: 3
-  one_step_max_runs: 48
+  seed: 42
+  one_step_n_frames: 100000
   one_step_batch: 16
+  rollout_K: 100
+  t_end: 60.0
+  max_full_runs: null
+  horizon_errors_s: [0.2, 1.0, 5.0, 10.0]

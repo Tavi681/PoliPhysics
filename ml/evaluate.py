@@ -359,33 +359,45 @@ def evaluate_checkpoint(
     cost_rows = []
     metrics = {"git": prov, "run_id": run_id, "model": name, "splits": {}}
 
+    eval_seed = int(cfg.get("eval", {}).get("seed", 42))
+    one_step_n_frames = int(cfg.get("eval", {}).get("one_step_n_frames", 100_000))
+    horizon_errors_s = list(cfg.get("eval", {}).get("horizon_errors_s", [0.2, 1.0, 5.0, 10.0]))
+
     for sp in split_names:
         ids = [r for r in splits.get(sp, []) if r in store.runs]
         if not ids:
             continue
-        # One-step MSE on a deterministic, evenly spaced subset of runs (full splits are
-        # thousands of runs x ~500 frames; rollout metrics below use their own run sets).
-        os_max = int(cfg.get("eval", {}).get("one_step_max_runs", 48))
-        if os_max > 0 and len(ids) > os_max:
-            idx = np.linspace(0, len(ids) - 1, os_max).round().astype(int)
-            ids_os = [ids[i] for i in sorted(set(idx.tolist()))]
-        else:
-            ids_os = ids
+        # One-step: fixed random sample of frames across ALL runs in the split
+        # (same indices for every method when seed matches).
         ds = BallooningDataset(
-            store, ids_os, C=dcfg.get("C", 5),
+            store, ids, C=dcfg.get("C", 5),
             node_features=dcfg.get("node_features"),
             globals_fields=dcfg.get("globals_fields"),
             edge_sets=edge_sets,
             radius=dcfg.get("radius", 0.1),
             normalize_features=dcfg.get("normalize_features", True),
             noise_std=0.0, sample_weight="per_frame",
+            seed=eval_seed,
         )
-        loader = make_loader(ds, batch_size=int(cfg.get("eval", {}).get("one_step_batch", 4)), shuffle=False, device=str(device))
-        osm = one_step_mse(model, loader, device, store.norm) if len(ds) else float("nan")
+        n_frames = len(ds)
+        rng = np.random.default_rng(eval_seed + hash(sp) % 10_000)
+        k = min(one_step_n_frames, n_frames) if one_step_n_frames > 0 else n_frames
+        frame_idx = sorted(rng.choice(n_frames, size=k, replace=False).tolist()) if n_frames else []
+        from ml.validation import one_step_mse_sample
+        osm = (
+            one_step_mse_sample(
+                model, ds, frame_idx, device,
+                batch_size=int(cfg.get("eval", {}).get("one_step_batch", 16)),
+            )
+            if frame_idx else float("nan")
+        )
+        # Short fixed-K rollout diagnostic (separate from full-length Alg.2 rollouts).
+        rom_max = cfg.get("eval", {}).get("rollout_mse_max_runs")
+        rom_ids = ids if not rom_max else ids[: int(rom_max)]
         rom = rollout_mse(
-            model, store, ids, device, store.norm,
+            model, store, rom_ids, device, store.norm,
             K=int(cfg.get("eval", {}).get("rollout_K", 100)),
-            C=dcfg.get("C", 5), max_runs=min(8, len(ids)),
+            C=dcfg.get("C", 5), max_runs=len(rom_ids),
             node_features=dcfg.get("node_features"),
             globals_fields=dcfg.get("globals_fields"),
             edge_sets=edge_sets,
@@ -393,7 +405,7 @@ def evaluate_checkpoint(
             normalize_features=dcfg.get("normalize_features", True),
         )
 
-        # full rollouts on available runs in local subset
+        # Full-length Alg.2 rollouts on ALL runs in the split (z<=0 fall, z>=h rise).
         outcomes_ok = 0
         exit_errs = []
         dV = []
@@ -407,9 +419,13 @@ def evaluate_checkpoint(
         surr_durs = []
         sim_walls = []
         sim_durs = []
+        delta_P_by_grid: dict[tuple, list] = {}
+        horizon_rel = {f"{hs:g}s": [] for hs in horizon_errors_s}
+        horizon_abs = {f"{hs:g}s": [] for hs in horizon_errors_s}
         t_end_cfg = float(cfg.get("eval", {}).get("t_end", 60.0))
         max_full = cfg.get("eval", {}).get("max_full_runs")
         ids_full = ids if not max_full else ids[: int(max_full)]
+        C = int(dcfg.get("C", 5))
         for rid in ids_full:
             rec = store.get(rid)
             gt_out = rec["globals"]["outcome"]
@@ -446,12 +462,46 @@ def evaluate_checkpoint(
                 dR.append(abs(pred["R_over_L"] - R_gt) / abs(R_gt))
             takeoff_s.append(1 if gt_out == "rise" else 0)
             takeoff_m.append(1 if pred["status"] == "rise" else 0)
+            # P grid: (N, q, sigma_w)
+            gkey = (
+                int(rec["globals"]["N"]),
+                round(float(rec["globals"]["q"]), 6),
+                round(float(rec["globals"]["sigma_w"]), 4),
+            )
+            delta_P_by_grid.setdefault(gkey, []).append(
+                (1 if pred["status"] == "rise" else 0) - (1 if gt_out == "rise" else 0)
+            )
+            # Horizon position errors (spider-rel / spider-abs)
+            t_gt = rec["t"].astype(np.float64)
+            X = pred["x"]
+            tt = pred["t"]
+            t_release = float(rec["t"][C])
+            for hs in horizon_errors_s:
+                t_target = t_release + float(hs)
+                k = int(np.argmin(np.abs(tt - t_target)))
+                kg = int(np.argmin(np.abs(t_gt - t_target)))
+                kg = min(max(kg, 0), x_abs.shape[0] - 1)
+                sp_p = X[k, 0]
+                x_rel_p = X[k] - sp_p
+                key = f"{hs:g}s"
+                horizon_rel[key].append(float(np.mean((x_rel_p - rec["x_rel"][kg]) ** 2)))
+                horizon_abs[key].append(float(np.mean((sp_p - rec["spider_abs"][kg]) ** 2)))
 
         n = len(ids_full)
         k_s, k_m = sum(takeoff_s), sum(takeoff_m)
         P_s, P_m = k_s / max(n, 1), k_m / max(n, 1)
         lo_s, hi_s = wilson_interval(k_s, n)
         lo_m, hi_m = wilson_interval(k_m, n)
+        grid_abs = [abs(float(np.mean(v))) for v in delta_P_by_grid.values() if v]
+        abs_delta_P_mean = float(np.mean(grid_abs)) if grid_abs else float("nan")
+        abs_delta_P_max = float(np.max(grid_abs)) if grid_abs else float("nan")
+        horizon_report = {
+            hs: {
+                "rel_mse_mean": float(np.mean(horizon_rel[hs])) if horizon_rel[hs] else float("nan"),
+                "spider_abs_mse_mean": float(np.mean(horizon_abs[hs])) if horizon_abs[hs] else float("nan"),
+            }
+            for hs in horizon_rel
+        }
 
         # Duration-normalized speed-up; only runs with finite simulator wall_time_s
         speedup = mean_speedup(sim_walls, sim_durs, walls, surr_durs)
@@ -470,11 +520,13 @@ def evaluate_checkpoint(
         split_metrics = {
             "n_runs": n,
             "one_step_mse": osm,
-            # rollout_mse: mean spider-relative position MSE [m²] over K steps
-            # (K=eval.rollout_K, dt=0.01 s) and up to max_runs; see train.rollout_mse
-            "rollout_mse": rom,
+            "one_step_n_frames": len(frame_idx),
+            "one_step_seed": eval_seed,
+            # Short-K diagnostic rollout (not the paper full-length metric).
+            "rollout_mse_shortK": rom,
             "rollout_mse_units": "m^2_rel_pos",
             "rollout_K": int(cfg.get("eval", {}).get("rollout_K", 100)),
+            "horizon_errors": horizon_report,
             "outcome_accuracy": outcomes_ok / max(n, 1),
             "exit_time_mae": float(np.mean(exit_errs)) if exit_errs else float("nan"),
             "delta_V_over_V": float(np.mean(dV)) if dV else float("nan"),
@@ -483,7 +535,10 @@ def evaluate_checkpoint(
             "P_surr": P_m,
             "P_sim_wilson": [lo_s, hi_s],
             "P_surr_wilson": [lo_m, hi_m],
-            "abs_delta_P": abs(P_m - P_s),
+            "abs_delta_P": abs_delta_P_mean,  # mean |ΔP| over (N,q,σ_w) grid
+            "abs_delta_P_max": abs_delta_P_max,
+            "abs_delta_P_pooled": abs(P_m - P_s),
+            "n_grid_points": len(grid_abs),
             "time_per_run_s": t_surr,
             "time_per_run_full_s": t_surr_full,
             "air_time_per_run_s": float(np.mean(airs)) if airs else float("nan"),
@@ -494,16 +549,19 @@ def evaluate_checkpoint(
             "surr_hardware": str(device),
             "n_speedup_runs": len(full_sim_walls),
             "speedup": speedup,
+            "t_end": t_end_cfg,
         }
         metrics["splits"][sp] = split_metrics
         rows.append({
             "Model": name,
             "Split": split_display_name(sp),
             "SplitKey": sp,
-            "Rollout MSE": rom,
+            "One-step MSE": osm,
+            "Rollout MSE (5s)": horizon_report.get("5s", {}).get("rel_mse_mean", float("nan")),
             "Delta V/V (%)": 100 * split_metrics["delta_V_over_V"] if np.isfinite(split_metrics["delta_V_over_V"]) else float("nan"),
             "Delta(R/L) (%)": 100 * split_metrics["delta_R_over_L"] if np.isfinite(split_metrics["delta_R_over_L"]) else float("nan"),
-            "|Delta P|": split_metrics["abs_delta_P"],
+            "|Delta P| mean": abs_delta_P_mean,
+            "|Delta P| max": abs_delta_P_max,
             "Speed-up": speedup,
         })
 

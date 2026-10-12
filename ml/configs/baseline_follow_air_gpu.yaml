@@ -5,7 +5,8 @@ data:
   data_dir: /data/processed/5c60fa669a719404
   splits: /data/processed/5c60fa669a719404/splits/splits.json
   C: 5
-  node_features: [v_hist, u, charge, node_type]
+  node_features: [v_hist, u, charge]
+  globals_fields: [qE, m, N]
   edge_sets: [material]
   sample_weight: per_run
 
@@ -21,8 +22,10 @@ wandb:
   mode: disabled
 
 eval:
-  rollout_K: 100
-  t_end: 10.0
-  max_full_runs: 3
-  one_step_max_runs: 48
+  seed: 42
+  one_step_n_frames: 100000
   one_step_batch: 16
+  rollout_K: 100
+  t_end: 60.0
+  max_full_runs: null
+  horizon_errors_s: [0.2, 1.0, 5.0, 10.0]

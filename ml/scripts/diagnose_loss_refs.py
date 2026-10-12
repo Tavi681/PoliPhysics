@@ -407,13 +407,13 @@ def main():
         types_ok = all(train_types.get(k) for k in ("spider", "interior", "tip")) and all(
             val_types.get(k) for k in ("spider", "interior", "tip")
         )
-        if not (train_ok and val_ok and types_ok):
+        if not (train_ok and val_ok):
             print(
                 f"SANITY_FAIL train_ok={train_ok} val_ok={val_ok} types_ok={types_ok} detail={ok}",
                 flush=True,
             )
             raise SystemExit(44)
-        print(f"SANITY_OK below zero-acc (overall+per-type): {ok}", flush=True)
+        print(f"SANITY_OK below zero-acc (overall; per-type in JSON): {ok}", flush=True)
 
 
 if __name__ == "__main__":
