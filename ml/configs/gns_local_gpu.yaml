@@ -60,4 +60,7 @@ wandb:
 
 eval:
   rollout_K: 100
-  t_end: 60.0
+  t_end: 10.0       # full-length rollout cap (compute); 60 s is infeasible per-run at ~50 ms/step
+  max_full_runs: 3
+  one_step_max_runs: 48
+  one_step_batch: 16

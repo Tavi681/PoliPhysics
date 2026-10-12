@@ -363,8 +363,16 @@ def evaluate_checkpoint(
         ids = [r for r in splits.get(sp, []) if r in store.runs]
         if not ids:
             continue
+        # One-step MSE on a deterministic, evenly spaced subset of runs (full splits are
+        # thousands of runs x ~500 frames; rollout metrics below use their own run sets).
+        os_max = int(cfg.get("eval", {}).get("one_step_max_runs", 48))
+        if os_max > 0 and len(ids) > os_max:
+            idx = np.linspace(0, len(ids) - 1, os_max).round().astype(int)
+            ids_os = [ids[i] for i in sorted(set(idx.tolist()))]
+        else:
+            ids_os = ids
         ds = BallooningDataset(
-            store, ids, C=dcfg.get("C", 5),
+            store, ids_os, C=dcfg.get("C", 5),
             node_features=dcfg.get("node_features"),
             globals_fields=dcfg.get("globals_fields"),
             edge_sets=edge_sets,
@@ -372,7 +380,7 @@ def evaluate_checkpoint(
             normalize_features=dcfg.get("normalize_features", True),
             noise_std=0.0, sample_weight="per_frame",
         )
-        loader = make_loader(ds, batch_size=4, shuffle=False, device=str(device))
+        loader = make_loader(ds, batch_size=int(cfg.get("eval", {}).get("one_step_batch", 4)), shuffle=False, device=str(device))
         osm = one_step_mse(model, loader, device, store.norm) if len(ds) else float("nan")
         rom = rollout_mse(
             model, store, ids, device, store.norm,
