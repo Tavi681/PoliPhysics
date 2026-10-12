@@ -805,7 +805,7 @@ def evaluate_checkpoint(
                 horizon_rel[key].append(float(np.mean((x_rel_p - rec["x_rel"][kg]) ** 2)))
                 horizon_abs[key].append(float(np.mean((sp_p - rec["spider_abs"][kg]) ** 2)))
 
-        n = len(ids_full)
+        n = len(takeoff_s)
         k_s, k_m = sum(takeoff_s), sum(takeoff_m)
         P_s, P_m = k_s / max(n, 1), k_m / max(n, 1)
         lo_s, hi_s = wilson_interval(k_s, n)
