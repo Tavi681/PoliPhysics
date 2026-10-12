@@ -23,9 +23,8 @@ import numpy as np
 import torch
 
 from ml.data.dataset import BallooningDataset, BallooningRunStore
-from ml.data.frames import DT
 from ml.data.splits import load_splits
-from ml.evaluate import full_rollout_surrogate
+from ml.evaluate import full_rollout_batched
 from ml.models import build_model
 from ml.models.baselines import ConstantVelocity, FollowAir
 from ml.train import _device, _resolve, _set_seed
@@ -121,20 +120,17 @@ def eval_checkpoint(model, store, run_ids, cfg, device, *, t_end: float):
     n_phys = 0
     n_tot = 0
     t0 = time.perf_counter()
-    for rid in run_ids:
+    preds = full_rollout_batched(
+        model, store, list(run_ids), device,
+        C=C, t_end=t_end,
+        node_features=dcfg.get("node_features"),
+        globals_fields=dcfg.get("globals_fields"),
+        edge_sets=dcfg.get("edge_sets"),
+        radius=dcfg.get("radius", 0.1),
+        normalize_features=dcfg.get("normalize_features", True),
+    )
+    for rid, pred in preds.items():
         rec = store.get(rid)
-        T = int(rec["v"].shape[0])
-        if C + int(HORIZONS_S[-1] / DT) >= T and T < C + 2:
-            continue
-        pred = full_rollout_surrogate(
-            model, rec, store.norm, device,
-            C=C, t_end=t_end,
-            node_features=dcfg.get("node_features"),
-            globals_fields=dcfg.get("globals_fields"),
-            edge_sets=dcfg.get("edge_sets"),
-            radius=dcfg.get("radius", 0.1),
-            normalize_features=dcfg.get("normalize_features", True),
-        )
         n_tot += 1
         phys = _is_physical(pred, rec)
         if phys:

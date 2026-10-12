@@ -288,9 +288,13 @@ def full_rollout_surrogate(
     V = np.stack(vs)
     tt = np.asarray(ts)
     sim_dur = float(tt[-1] - tt[0]) if len(tt) > 1 else 0.0
+    dmin = min_interthread_distance(X[-1], rec["thread_id"])
+    r_thread = float(g.get("r", 300e-9))
+    entangle_factor = float(g.get("entangle_contact_factor", 2.0))
     return {
         "status": status,
         "exit_time": exit_time,
+        "entangled": bool(np.isfinite(dmin) and dmin < entangle_factor * r_thread),
         "t": tt,
         "x": X,
         "v": V,
@@ -302,8 +306,317 @@ def full_rollout_surrogate(
         "V_mean": mean_vertical_spider_velocity(X, tt),
         "R_over_L": opening_R_over_L(X, tip_ids, L=float(g["L"])),
         "edge_drift": edge_length_drift(X, rec["edges"], L_seg=float(g["L"]) / int(g["N_t"])),
-        "dmin": min_interthread_distance(X[-1], rec["thread_id"]),
+        "dmin": dmin,
     }
+
+
+@torch.no_grad()
+def full_rollout_batched(
+    model,
+    store: BallooningRunStore,
+    run_ids: list[str],
+    device: torch.device,
+    *,
+    C: int = 5,
+    t_end: float = 60.0,
+    node_features: list[str] | None = None,
+    globals_fields: list[str] | None = None,
+    edge_sets: list[str] | None = None,
+    radius: float = 0.1,
+    normalize_features: bool = True,
+    batch_runs: int | None = None,
+) -> dict[str, dict]:
+    """Full-length Alg.2 rollouts batched by n_nodes (same exit criteria as single).
+
+    Groups runs with equal node count, rolls open-loop until each exits
+    (z>=h rise, z<=0 fall) or t_end. Returns ``{run_id: result_dict}`` with the
+    same keys as :func:`full_rollout_surrogate`.
+    """
+    from torch_geometric.data import Batch, Data
+    from ml.data.edge_features import (
+        build_edge_sets_gns,
+        interaction_edge_attr,
+        material_edge_attr,
+    )
+    from ml.data.graph import build_edge_sets, material_edges
+    from ml.data.integrator import step_torch
+    from ml.data.ks_torch import TurbModeCache, ks_u_torch
+    from ml.validation import _norm_blocks_torch
+
+    model.eval()
+    node_features = list(node_features or ["v_hist", "u", "charge", "node_type"])
+    globals_fields = list(globals_fields or [])
+    edge_sets = list(edge_sets or model.required_edges() or ["material"])
+    need_u = True
+    need_unext = "u_next" in node_features
+    mode_cache = TurbModeCache()
+    norm = store.norm
+    a_mean = torch.as_tensor(norm["a"]["mean"], device=device, dtype=torch.float32)
+    a_std = torch.as_tensor(norm["a"]["std"], device=device, dtype=torch.float32)
+    u_mean = norm.get("u", {}).get("mean")
+    u_std = norm.get("u", {}).get("std")
+    v_mean = norm.get("v", {}).get("mean")
+    v_std = norm.get("v", {}).get("std")
+    Bmax = int(batch_runs) if batch_runs else (4 if device.type == "cpu" else 16)
+    max_steps = int(t_end / DT) + 5
+
+    by_n: dict[int, list[str]] = {}
+    for rid in run_ids:
+        if rid not in store:
+            continue
+        rec = store.get(rid)
+        if int(rec["v"].shape[0]) < C + 2:
+            continue
+        by_n.setdefault(int(rec["v"].shape[1]), []).append(rid)
+
+    out: dict[str, dict] = {}
+    for n_nodes, rids in by_n.items():
+        for start in range(0, len(rids), Bmax):
+            batch_ids = rids[start : start + Bmax]
+            recs = [store.get(rid) for rid in batch_ids]
+            B = len(recs)
+            modes = [mode_cache.get(r["globals"]) for r in recs]
+            h = torch.tensor(
+                [float(r["globals"]["h"]) for r in recs], device=device, dtype=torch.float32
+            )
+            t0i = C
+            x = torch.stack([
+                torch.from_numpy(r["x_rel"][t0i].astype(np.float32)) for r in recs
+            ]).to(device)
+            spider = torch.stack([
+                torch.from_numpy(r["spider_abs"][t0i].astype(np.float32)) for r in recs
+            ]).to(device)
+            v = torch.stack([
+                torch.from_numpy(r["v"][t0i].astype(np.float32)) for r in recs
+            ]).to(device)
+            v_hist = torch.stack([
+                torch.from_numpy(r["v"][t0i - C + 1 : t0i + 1].astype(np.float32))
+                for r in recs
+            ]).to(device)
+            t_vals = torch.tensor(
+                [float(np.asarray(r["t"][t0i])) for r in recs],
+                device=device, dtype=torch.float32,
+            )
+            nt = torch.stack([
+                torch.from_numpy(r["node_type"].astype(np.int64)) for r in recs
+            ]).to(device)
+            tid = torch.stack([
+                torch.from_numpy(r["thread_id"].astype(np.int64)) for r in recs
+            ]).to(device)
+            charge = torch.stack([
+                torch.from_numpy(r["charge"].astype(np.float32)) for r in recs
+            ]).to(device)
+            l0 = torch.tensor(
+                [float(r["globals"]["L"]) / max(int(r["globals"]["N_t"]), 1) for r in recs],
+                device=device, dtype=torch.float32,
+            )
+            edges_mat = [np.asarray(r["edges"], dtype=np.int64) for r in recs]
+            tip_ids = [np.where(r["node_type"] == 2)[0] for r in recs]
+
+            active = torch.ones(B, dtype=torch.bool, device=device)
+            status = ["timeout"] * B
+            exit_time = [float("nan")] * B
+            xs_abs = [[] for _ in range(B)]
+            vs_hist = [[] for _ in range(B)]
+            ts_hist = [[] for _ in range(B)]
+            for b in range(B):
+                sp0 = spider[b].detach().cpu().numpy().astype(np.float64)
+                xr0 = x[b].detach().cpu().numpy().astype(np.float64)
+                xs_abs[b].append(sp0 + xr0)
+                vs_hist[b].append(v[b].detach().cpu().numpy().astype(np.float32))
+                ts_hist[b].append(float(t_vals[b].item()))
+
+            air_time = 0.0
+            model_time = 0.0
+            integ_time = 0.0
+            wall0 = time.perf_counter()
+            step = 0
+            while step < max_steps and bool(active.any()):
+                # Soft t_end: deactivate runs that already reached t_end
+                active = active & (t_vals < float(t_end) - 1e-12)
+                if not bool(active.any()):
+                    break
+                pos_abs = x + spider.unsqueeze(1)
+                u_t = None
+                u_next = None
+                if need_u or need_unext:
+                    t_air0 = time.perf_counter()
+                    if need_u:
+                        u_t = ks_u_torch(pos_abs, t_vals, modes)
+                    if need_unext:
+                        u_next = ks_u_torch(pos_abs, t_vals + float(DT), modes)
+                    if device.type == "cuda":
+                        torch.cuda.synchronize()
+                    elif device.type == "mps":
+                        torch.mps.synchronize()
+                    air_time += time.perf_counter() - t_air0
+
+                graphs = []
+                active_idx = [b for b in range(B) if bool(active[b].item())]
+                for b in active_idx:
+                    feats = []
+                    for name in node_features:
+                        if name == "v_hist":
+                            feats.append(
+                                _norm_blocks_torch(
+                                    v_hist[b], v_mean, v_std, do_norm=normalize_features
+                                )
+                            )
+                        elif name == "u":
+                            assert u_t is not None
+                            ub = u_t[b]
+                            if normalize_features and u_mean is not None:
+                                ub = (ub - torch.as_tensor(u_mean, device=device)) / torch.as_tensor(
+                                    u_std, device=device
+                                ).clamp_min(1e-8)
+                            feats.append(ub)
+                        elif name == "u_next":
+                            assert u_next is not None
+                            ub = u_next[b]
+                            if normalize_features and u_mean is not None:
+                                ub = (ub - torch.as_tensor(u_mean, device=device)) / torch.as_tensor(
+                                    u_std, device=device
+                                ).clamp_min(1e-8)
+                            feats.append(ub)
+                        elif name == "charge":
+                            feats.append(charge[b][:, None])
+                        elif name == "node_type":
+                            feats.append(
+                                torch.nn.functional.one_hot(nt[b], num_classes=3).float()
+                            )
+                        else:
+                            raise KeyError(name)
+                    g = recs[b]["globals"]
+                    for gf in globals_fields:
+                        if gf == "qE":
+                            val = float(g["q"]) * float(g["E"])
+                        elif gf == "m":
+                            val = float(g["m"])
+                        elif gf == "N":
+                            val = float(g["N"])
+                        else:
+                            raise KeyError(gf)
+                        feats.append(
+                            torch.full((n_nodes, 1), val, device=device, dtype=torch.float32)
+                        )
+                    x_feat = torch.cat(feats, dim=-1)
+                    pos_b = x[b]
+                    pos_abs_b = pos_abs[b]
+                    if "interaction" in edge_sets:
+                        edge_dict = build_edge_sets_gns(
+                            edge_sets,
+                            edges_material=edges_mat[b],
+                            pos=pos_abs_b.detach().cpu(),
+                            thread_id=tid[b].detach().cpu(),
+                            node_type=nt[b].detach().cpu(),
+                            radius=radius,
+                        )
+                        inter_flags = edge_dict.pop("_interaction_flags")
+                    else:
+                        edge_dict = build_edge_sets(
+                            edge_sets,
+                            edges_material=edges_mat[b],
+                            pos=pos_abs_b.detach().cpu(),
+                            thread_id=tid[b].detach().cpu(),
+                            node_type=nt[b].detach().cpu(),
+                            radius=radius,
+                        )
+                        inter_flags = torch.zeros(0)
+                    e_mat = edge_dict.get("material", material_edges(edges_mat[b])).to(device)
+                    data = Data(
+                        x=x_feat,
+                        pos=pos_b,
+                        edge_index=e_mat,
+                        edge_index_material=e_mat,
+                        node_type=nt[b],
+                        thread_id=tid[b],
+                        charge=charge[b],
+                        v_t=v[b],
+                        u_t=u_t[b] if u_t is not None else torch.zeros_like(v[b]),
+                        num_nodes=n_nodes,
+                    )
+                    for name, eidx in edge_dict.items():
+                        eidx_d = eidx.to(device)
+                        setattr(data, f"edge_index_{name}", eidx_d)
+                        if name == "material":
+                            data.edge_attr_material = material_edge_attr(
+                                pos_b, eidx_d, l0=float(l0[b])
+                            )
+                        elif name == "interaction":
+                            data.edge_attr_interaction = interaction_edge_attr(
+                                pos_b, eidx_d, charge[b], inter_flags.to(device)
+                            )
+                    graphs.append(data)
+
+                t_m0 = time.perf_counter()
+                batch = Batch.from_data_list(graphs)
+                pred = model(batch)
+                if device.type == "cuda":
+                    torch.cuda.synchronize()
+                elif device.type == "mps":
+                    torch.mps.synchronize()
+                model_time += time.perf_counter() - t_m0
+                a = pred * a_std + a_mean
+                ptr = batch.ptr
+
+                t_i0 = time.perf_counter()
+                for bi, b in enumerate(active_idx):
+                    ab = a[ptr[bi] : ptr[bi + 1]]
+                    xb, vb = step_torch(x[b], v[b], ab, dt=DT)
+                    spider[b] = spider[b] + float(DT) * vb[0]
+                    x[b] = xb - xb[0:1]
+                    v[b] = vb
+                    v_hist[b] = torch.cat([v_hist[b, 1:], v[b].unsqueeze(0)], dim=0)
+                    t_vals[b] = t_vals[b] + float(DT)
+                    sp_np = spider[b].detach().cpu().numpy().astype(np.float64)
+                    xr_np = x[b].detach().cpu().numpy().astype(np.float64)
+                    xs_abs[b].append(sp_np + xr_np)
+                    vs_hist[b].append(v[b].detach().cpu().numpy().astype(np.float32))
+                    ts_hist[b].append(float(t_vals[b].item()))
+                    z = float(spider[b, 2].item())
+                    if z >= float(h[b].item()):
+                        status[b] = "rise"
+                        exit_time[b] = float(t_vals[b].item())
+                        active[b] = False
+                    elif z <= 0.0:
+                        status[b] = "fall"
+                        exit_time[b] = float(t_vals[b].item())
+                        active[b] = False
+                integ_time += time.perf_counter() - t_i0
+                step += 1
+
+            wall = time.perf_counter() - wall0
+            # Equal share of batch wall (throughput accounting for speed-up).
+            share = 1.0 / max(B, 1)
+            for b, rid in enumerate(batch_ids):
+                X = np.stack(xs_abs[b])
+                V = np.stack(vs_hist[b])
+                tt = np.asarray(ts_hist[b], dtype=np.float64)
+                sim_dur = float(tt[-1] - tt[0]) if len(tt) > 1 else 0.0
+                g = recs[b]["globals"]
+                dmin = min_interthread_distance(X[-1], recs[b]["thread_id"])
+                r_thread = float(g.get("r", 300e-9))
+                entangle_factor = float(g.get("entangle_contact_factor", 2.0))
+                out[rid] = {
+                    "status": status[b],
+                    "exit_time": exit_time[b],
+                    "entangled": bool(np.isfinite(dmin) and dmin < entangle_factor * r_thread),
+                    "t": tt,
+                    "x": X,
+                    "v": V,
+                    "wall_time_s": wall * share,
+                    "air_time_s": air_time * share,
+                    "model_time_s": model_time * share,
+                    "integ_time_s": integ_time * share,
+                    "sim_duration_s": sim_dur,
+                    "V_mean": mean_vertical_spider_velocity(X, tt),
+                    "R_over_L": opening_R_over_L(X, tip_ids[b], L=float(g["L"])),
+                    "edge_drift": edge_length_drift(
+                        X, recs[b]["edges"], L_seg=float(g["L"]) / int(g["N_t"])
+                    ),
+                    "dmin": dmin,
+                }
+    return out
 
 
 def evaluate_checkpoint(
@@ -426,19 +739,24 @@ def evaluate_checkpoint(
         max_full = cfg.get("eval", {}).get("max_full_runs")
         ids_full = ids if not max_full else ids[: int(max_full)]
         C = int(dcfg.get("C", 5))
+        batch_runs = cfg.get("eval", {}).get("full_rollout_batch_runs")
+        preds = full_rollout_batched(
+            model, store, list(ids_full), device,
+            C=C,
+            t_end=t_end_cfg,
+            node_features=dcfg.get("node_features"),
+            globals_fields=dcfg.get("globals_fields"),
+            edge_sets=edge_sets,
+            radius=dcfg.get("radius", 0.1),
+            normalize_features=dcfg.get("normalize_features", True),
+            batch_runs=int(batch_runs) if batch_runs else None,
+        )
         for rid in ids_full:
+            if rid not in preds:
+                continue
             rec = store.get(rid)
             gt_out = rec["globals"]["outcome"]
-            pred = full_rollout_surrogate(
-                model, rec, store.norm, device,
-                C=dcfg.get("C", 5),
-                t_end=t_end_cfg,
-                node_features=dcfg.get("node_features"),
-                globals_fields=dcfg.get("globals_fields"),
-                edge_sets=edge_sets,
-                radius=dcfg.get("radius", 0.1),
-                normalize_features=dcfg.get("normalize_features", True),
-            )
+            pred = preds[rid]
             walls.append(pred["wall_time_s"])
             airs.append(pred["air_time_s"])
             models_t.append(pred["model_time_s"])
