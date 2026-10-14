@@ -2,10 +2,13 @@
 
 Rolls each checkpoint open-loop (batched by n_nodes) until exit/take-off/t_end
 (Algorithm 2: z<=0 fall, z>=h rise, else timeout). Reports spider-relative and
-spider-absolute position MSE at 0.2 / 1 / 5 / 10 s, plus the fraction of
-rollouts that stay finite and physical (no NaN; max |Δℓ|/ℓ0 < 10%).
+spider-absolute position MSE at 0.2 / 1 / 5 / 10 s.
 
-Selection metric: mean spider-relative MSE at 5 s among physical rollouts.
+Selection metric
+----------------
+Mean **capped** spider-relative MSE at 5 s over **all** runs (non-finite →
+ERROR_CAP_REL_MSE). Physical fraction and TTF stats are reported separately and
+do not gate the selection mean.
 
   PYTHONPATH=. python -m ml.scripts.select_checkpoint_horizon \\
     --config ml/configs/gns_local_gpu.yaml \\
@@ -25,6 +28,15 @@ import torch
 from ml.data.dataset import BallooningDataset, BallooningRunStore
 from ml.data.splits import load_splits
 from ml.evaluate import full_rollout_batched
+from ml.metrics.rollout_metrics import (
+    ERROR_CAP_REL_MSE,
+    PHYS_EDGE_TOL,
+    aggregate_horizon_errors,
+    aggregate_ttf,
+    physical_fraction_at_times,
+    segment_rel_deviations,
+    time_to_failure,
+)
 from ml.models import build_model
 from ml.models.baselines import ConstantVelocity, FollowAir
 from ml.train import _device, _resolve, _set_seed
@@ -32,7 +44,6 @@ from ml.utils.config import load_yaml
 from ml.validation import stratified_val_runs
 
 HORIZONS_S = (0.2, 1.0, 5.0, 10.0)
-PHYS_EDGE_TOL = 0.10  # max |Δℓ|/ℓ0
 
 
 def _load_model(cfg, store, ckpt_path, device, run_ids):
@@ -72,15 +83,12 @@ def _errors_at_horizons(pred, rec, horizons_s):
     x_rel_gt = rec["x_rel"].astype(np.float64)
     sp_gt = rec["spider_abs"].astype(np.float64)
     T_gt = x_rel_gt.shape[0]
-    # pred["x"] is absolute positions (T_pred, n, 3); spider is node 0
     X = pred["x"]
     tt = pred["t"]
     out = {}
     for hs in horizons_s:
-        # index in predicted trajectory nearest to t0_time + hs
         t_target = float(rec["t"][t0]) + hs
         k = int(np.argmin(np.abs(tt - t_target)))
-        # corresponding GT frame
         t_gt = rec["t"].astype(np.float64)
         kg = int(np.argmin(np.abs(t_gt - t_target)))
         kg = min(max(kg, 0), T_gt - 1)
@@ -98,27 +106,30 @@ def _errors_at_horizons(pred, rec, horizons_s):
     return out
 
 
-def _is_physical(pred, rec) -> bool:
+def _ttf_from_trajectory(pred, rec, C: int = 5) -> float:
+    """Time-to-failure from release using max edge relative deviation / finite mask."""
     X = pred["x"]
-    if not np.isfinite(X).all():
-        return False
-    if not np.isfinite(pred["v"]).all():
-        return False
-    # max relative segment-length deviation over trajectory
+    tt = np.asarray(pred["t"], dtype=np.float64)
+    t_release = float(rec["t"][C])
+    t_rel = tt - t_release
     edges = np.asarray(rec["edges"], dtype=np.int64)
     L_seg = float(rec["globals"]["L"]) / max(int(rec["globals"]["N_t"]), 1)
-    i, j = edges[:, 0], edges[:, 1]
-    lengths = np.linalg.norm(X[:, j] - X[:, i], axis=-1)  # (T, E)
-    rel = np.abs(lengths - L_seg) / max(L_seg, 1e-12)
-    return bool(np.max(rel) < PHYS_EDGE_TOL)
+    max_edge_rel = np.empty(len(X), dtype=np.float64)
+    finite_mask = np.empty(len(X), dtype=bool)
+    for k in range(len(X)):
+        finite = bool(np.isfinite(X[k]).all())
+        finite_mask[k] = finite
+        if not finite:
+            max_edge_rel[k] = float("inf")
+            continue
+        devs = segment_rel_deviations(X[k], edges, L_seg)
+        max_edge_rel[k] = float(np.max(devs)) if devs.size else 0.0
+    return time_to_failure(t_rel, max_edge_rel, finite_mask)
 
 
 def eval_checkpoint(model, store, run_ids, cfg, device, *, t_end: float):
     dcfg = cfg["data"]
     C = int(dcfg.get("C", 5))
-    per_h = {f"{hs:g}s": {"rel": [], "abs": []} for hs in HORIZONS_S}
-    n_phys = 0
-    n_tot = 0
     t0 = time.perf_counter()
     preds = full_rollout_batched(
         model, store, list(run_ids), device,
@@ -129,35 +140,36 @@ def eval_checkpoint(model, store, run_ids, cfg, device, *, t_end: float):
         radius=dcfg.get("radius", 0.1),
         normalize_features=dcfg.get("normalize_features", True),
     )
+    per_run: list[dict] = []
     for rid, pred in preds.items():
         rec = store.get(rid)
-        n_tot += 1
-        phys = _is_physical(pred, rec)
-        if phys:
-            n_phys += 1
         errs = _errors_at_horizons(pred, rec, HORIZONS_S)
-        for hs in HORIZONS_S:
-            key = f"{hs:g}s"
-            if phys:
-                per_h[key]["rel"].append(errs[key]["rel_mse"])
-                per_h[key]["abs"].append(errs[key]["spider_abs_mse"])
+        ttf = _ttf_from_trajectory(pred, rec, C=C)
+        per_run.append({
+            "run_id": rid,
+            "horizon_errors": errs,
+            "ttf_s": ttf,
+        })
     wall = time.perf_counter() - t0
+    horizons = aggregate_horizon_errors(per_run, HORIZONS_S)
+    ttf_stats = aggregate_ttf(per_run)
+    phys_at = physical_fraction_at_times(per_run, times=(1.0, 5.0, 10.0))
+    # Full-rollout physical fraction: never failed (ttf = +inf).
+    n_never = int(ttf_stats.get("n_never_fail", 0))
+    n_tot = len(per_run)
     summary = {
         "n_runs": n_tot,
-        "physical_fraction": n_phys / max(n_tot, 1),
+        "physical_fraction": n_never / max(n_tot, 1),
+        "physical_fraction_at_times": phys_at,
+        "ttf": ttf_stats,
         "wall_s": wall,
-        "horizons": {},
+        "horizons": horizons,
+        "error_cap_rel_mse": ERROR_CAP_REL_MSE,
+        "physical_edge_tol": PHYS_EDGE_TOL,
+        # Selection: mean capped 5s rel MSE over ALL runs (not physical-only).
+        "select_5s_rel_mse": horizons.get("5s", {}).get("rel_mse_mean", float("nan")),
+        "selection_metric": "mean_capped_5s_rel_mse_all_runs",
     }
-    for hs in HORIZONS_S:
-        key = f"{hs:g}s"
-        rel = per_h[key]["rel"]
-        ab = per_h[key]["abs"]
-        summary["horizons"][key] = {
-            "rel_mse_mean": float(np.mean(rel)) if rel else float("nan"),
-            "spider_abs_mse_mean": float(np.mean(ab)) if ab else float("nan"),
-            "n_physical": len(rel),
-        }
-    summary["select_5s_rel_mse"] = summary["horizons"]["5s"]["rel_mse_mean"]
     return summary
 
 
@@ -202,13 +214,10 @@ def main():
         for name, cls in (("constant_velocity", ConstantVelocity), ("follow_air", FollowAir)):
             print(f"=== {name} ===", flush=True)
             m = cls(a_mean=store.norm["a"]["mean"], a_std=store.norm["a"]["std"]).to(device).eval()
-            # Temporarily patch cfg model name for feature expectations via evaluate path:
             cfg_b = json.loads(json.dumps(cfg))
-            # use same node features as the GNS config being compared
             rows[name] = eval_checkpoint(m, store, ids, cfg_b, device, t_end=args.t_end)
             print(json.dumps(rows[name], indent=2), flush=True)
 
-    # pick best among model checkpoints (exclude baselines) by 5s rel mse
     cand = {k: v for k, v in rows.items() if k not in ("constant_velocity", "follow_air")}
     best_label = None
     best_score = float("inf")
@@ -221,7 +230,8 @@ def main():
         "run_ids": ids,
         "horizons_s": list(HORIZONS_S),
         "physical_edge_tol": PHYS_EDGE_TOL,
-        "selection_metric": "5s_rel_mse",
+        "error_cap_rel_mse": ERROR_CAP_REL_MSE,
+        "selection_metric": "mean_capped_5s_rel_mse_all_runs",
         "selected": best_label,
         "selected_5s_rel_mse": best_score,
         "checkpoints": rows,

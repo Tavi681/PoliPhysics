@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import time
 from pathlib import Path
 
@@ -20,6 +21,18 @@ from ml.metrics.physics import (
     min_interthread_distance,
     opening_R_over_L,
     wilson_interval,
+)
+from ml.metrics.rollout_metrics import (
+    PHYS_EDGE_TOL,
+    SCHEMA_VERSION,
+    aggregate_P_grid,
+    aggregate_error_vs_time,
+    aggregate_horizon_errors,
+    aggregate_ttf,
+    default_error_time_grid,
+    delta_R_over_L_physical_only,
+    physical_fraction_at_times,
+    segment_rel_deviations,
 )
 from ml.metrics.speedup import (
     mean_speedup,
@@ -255,6 +268,17 @@ def full_rollout_surrogate(
     r_over_l_n = 0
     max_edge_rel = 0.0
     ei, ej = rec["edges"][:, 0], rec["edges"][:, 1]
+    edges_arr = np.asarray(rec["edges"], dtype=np.int64)
+    # Compact streaming series (1 float/step; no full X/V retained).
+    t_series: list[float] = []
+    R_over_L_series: list[float] = []
+    max_edge_rel_series: list[float] = []
+    ttf_s = float("inf")
+    fail_node_i: int | None = None
+    fail_node_j: int | None = None
+    failed = False
+    r_over_l_phys_sum = 0.0
+    r_over_l_phys_n = 0
     air_time = 0.0
     model_time = 0.0
     integ_time = 0.0
@@ -268,6 +292,7 @@ def full_rollout_surrogate(
     step = 0
     max_steps = int(t_end / DT) + 5
     l0 = float(g["L"]) / max(int(g["N_t"]), 1)
+    L_thread = float(g["L"])
     nt_np = rec["node_type"].astype(np.int64)
     tid_np = rec["thread_id"].astype(np.int64)
     charge_np = rec["charge"].astype(np.float32)
@@ -392,14 +417,34 @@ def full_rollout_surrogate(
             vs.append(v.copy())
             ts.append(t)
         else:
+            t_rel = float(t - t_release)
             tips_xy = x_abs[tip_ids, :2] - x_abs[0, :2]
-            r_over_l_sum += float(np.mean(np.linalg.norm(tips_xy, axis=-1)) / float(g["L"]))
+            r_ol = float(np.mean(np.linalg.norm(tips_xy, axis=-1)) / L_thread)
+            r_over_l_sum += r_ol
             r_over_l_n += 1
-            lengths = np.linalg.norm(x_abs[ej] - x_abs[ei], axis=-1)
-            max_edge_rel = max(
-                max_edge_rel,
-                float(np.max(np.abs(lengths - l0) / max(l0, 1e-12))),
-            )
+            finite_step = bool(np.isfinite(x_abs).all() and np.isfinite(v).all())
+            if finite_step:
+                devs = segment_rel_deviations(x_abs, edges_arr, l0)
+                mer = float(np.max(devs)) if devs.size else 0.0
+                worst = int(np.argmax(devs)) if devs.size else -1
+            else:
+                mer = float("inf")
+                worst = -1
+            if np.isfinite(mer):
+                max_edge_rel = max(max_edge_rel, mer)
+            t_series.append(t_rel)
+            R_over_L_series.append(r_ol)
+            max_edge_rel_series.append(mer if np.isfinite(mer) else float("inf"))
+            if not failed:
+                if (not finite_step) or mer >= PHYS_EDGE_TOL:
+                    ttf_s = t_rel
+                    failed = True
+                    if worst >= 0 and finite_step:
+                        fail_node_i = int(ei[worst])
+                        fail_node_j = int(ej[worst])
+                else:
+                    r_over_l_phys_sum += r_ol
+                    r_over_l_phys_n += 1
             for label, slot in horizon_samples.items():
                 _update_time_mse_samples(
                     horizon_samples, label, slot["t_target"], slot["kg"],
@@ -454,14 +499,20 @@ def full_rollout_surrogate(
         if t > t_release + 1e-12 else float("nan")
     )
     r_over_l = r_over_l_sum / max(r_over_l_n, 1)
+    r_over_l_phys = (
+        r_over_l_phys_sum / r_over_l_phys_n if r_over_l_phys_n > 0 else float("nan")
+    )
     horizon_out = {
         f"{lbl}s": err
         for lbl, err in _samples_to_error_dict(horizon_samples).items()
     }
     grid_out = _samples_to_error_dict(grid_samples)
+    gt_outcome = g.get("outcome")
     return {
+        "schema_version": SCHEMA_VERSION,
         "status": status,
         "exit_time": exit_time,
+        "outcome_sim": gt_outcome,
         "entangled": bool(np.isfinite(dmin) and dmin < entangle_factor * r_thread),
         "wall_time_s": wall,
         "air_time_s": air_time,
@@ -470,6 +521,7 @@ def full_rollout_surrogate(
         "sim_duration_s": sim_dur,
         "V_mean": v_mean,
         "R_over_L": r_over_l,
+        "R_over_L_physical": r_over_l_phys,
         "edge_drift": float("nan"),
         "max_edge_rel_drift": max_edge_rel,
         "dmin": dmin,
@@ -477,6 +529,15 @@ def full_rollout_surrogate(
         "error_vs_time": grid_out,
         "t_release": t_release,
         "t_final": float(t),
+        "ttf_s": ttf_s,
+        "fail_node_i": fail_node_i,
+        "fail_node_j": fail_node_j,
+        "t_series": t_series,
+        "R_over_L_series": R_over_L_series,
+        "max_edge_rel_series": max_edge_rel_series,
+        "N": int(g["N"]),
+        "q": float(g["q"]),
+        "sigma_w": float(g["sigma_w"]),
     }
 
 
@@ -856,8 +917,20 @@ def _append_horizon_errors(
 
 
 def _compact_pred_for_disk(pred: dict) -> dict:
+    """Drop full trajectories; keep compact schema-v2 series (t / R/L / max_edge)."""
     drop = {"x", "v", "t"}
     return _json_safe({k: v for k, v in pred.items() if k not in drop})
+
+
+def _per_run_schema_ok(pred: dict | None) -> bool:
+    """Resume only schema_version >= 2 with ttf_s and R_over_L_series."""
+    if not isinstance(pred, dict):
+        return False
+    if int(pred.get("schema_version", 0) or 0) < SCHEMA_VERSION:
+        return False
+    if "ttf_s" not in pred or "R_over_L_series" not in pred:
+        return False
+    return True
 
 
 def _load_or_run_full_rollout(
@@ -880,7 +953,9 @@ def _load_or_run_full_rollout(
     path = _per_run_json_path(per_run_dir, sp, rid)
     if path.exists():
         try:
-            return json.loads(path.read_text())
+            cached = json.loads(path.read_text())
+            if _per_run_schema_ok(cached):
+                return cached
         except Exception:
             pass
     if rid not in store:
@@ -980,7 +1055,12 @@ def evaluate_checkpoint(
     eval_seed = int(ecfg.get("seed", 42))
     one_step_n_frames = int(ecfg.get("one_step_n_frames", 100_000))
     horizon_errors_s = list(ecfg.get("horizon_errors_s", [0.2, 1.0, 5.0, 10.0]))
-    error_vs_time_grid_s = list(ecfg.get("error_vs_time_grid_s", [0.2, 0.5, 1.0, 2.0, 5.0, 10.0]))
+    t_end_cfg = float(ecfg.get("t_end", 60.0))
+    raw_grid = ecfg.get("error_vs_time_grid_s", None)
+    if raw_grid is None:
+        error_vs_time_grid_s = default_error_time_grid(t_end_cfg)
+    else:
+        error_vs_time_grid_s = list(raw_grid)
     stream_full = bool(ecfg.get("stream_full_rollouts", True))
     per_run_dir = _eval_per_run_dir(out_dir, cfg)
     per_run_dir.mkdir(parents=True, exist_ok=True)
@@ -1033,7 +1113,6 @@ def evaluate_checkpoint(
         outcomes_ok = 0
         exit_errs = []
         dV = []
-        dR = []
         takeoff_s = []
         takeoff_m = []
         walls = []
@@ -1044,14 +1123,11 @@ def evaluate_checkpoint(
         sim_walls = []
         sim_durs = []
         delta_P_by_grid: dict[tuple, list] = {}
-        horizon_rel = {f"{hs:g}s": [] for hs in horizon_errors_s}
-        horizon_abs = {f"{hs:g}s": [] for hs in horizon_errors_s}
-        t_end_cfg = float(ecfg.get("t_end", 60.0))
         max_full = ecfg.get("max_full_runs")
         ids_full = ids if not max_full else ids[: int(max_full)]
         C = int(dcfg.get("C", 5))
-        p_grid_cells: dict[tuple, dict] = {}
-        evt_acc: dict[str, dict[str, list]] = {}
+        per_run_acc: list[dict] = []
+        gt_R_phys: list[float] = []
         for rid in ids_full:
             pred = _load_or_run_full_rollout(
                 rid=rid,
@@ -1073,6 +1149,30 @@ def evaluate_checkpoint(
                 continue
             rec = store.get(rid)
             gt_out = rec["globals"]["outcome"]
+            # Enrich for shared aggregators (schema v2 already stores most of these).
+            if "horizon_errors" not in pred and "x" in pred:
+                _he_rel: dict[str, list] = {f"{hs:g}s": [] for hs in horizon_errors_s}
+                _he_abs: dict[str, list] = {f"{hs:g}s": [] for hs in horizon_errors_s}
+                _append_horizon_errors(
+                    pred, rec, C, horizon_errors_s, _he_rel, _he_abs,
+                )
+                pred = dict(pred)
+                pred["horizon_errors"] = {
+                    k: {
+                        "rel_mse": _he_rel[k][0] if _he_rel[k] else float("nan"),
+                        "spider_abs_mse": _he_abs[k][0] if _he_abs[k] else float("nan"),
+                    }
+                    for k in _he_rel
+                }
+            run_row = dict(pred)
+            run_row.setdefault("status", pred.get("status"))
+            run_row.setdefault("outcome", gt_out)
+            run_row.setdefault("status_sim", gt_out)
+            run_row.setdefault("N", int(rec["globals"]["N"]))
+            run_row.setdefault("q", float(rec["globals"]["q"]))
+            run_row.setdefault("sigma_w", float(rec["globals"]["sigma_w"]))
+            run_row.setdefault("ttf_s", float("nan"))
+            per_run_acc.append(run_row)
             walls.append(pred["wall_time_s"])
             airs.append(pred["air_time_s"])
             models_t.append(pred["model_time_s"])
@@ -1090,13 +1190,28 @@ def evaluate_checkpoint(
             V_gt = mean_vertical_spider_velocity(x_abs, rec["t"].astype(np.float64))
             tips = np.where(rec["node_type"] == 2)[0]
             R_gt = opening_R_over_L(x_abs, tips, L=float(rec["globals"]["L"]))
+            # GT R/L over physical window matching surrogate TTF when series exist.
+            ttf = float(pred.get("ttf_s", float("inf")))
+            t_gt = rec["t"].astype(np.float64)
+            t_rel_gt = t_gt - float(rec["t"][C])
+            L_th = float(rec["globals"]["L"])
+            if np.isfinite(ttf) or math.isinf(ttf):
+                mask = t_rel_gt >= 0
+                if np.isfinite(ttf):
+                    mask = mask & (t_rel_gt <= ttf + 1e-12)
+                if np.any(mask):
+                    R_phys_gt = opening_R_over_L(
+                        x_abs[mask], tips, L=L_th,
+                    )
+                else:
+                    R_phys_gt = R_gt
+            else:
+                R_phys_gt = R_gt
+            gt_R_phys.append(float(R_phys_gt))
             if abs(V_gt) > 1e-12:
                 dV.append(abs(pred["V_mean"] - V_gt) / abs(V_gt))
-            if abs(R_gt) > 1e-12:
-                dR.append(abs(pred["R_over_L"] - R_gt) / abs(R_gt))
             takeoff_s.append(1 if gt_out == "rise" else 0)
             takeoff_m.append(1 if pred["status"] == "rise" else 0)
-            # P grid: (N, q, sigma_w)
             gkey = (
                 int(rec["globals"]["N"]),
                 round(float(rec["globals"]["q"]), 6),
@@ -1105,47 +1220,20 @@ def evaluate_checkpoint(
             delta_P_by_grid.setdefault(gkey, []).append(
                 (1 if pred["status"] == "rise" else 0) - (1 if gt_out == "rise" else 0)
             )
-            cell = p_grid_cells.setdefault(
-                gkey, {"n": 0, "sim_rise": 0, "surr_rise": 0},
-            )
-            cell["n"] += 1
-            cell["sim_rise"] += 1 if gt_out == "rise" else 0
-            cell["surr_rise"] += 1 if pred["status"] == "rise" else 0
-            _append_horizon_errors(
-                pred, rec, C, horizon_errors_s, horizon_rel, horizon_abs,
-            )
-            for lbl, err in (pred.get("error_vs_time") or {}).items():
-                slot = evt_acc.setdefault(lbl, {"rel": [], "abs": []})
-                slot["rel"].append(float(err.get("rel_mse", float("nan"))))
-                slot["abs"].append(float(err.get("spider_abs_mse", float("nan"))))
 
-        for gkey, cell in p_grid_cells.items():
-            n_cell = int(cell["n"])
-            ks, km = int(cell["sim_rise"]), int(cell["surr_rise"])
-            lo_s, hi_s = wilson_interval(ks, n_cell)
+        for row in aggregate_P_grid(per_run_acc):
             p_grid_rows_all.append({
                 "Model": name,
                 "Split": split_display_name(sp),
                 "SplitKey": sp,
-                "N": gkey[0],
-                "q": gkey[1],
-                "sigma_w": gkey[2],
-                "n_runs": n_cell,
-                "P_sim": ks / max(n_cell, 1),
-                "P_surr": km / max(n_cell, 1),
-                "P_sim_wilson_lo": lo_s,
-                "P_sim_wilson_hi": hi_s,
+                **row,
             })
-        for lbl in sorted(evt_acc.keys(), key=lambda s: float(s)):
-            slot = evt_acc[lbl]
+        for row in aggregate_error_vs_time(per_run_acc, error_vs_time_grid_s):
             evt_rows_all.append({
                 "Model": name,
                 "Split": split_display_name(sp),
                 "SplitKey": sp,
-                "t_s": float(lbl),
-                "rel_mse_mean": float(np.mean(slot["rel"])) if slot["rel"] else float("nan"),
-                "spider_abs_mse_mean": float(np.mean(slot["abs"])) if slot["abs"] else float("nan"),
-                "n_runs": len(slot["rel"]),
+                **row,
             })
 
         n = len(takeoff_s)
@@ -1156,13 +1244,10 @@ def evaluate_checkpoint(
         grid_abs = [abs(float(np.mean(v))) for v in delta_P_by_grid.values() if v]
         abs_delta_P_mean = float(np.mean(grid_abs)) if grid_abs else float("nan")
         abs_delta_P_max = float(np.max(grid_abs)) if grid_abs else float("nan")
-        horizon_report = {
-            hs: {
-                "rel_mse_mean": float(np.mean(horizon_rel[hs])) if horizon_rel[hs] else float("nan"),
-                "spider_abs_mse_mean": float(np.mean(horizon_abs[hs])) if horizon_abs[hs] else float("nan"),
-            }
-            for hs in horizon_rel
-        }
+        horizon_report = aggregate_horizon_errors(per_run_acc, horizon_errors_s)
+        ttf_report = aggregate_ttf(per_run_acc)
+        phys_at = physical_fraction_at_times(per_run_acc, times=(1.0, 5.0, 10.0))
+        dR_phys = delta_R_over_L_physical_only(per_run_acc, gt_R_phys)
 
         # Duration-normalized speed-up; only runs with finite simulator wall_time_s
         speedup = mean_speedup(sim_walls, sim_durs, walls, surr_durs)
@@ -1188,10 +1273,13 @@ def evaluate_checkpoint(
             "rollout_mse_units": "m^2_rel_pos",
             "rollout_K": int(cfg.get("eval", {}).get("rollout_K", 100)),
             "horizon_errors": horizon_report,
+            "ttf": ttf_report,
+            "physical_fraction_at_times": phys_at,
             "outcome_accuracy": outcomes_ok / max(n, 1),
             "exit_time_mae": float(np.mean(exit_errs)) if exit_errs else float("nan"),
             "delta_V_over_V": float(np.mean(dV)) if dV else float("nan"),
-            "delta_R_over_L": float(np.mean(dR)) if dR else float("nan"),
+            "delta_R_over_L": float(dR_phys["delta_R_over_L_mean"]),
+            "delta_R_over_L_n_runs_used": int(dR_phys["n_runs_used"]),
             "P_sim": P_s,
             "P_surr": P_m,
             "P_sim_wilson": [lo_s, hi_s],
