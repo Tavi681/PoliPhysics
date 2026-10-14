@@ -87,6 +87,92 @@ def _norm_blocks(arr_c_n_3: np.ndarray, stats: dict | None) -> np.ndarray:
     return np.concatenate(blocks, axis=-1)
 
 
+def _json_safe(obj):
+    """Convert numpy scalars for JSON serialization."""
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    if isinstance(obj, (np.floating, np.integer)):
+        return obj.item()
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (float, int, str, bool)) or obj is None:
+        return obj
+    return str(obj)
+
+
+def _eval_per_run_dir(out_dir: Path, cfg: dict) -> Path:
+    ecfg = cfg.get("eval", {})
+    pr = ecfg.get("per_run_dir")
+    if pr:
+        p = Path(str(pr))
+        return p if p.is_absolute() else Path(_resolve(p))
+    return out_dir / "per_run"
+
+
+def _per_run_json_path(per_run_dir: Path, split: str, run_id: str) -> Path:
+    return per_run_dir / split / f"{run_id}.json"
+
+
+def _time_sample_targets(
+    t_release: float,
+    times_s: list[float],
+    t_gt: np.ndarray,
+) -> dict[str, tuple[float, int]]:
+    """Map label -> (absolute target time, GT frame index)."""
+    out: dict[str, tuple[float, int]] = {}
+    for tg in times_s:
+        label = f"{tg:g}"
+        t_target = t_release + float(tg)
+        kg = int(np.argmin(np.abs(t_gt - t_target)))
+        kg = min(max(kg, 0), len(t_gt) - 1)
+        out[label] = (t_target, kg)
+    return out
+
+
+def _update_time_mse_samples(
+    samples: dict[str, dict],
+    label: str,
+    t_target: float,
+    kg: int,
+    t: float,
+    x_abs: np.ndarray,
+    x_rel_gt: np.ndarray,
+    sp_gt: np.ndarray,
+) -> None:
+    d = abs(t - t_target)
+    slot = samples[label]
+    if d >= slot["dist"]:
+        return
+    slot["dist"] = d
+    sp_p = x_abs[0]
+    x_rel_p = x_abs - sp_p[None, :]
+    slot["rel_mse"] = float(np.mean((x_rel_p - x_rel_gt[kg]) ** 2))
+    slot["spider_abs_mse"] = float(np.mean((sp_p - sp_gt[kg]) ** 2))
+    slot["pred_t"] = float(t)
+
+
+def _samples_to_error_dict(samples: dict[str, dict]) -> dict[str, dict]:
+    return {
+        label: {
+            "rel_mse": slot.get("rel_mse", float("nan")),
+            "spider_abs_mse": slot.get("spider_abs_mse", float("nan")),
+            "pred_t": slot.get("pred_t", float("nan")),
+        }
+        for label, slot in samples.items()
+    }
+
+
+def _p_grid_key(rec: dict) -> tuple[int, float, float]:
+    g = rec["globals"]
+    return (
+        int(g["N"]),
+        round(float(g["q"]), 6),
+        round(float(g["sigma_w"]), 4),
+    )
+
+
 @torch.no_grad()
 def full_rollout_surrogate(
     model,
@@ -102,6 +188,9 @@ def full_rollout_surrogate(
     edge_sets: list[str] | None = None,
     radius: float = 0.1,
     normalize_features: bool = True,
+    return_trajectory: bool = True,
+    horizon_errors_s: list[float] | None = None,
+    error_vs_time_grid_s: list[float] | None = None,
 ) -> dict:
     """Roll from release until z=0, z=h, or t_end.
 
@@ -134,9 +223,38 @@ def full_rollout_surrogate(
     v_hist = rec["v"][t0 - C + 1 : t0 + 1].astype(np.float32).copy()
     u_hist = rec["u"][t0 - C + 1 : t0 + 1].astype(np.float32).copy()
 
-    xs_abs = [spider + x_rel.astype(np.float64)]
-    vs = [v.copy()]
-    ts = [float(rec["t"][t0])]
+    store_traj = return_trajectory
+    xs_abs: list[np.ndarray] = []
+    vs: list[np.ndarray] = []
+    ts: list[float] = []
+    if store_traj:
+        xs_abs = [spider + x_rel.astype(np.float64)]
+        vs = [v.copy()]
+        ts = [float(rec["t"][t0])]
+    t_release = float(rec["t"][t0])
+    z0_spider = float(spider[2])
+    t_gt_arr = rec["t"].astype(np.float64)
+    x_rel_gt = rec["x_rel"].astype(np.float64)
+    sp_gt = rec["spider_abs"].astype(np.float64)
+    horizon_samples: dict[str, dict] = {}
+    grid_samples: dict[str, dict] = {}
+    if not store_traj:
+        for label, (t_target, kg) in _time_sample_targets(
+            t_release, list(horizon_errors_s or []), t_gt_arr
+        ).items():
+            horizon_samples[label] = {
+                "dist": float("inf"), "kg": kg, "t_target": t_target,
+            }
+        for label, (t_target, kg) in _time_sample_targets(
+            t_release, list(error_vs_time_grid_s or []), t_gt_arr
+        ).items():
+            grid_samples[label] = {
+                "dist": float("inf"), "kg": kg, "t_target": t_target,
+            }
+    r_over_l_sum = 0.0
+    r_over_l_n = 0
+    max_edge_rel = 0.0
+    ei, ej = rec["edges"][:, 0], rec["edges"][:, 1]
     air_time = 0.0
     model_time = 0.0
     integ_time = 0.0
@@ -269,9 +387,29 @@ def full_rollout_surrogate(
 
         t = t + DT
         step += 1
-        xs_abs.append(x_abs.copy())
-        vs.append(v.copy())
-        ts.append(t)
+        if store_traj:
+            xs_abs.append(x_abs.copy())
+            vs.append(v.copy())
+            ts.append(t)
+        else:
+            tips_xy = x_abs[tip_ids, :2] - x_abs[0, :2]
+            r_over_l_sum += float(np.mean(np.linalg.norm(tips_xy, axis=-1)) / float(g["L"]))
+            r_over_l_n += 1
+            lengths = np.linalg.norm(x_abs[ej] - x_abs[ei], axis=-1)
+            max_edge_rel = max(
+                max_edge_rel,
+                float(np.max(np.abs(lengths - l0) / max(l0, 1e-12))),
+            )
+            for label, slot in horizon_samples.items():
+                _update_time_mse_samples(
+                    horizon_samples, label, slot["t_target"], slot["kg"],
+                    t, x_abs, x_rel_gt, sp_gt,
+                )
+            for label, slot in grid_samples.items():
+                _update_time_mse_samples(
+                    grid_samples, label, slot["t_target"], slot["kg"],
+                    t, x_abs, x_rel_gt, sp_gt,
+                )
 
         z = float(spider[2])
         if z >= h:
@@ -284,30 +422,96 @@ def full_rollout_surrogate(
             break
 
     wall = time.perf_counter() - wall0
-    X = np.stack(xs_abs)
-    V = np.stack(vs)
-    tt = np.asarray(ts)
-    sim_dur = float(tt[-1] - tt[0]) if len(tt) > 1 else 0.0
-    dmin = min_interthread_distance(X[-1], rec["thread_id"])
     r_thread = float(g.get("r", 300e-9))
     entangle_factor = float(g.get("entangle_contact_factor", 2.0))
+    if store_traj:
+        X = np.stack(xs_abs)
+        V = np.stack(vs)
+        tt = np.asarray(ts)
+        sim_dur = float(tt[-1] - tt[0]) if len(tt) > 1 else 0.0
+        dmin = min_interthread_distance(X[-1], rec["thread_id"])
+        return {
+            "status": status,
+            "exit_time": exit_time,
+            "entangled": bool(np.isfinite(dmin) and dmin < entangle_factor * r_thread),
+            "t": tt,
+            "x": X,
+            "v": V,
+            "wall_time_s": wall,
+            "air_time_s": air_time,
+            "model_time_s": model_time,
+            "integ_time_s": integ_time,
+            "sim_duration_s": sim_dur,
+            "V_mean": mean_vertical_spider_velocity(X, tt),
+            "R_over_L": opening_R_over_L(X, tip_ids, L=float(g["L"])),
+            "edge_drift": edge_length_drift(X, rec["edges"], L_seg=l0),
+            "dmin": dmin,
+        }
+    dmin = min_interthread_distance(x_abs, rec["thread_id"])
+    sim_dur = float(t - t_release) if t > t_release else 0.0
+    v_mean = (
+        float((spider[2] - z0_spider) / (t - t_release))
+        if t > t_release + 1e-12 else float("nan")
+    )
+    r_over_l = r_over_l_sum / max(r_over_l_n, 1)
+    horizon_out = {
+        f"{lbl}s": err
+        for lbl, err in _samples_to_error_dict(horizon_samples).items()
+    }
+    grid_out = _samples_to_error_dict(grid_samples)
     return {
         "status": status,
         "exit_time": exit_time,
         "entangled": bool(np.isfinite(dmin) and dmin < entangle_factor * r_thread),
-        "t": tt,
-        "x": X,
-        "v": V,
         "wall_time_s": wall,
         "air_time_s": air_time,
         "model_time_s": model_time,
         "integ_time_s": integ_time,
         "sim_duration_s": sim_dur,
-        "V_mean": mean_vertical_spider_velocity(X, tt),
-        "R_over_L": opening_R_over_L(X, tip_ids, L=float(g["L"])),
-        "edge_drift": edge_length_drift(X, rec["edges"], L_seg=float(g["L"]) / int(g["N_t"])),
+        "V_mean": v_mean,
+        "R_over_L": r_over_l,
+        "edge_drift": float("nan"),
+        "max_edge_rel_drift": max_edge_rel,
         "dmin": dmin,
+        "horizon_errors": horizon_out,
+        "error_vs_time": grid_out,
+        "t_release": t_release,
+        "t_final": float(t),
     }
+
+
+@torch.no_grad()
+def full_rollout_streaming(
+    model,
+    rec: dict,
+    norm: dict,
+    device: torch.device,
+    *,
+    C: int = 5,
+    t_end: float = 60.0,
+    include_air_time: bool = True,
+    node_features: list[str] | None = None,
+    globals_fields: list[str] | None = None,
+    edge_sets: list[str] | None = None,
+    radius: float = 0.1,
+    normalize_features: bool = True,
+    horizon_errors_s: list[float] | None = None,
+    error_vs_time_grid_s: list[float] | None = None,
+) -> dict:
+    """Full Alg.2 rollout retaining only compact online metrics (OOM-safe)."""
+    _ = include_air_time  # same air path as surrogate; kept for API parity
+    return full_rollout_surrogate(
+        model, rec, norm, device,
+        C=C, t_end=t_end, include_air_time=True,
+        node_features=node_features,
+        globals_fields=globals_fields,
+        edge_sets=edge_sets,
+        radius=radius,
+        normalize_features=normalize_features,
+        return_trajectory=False,
+        horizon_errors_s=horizon_errors_s,
+        error_vs_time_grid_s=error_vs_time_grid_s,
+    )
 
 
 @torch.no_grad()
@@ -619,6 +823,106 @@ def full_rollout_batched(
     return out
 
 
+def _append_horizon_errors(
+    pred: dict,
+    rec: dict,
+    C: int,
+    horizon_errors_s: list[float],
+    horizon_rel: dict[str, list],
+    horizon_abs: dict[str, list],
+) -> None:
+    if "horizon_errors" in pred:
+        for hs in horizon_errors_s:
+            key = f"{hs:g}s"
+            he = pred["horizon_errors"].get(key, {})
+            horizon_rel[key].append(float(he.get("rel_mse", float("nan"))))
+            horizon_abs[key].append(float(he.get("spider_abs_mse", float("nan"))))
+        return
+    t_gt = rec["t"].astype(np.float64)
+    X = pred["x"]
+    tt = pred["t"]
+    t_release = float(rec["t"][C])
+    x_abs_gt = rec["spider_abs"][:, None, :] + rec["x_rel"].astype(np.float64)
+    for hs in horizon_errors_s:
+        t_target = t_release + float(hs)
+        k = int(np.argmin(np.abs(tt - t_target)))
+        kg = int(np.argmin(np.abs(t_gt - t_target)))
+        kg = min(max(kg, 0), x_abs_gt.shape[0] - 1)
+        sp_p = X[k, 0]
+        x_rel_p = X[k] - sp_p
+        key = f"{hs:g}s"
+        horizon_rel[key].append(float(np.mean((x_rel_p - rec["x_rel"][kg]) ** 2)))
+        horizon_abs[key].append(float(np.mean((sp_p - rec["spider_abs"][kg]) ** 2)))
+
+
+def _compact_pred_for_disk(pred: dict) -> dict:
+    drop = {"x", "v", "t"}
+    return _json_safe({k: v for k, v in pred.items() if k not in drop})
+
+
+def _load_or_run_full_rollout(
+    *,
+    rid: str,
+    sp: str,
+    model,
+    store: BallooningRunStore,
+    device: torch.device,
+    cfg: dict,
+    dcfg: dict,
+    edge_sets: list[str],
+    per_run_dir: Path,
+    stream_full: bool,
+    C: int,
+    t_end_cfg: float,
+    horizon_errors_s: list[float],
+    error_vs_time_grid_s: list[float],
+) -> dict | None:
+    path = _per_run_json_path(per_run_dir, sp, rid)
+    if path.exists():
+        try:
+            return json.loads(path.read_text())
+        except Exception:
+            pass
+    if rid not in store:
+        return None
+    rec = store.get(rid)
+    if int(rec["v"].shape[0]) < C + 2:
+        return None
+    if stream_full:
+        pred = full_rollout_streaming(
+            model, rec, store.norm, device,
+            C=C,
+            t_end=t_end_cfg,
+            node_features=dcfg.get("node_features"),
+            globals_fields=dcfg.get("globals_fields"),
+            edge_sets=edge_sets,
+            radius=dcfg.get("radius", 0.1),
+            normalize_features=dcfg.get("normalize_features", True),
+            horizon_errors_s=horizon_errors_s,
+            error_vs_time_grid_s=error_vs_time_grid_s,
+        )
+    else:
+        batch_runs = cfg.get("eval", {}).get("full_rollout_batch_runs")
+        batched = full_rollout_batched(
+            model, store, [rid], device,
+            C=C,
+            t_end=t_end_cfg,
+            node_features=dcfg.get("node_features"),
+            globals_fields=dcfg.get("globals_fields"),
+            edge_sets=edge_sets,
+            radius=dcfg.get("radius", 0.1),
+            normalize_features=dcfg.get("normalize_features", True),
+            batch_runs=int(batch_runs) if batch_runs else 1,
+        )
+        pred = batched.get(rid)
+        if pred is None:
+            return None
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(_compact_pred_for_disk(pred), f, indent=2)
+    return pred
+
+
 def evaluate_checkpoint(
     ckpt_path: Path,
     cfg: dict,
@@ -672,9 +976,16 @@ def evaluate_checkpoint(
     cost_rows = []
     metrics = {"git": prov, "run_id": run_id, "model": name, "splits": {}}
 
-    eval_seed = int(cfg.get("eval", {}).get("seed", 42))
-    one_step_n_frames = int(cfg.get("eval", {}).get("one_step_n_frames", 100_000))
-    horizon_errors_s = list(cfg.get("eval", {}).get("horizon_errors_s", [0.2, 1.0, 5.0, 10.0]))
+    ecfg = cfg.get("eval", {})
+    eval_seed = int(ecfg.get("seed", 42))
+    one_step_n_frames = int(ecfg.get("one_step_n_frames", 100_000))
+    horizon_errors_s = list(ecfg.get("horizon_errors_s", [0.2, 1.0, 5.0, 10.0]))
+    error_vs_time_grid_s = list(ecfg.get("error_vs_time_grid_s", [0.2, 0.5, 1.0, 2.0, 5.0, 10.0]))
+    stream_full = bool(ecfg.get("stream_full_rollouts", True))
+    per_run_dir = _eval_per_run_dir(out_dir, cfg)
+    per_run_dir.mkdir(parents=True, exist_ok=True)
+    p_grid_rows_all: list[dict] = []
+    evt_rows_all: list[dict] = []
 
     for sp in split_names:
         ids = [r for r in splits.get(sp, []) if r in store.runs]
@@ -735,28 +1046,33 @@ def evaluate_checkpoint(
         delta_P_by_grid: dict[tuple, list] = {}
         horizon_rel = {f"{hs:g}s": [] for hs in horizon_errors_s}
         horizon_abs = {f"{hs:g}s": [] for hs in horizon_errors_s}
-        t_end_cfg = float(cfg.get("eval", {}).get("t_end", 60.0))
-        max_full = cfg.get("eval", {}).get("max_full_runs")
+        t_end_cfg = float(ecfg.get("t_end", 60.0))
+        max_full = ecfg.get("max_full_runs")
         ids_full = ids if not max_full else ids[: int(max_full)]
         C = int(dcfg.get("C", 5))
-        batch_runs = cfg.get("eval", {}).get("full_rollout_batch_runs")
-        preds = full_rollout_batched(
-            model, store, list(ids_full), device,
-            C=C,
-            t_end=t_end_cfg,
-            node_features=dcfg.get("node_features"),
-            globals_fields=dcfg.get("globals_fields"),
-            edge_sets=edge_sets,
-            radius=dcfg.get("radius", 0.1),
-            normalize_features=dcfg.get("normalize_features", True),
-            batch_runs=int(batch_runs) if batch_runs else None,
-        )
+        p_grid_cells: dict[tuple, dict] = {}
+        evt_acc: dict[str, dict[str, list]] = {}
         for rid in ids_full:
-            if rid not in preds:
+            pred = _load_or_run_full_rollout(
+                rid=rid,
+                sp=sp,
+                model=model,
+                store=store,
+                device=device,
+                cfg=cfg,
+                dcfg=dcfg,
+                edge_sets=edge_sets,
+                per_run_dir=per_run_dir,
+                stream_full=stream_full,
+                C=C,
+                t_end_cfg=t_end_cfg,
+                horizon_errors_s=horizon_errors_s,
+                error_vs_time_grid_s=error_vs_time_grid_s,
+            )
+            if pred is None:
                 continue
             rec = store.get(rid)
             gt_out = rec["globals"]["outcome"]
-            pred = preds[rid]
             walls.append(pred["wall_time_s"])
             airs.append(pred["air_time_s"])
             models_t.append(pred["model_time_s"])
@@ -789,21 +1105,48 @@ def evaluate_checkpoint(
             delta_P_by_grid.setdefault(gkey, []).append(
                 (1 if pred["status"] == "rise" else 0) - (1 if gt_out == "rise" else 0)
             )
-            # Horizon position errors (spider-rel / spider-abs)
-            t_gt = rec["t"].astype(np.float64)
-            X = pred["x"]
-            tt = pred["t"]
-            t_release = float(rec["t"][C])
-            for hs in horizon_errors_s:
-                t_target = t_release + float(hs)
-                k = int(np.argmin(np.abs(tt - t_target)))
-                kg = int(np.argmin(np.abs(t_gt - t_target)))
-                kg = min(max(kg, 0), x_abs.shape[0] - 1)
-                sp_p = X[k, 0]
-                x_rel_p = X[k] - sp_p
-                key = f"{hs:g}s"
-                horizon_rel[key].append(float(np.mean((x_rel_p - rec["x_rel"][kg]) ** 2)))
-                horizon_abs[key].append(float(np.mean((sp_p - rec["spider_abs"][kg]) ** 2)))
+            cell = p_grid_cells.setdefault(
+                gkey, {"n": 0, "sim_rise": 0, "surr_rise": 0},
+            )
+            cell["n"] += 1
+            cell["sim_rise"] += 1 if gt_out == "rise" else 0
+            cell["surr_rise"] += 1 if pred["status"] == "rise" else 0
+            _append_horizon_errors(
+                pred, rec, C, horizon_errors_s, horizon_rel, horizon_abs,
+            )
+            for lbl, err in (pred.get("error_vs_time") or {}).items():
+                slot = evt_acc.setdefault(lbl, {"rel": [], "abs": []})
+                slot["rel"].append(float(err.get("rel_mse", float("nan"))))
+                slot["abs"].append(float(err.get("spider_abs_mse", float("nan"))))
+
+        for gkey, cell in p_grid_cells.items():
+            n_cell = int(cell["n"])
+            ks, km = int(cell["sim_rise"]), int(cell["surr_rise"])
+            lo_s, hi_s = wilson_interval(ks, n_cell)
+            p_grid_rows_all.append({
+                "Model": name,
+                "Split": split_display_name(sp),
+                "SplitKey": sp,
+                "N": gkey[0],
+                "q": gkey[1],
+                "sigma_w": gkey[2],
+                "n_runs": n_cell,
+                "P_sim": ks / max(n_cell, 1),
+                "P_surr": km / max(n_cell, 1),
+                "P_sim_wilson_lo": lo_s,
+                "P_sim_wilson_hi": hi_s,
+            })
+        for lbl in sorted(evt_acc.keys(), key=lambda s: float(s)):
+            slot = evt_acc[lbl]
+            evt_rows_all.append({
+                "Model": name,
+                "Split": split_display_name(sp),
+                "SplitKey": sp,
+                "t_s": float(lbl),
+                "rel_mse_mean": float(np.mean(slot["rel"])) if slot["rel"] else float("nan"),
+                "spider_abs_mse_mean": float(np.mean(slot["abs"])) if slot["abs"] else float("nan"),
+                "n_runs": len(slot["rel"]),
+            })
 
         n = len(takeoff_s)
         k_s, k_m = sum(takeoff_s), sum(takeoff_m)
@@ -927,6 +1270,8 @@ def evaluate_checkpoint(
         "(sim wall/sim-s) / (surr wall/sim-s); surr includes model + "
         "KinematicSimulation u-eval + integration; sim walls only when wall_time_s finite"
     )
+    metrics["eval_stream_full_rollouts"] = stream_full
+    metrics["per_run_dir"] = str(per_run_dir)
 
     first = next(iter(metrics["splits"].values()), {})
     cost_rows.append({
@@ -949,6 +1294,10 @@ def evaluate_checkpoint(
         json.dump(metrics, f, indent=2)
     pd.DataFrame(rows).to_csv(out_dir / "tab_accuracy.csv", index=False)
     pd.DataFrame(cost_rows).to_csv(out_dir / "tab_cost.csv", index=False)
+    if p_grid_rows_all:
+        pd.DataFrame(p_grid_rows_all).to_csv(out_dir / "tab_P_grid.csv", index=False)
+    if evt_rows_all:
+        pd.DataFrame(evt_rows_all).to_csv(out_dir / "tab_error_vs_time.csv", index=False)
     print(json.dumps(metrics, indent=2, default=str))
     return metrics
 

@@ -21,6 +21,12 @@ wandb:
   mode: disabled
 
 eval:
+  seed: 42
+  one_step_n_frames: 100
   rollout_K: 20
   t_end: 5.0
-  max_full_runs: 3
+  max_full_runs: 2
+  horizon_errors_s: [0.2, 1.0, 5.0]
+  stream_full_rollouts: true
+  error_vs_time_grid_s: [0.2, 0.5, 1.0, 2.0, 5.0]
+  full_rollout_batch_runs: 1

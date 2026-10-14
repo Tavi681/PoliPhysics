@@ -29,3 +29,6 @@ eval:
   t_end: 60.0
   max_full_runs: null
   horizon_errors_s: [0.2, 1.0, 5.0, 10.0]
+  stream_full_rollouts: true
+  error_vs_time_grid_s: [0.2, 0.5, 1.0, 2.0, 5.0, 10.0]
+  full_rollout_batch_runs: 1
