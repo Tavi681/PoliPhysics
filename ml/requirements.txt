@@ -5,6 +5,7 @@ numpy==2.5.3
 h5py==3.16.0
 PyYAML==6.0.3
 pandas==3.0.6
+matplotlib>=3.7
 scipy==1.18.1
 tqdm==4.67.1
 wandb==0.30.0
