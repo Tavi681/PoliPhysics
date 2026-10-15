@@ -268,6 +268,8 @@ def rollout_mse(
             pred_n = model(data)
             a = pred_n * a_std + a_mean
             x, v = step_torch(x, v, a, dt=DT)
+            # Keep spider-relative frame (node 0 at origin); see evaluate.full_rollout_surrogate.
+            x = x - x[0:1]
             x_gt = torch.from_numpy(rec["x_rel"][t0 + k + 1].astype(np.float32)).to(device)
             errs.append(float((x - x_gt).pow(2).mean()))
     return float(np.mean(errs)) if errs else float("nan")

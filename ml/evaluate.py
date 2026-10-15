@@ -402,10 +402,15 @@ def full_rollout_surrogate(
         a = pred_n.detach().cpu().numpy().astype(np.float32) * a_std + a_mean
 
         t_i0 = time.perf_counter()
+        # Integrate relative positions with absolute velocities, then re-center so
+        # node 0 stays at the origin. Without ``x_rel -= x_rel[0]``, every step
+        # injects an extra ``dt * v_spider`` into all thread nodes (absolute-space
+        # double-count of the spider advance). Matches batched paths below /
+        # validation.rollout_mse_batched.
         x_rel, v = step_np(x_rel, v, a, dt=DT)
         spider = spider + DT * v[0].astype(np.float64)
-        x_abs = np.vstack([spider[None, :], (spider + x_rel[1:].astype(np.float64))])
-        x_rel = (x_abs - spider[None, :]).astype(np.float32)
+        x_rel = (x_rel - x_rel[0:1]).astype(np.float32)
+        x_abs = spider[None, :] + x_rel.astype(np.float64)
         v_hist = np.concatenate([v_hist[1:], v[None]], axis=0)
         u_hist = np.concatenate([u_hist[1:], u[None]], axis=0)
         integ_time += time.perf_counter() - t_i0
