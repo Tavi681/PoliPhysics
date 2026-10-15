@@ -1,0 +1,27 @@
+{
+  "run_id": "gns_baseline_s42_5716ee5b_1791828699",
+  "noise_k": 1.0,
+  "wandb_run": "w7ghs67l",
+  "actual_stop_reason": "cost_cap ($26.00 > $26.00)",
+  "epochs_trained_observed": 10,
+  "best_epoch": 9,
+  "best_val_rollout_mse": 2.1333e-06,
+  "patience_epochs": 2,
+  "post_hoc_early_stop_epoch": null,
+  "post_hoc_note": "best_epoch=9; early stop would fire when epoch becomes 12 (epoch-best>2). Cost cap halted during epoch 10 before that. All epoch_00..epoch_10 remain eligible.",
+  "epoch_06_within_restriction": true,
+  "step2_baseline_checkpoint": "Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt",
+  "per_epoch_min_val_rollout_mse": {
+    "0": 2.9211e-05,
+    "1": 1.297e-05,
+    "2": 9.9551e-06,
+    "3": 6.4031e-06,
+    "4": 4.3971e-06,
+    "5": 3.3427e-06,
+    "6": 2.7035e-06,
+    "7": 2.3616e-06,
+    "8": 2.3493e-06,
+    "9": 2.1333e-06,
+    "10": 2.1524e-06
+  }
+}
