@@ -61,9 +61,15 @@ def _write_synthetic_store(tmp: Path, N: int = 1, T: int = 40):
         "target": "velocity",
     }
     (tmp / "norm_stats.json").write_text(json.dumps(norm))
-    man = {"data_version": "test", "shards": ["shard_0000.pt"], "n_runs": 1}
+    rid = f"synth_N{N}"
+    man = {
+        "data_version": "test",
+        "shards": ["shard_0000.pt"],
+        "n_runs": 1,
+        "records": [{"run_id": rid, "shard": "shard_0000.pt"}],
+    }
     (tmp / "manifest.json").write_text(json.dumps(man))
-    return f"synth_N{N}"
+    return rid
 
 
 def test_dataset_shapes_N1_N8(tmp_path):
