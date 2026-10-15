@@ -6,9 +6,9 @@ spider-absolute position MSE at 0.2 / 1 / 5 / 10 s.
 
 Selection metric
 ----------------
-Mean **capped** spider-relative MSE at 5 s over **all** runs (non-finite →
-ERROR_CAP_REL_MSE). Physical fraction and TTF stats are reported separately and
-do not gate the selection mean.
+1. Maximize median TTF (time to edge-tolerance failure) over the 32 val runs.
+2. Tie-break: minimize mean **capped** spider-relative MSE at 5 s over **all**
+   runs (non-finite → ERROR_CAP_REL_MSE).
 
   PYTHONPATH=. python -m ml.scripts.select_checkpoint_horizon \\
     --config ml/configs/gns_local_gpu.yaml \\
@@ -220,27 +220,41 @@ def main():
 
     cand = {k: v for k, v in rows.items() if k not in ("constant_velocity", "follow_air")}
     best_label = None
-    best_score = float("inf")
+    best_ttf = float("-inf")
+    best_5s = float("inf")
     for k, v in cand.items():
-        s = v.get("select_5s_rel_mse", float("nan"))
-        if np.isfinite(s) and s < best_score:
-            best_score = s
+        ttf_med = v.get("ttf", {}).get("median", float("nan"))
+        s5 = v.get("select_5s_rel_mse", float("nan"))
+        if not np.isfinite(ttf_med):
+            continue
+        # Maximize median TTF; tie-break minimize capped 5s rel MSE.
+        better = ttf_med > best_ttf + 1e-12
+        tied = abs(ttf_med - best_ttf) <= 1e-12
+        if better or (tied and np.isfinite(s5) and s5 < best_5s):
+            best_ttf = float(ttf_med)
+            best_5s = float(s5) if np.isfinite(s5) else best_5s
             best_label = k
     report = {
         "run_ids": ids,
         "horizons_s": list(HORIZONS_S),
         "physical_edge_tol": PHYS_EDGE_TOL,
         "error_cap_rel_mse": ERROR_CAP_REL_MSE,
-        "selection_metric": "mean_capped_5s_rel_mse_all_runs",
+        "selection_metric": "max_median_ttf_then_min_capped_5s_rel_mse",
         "selected": best_label,
-        "selected_5s_rel_mse": best_score,
+        "selected_ttf_median": best_ttf if best_label else float("nan"),
+        "selected_5s_rel_mse": (
+            cand[best_label].get("select_5s_rel_mse", float("nan")) if best_label else float("nan")
+        ),
         "checkpoints": rows,
         "created_unix": time.time(),
     }
     out = Path(args.out) if Path(args.out).is_absolute() else _resolve(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2))
-    print(f"SELECTED {best_label} 5s_rel={best_score:.6e}", flush=True)
+    print(
+        f"SELECTED {best_label} ttf_med={best_ttf:.6g} 5s_rel={report['selected_5s_rel_mse']:.6e}",
+        flush=True,
+    )
     print(f"wrote {out}", flush=True)
 
 
