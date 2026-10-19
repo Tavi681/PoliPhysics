@@ -28,6 +28,7 @@ with ``schema_version < 2``.
 from __future__ import annotations
 
 import math
+import re
 from typing import Any, Iterable, Sequence
 
 import numpy as np
@@ -296,28 +297,62 @@ def physical_fraction_at_times(
     return out
 
 
+_RUN_X_RE = re.compile(r"_x([+-]?\d+)_i\d+")
+
+
+def parse_x_from_run_id(run_id: str) -> int:
+    """Grid coordinate encoded in ``N1_sw0.15_x+4_i0099``."""
+    m = _RUN_X_RE.search(str(run_id))
+    if not m:
+        raise ValueError(f"run_id has no _x<int>_i field: {run_id}")
+    return int(m.group(1))
+
+
+def grid_x(run: dict[str, Any]) -> int:
+    """Ballooning grid x from the run id, checked against ``x_grid``.
+
+    ``run["q"]`` is the thread charge in coulombs (~1e-9). Rounding it to 6
+    decimals yields 0 and pools every x together. The grid coordinate is the
+    ``x`` token in the run id, which preprocess copies from the sweep / HDF5
+    metadata into ``globals["x_grid"]`` (HDF5 ``params`` has no attribute named
+    ``q`` for this coordinate; charge is ``Q_t``).
+    """
+    rid = run.get("run_id")
+    if not rid:
+        raise KeyError("run_id")
+    x = parse_x_from_run_id(str(rid))
+    if run.get("x_grid") is not None:
+        x_attr = int(run["x_grid"])
+        if x_attr != x:
+            raise ValueError(
+                f"run_id x={x} disagrees with x_grid={x_attr} for {rid}"
+            )
+    return x
+
+
 def aggregate_P_grid(
     per_run: Sequence[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Rows for ``tab_P_grid.csv`` with Wilson intervals on sim and surrogate.
 
-    Each run dict should provide ``N``, ``q``, ``sigma_w``, surrogate ``status``
-    (or ``status_surr``), and simulator outcome as ``outcome`` / ``gt_status`` /
-    ``status_sim``.
+    A grid point is ``(N, x, sigma_w)``. ``x`` is parsed from ``run_id`` and
+    cross-checked against ``x_grid`` when that field is present. Surrogate
+    success is ``status == rise``; simulator success is ``outcome_sim`` /
+    ``status_sim`` / ``outcome`` equal to ``rise``.
     """
-    cells: dict[tuple[int, float, float], dict[str, int]] = {}
+    cells: dict[tuple[int, int, float], dict[str, int]] = {}
     for r in per_run:
         try:
             gkey = (
                 int(r["N"]),
-                round(float(r["q"]), 6),
+                grid_x(r),
                 round(float(r["sigma_w"]), 4),
             )
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError):
             continue
         status_surr = str(r.get("status_surr", r.get("status", "")))
         status_sim = str(
-            r.get("status_sim", r.get("gt_status", r.get("outcome", "")))
+            r.get("outcome_sim", r.get("status_sim", r.get("gt_status", r.get("outcome", ""))))
         )
         cell = cells.setdefault(gkey, {"n": 0, "sim_rise": 0, "surr_rise": 0})
         cell["n"] += 1
@@ -332,7 +367,7 @@ def aggregate_P_grid(
         lo_m, hi_m = wilson_interval(km, n_cell)
         rows.append({
             "N": gkey[0],
-            "q": gkey[1],
+            "x": gkey[1],
             "sigma_w": gkey[2],
             "n_runs": n_cell,
             "P_sim": ks / max(n_cell, 1),

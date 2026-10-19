@@ -10,6 +10,7 @@ from ml.metrics.rollout_metrics import (
     ERROR_CAP_ABS_MSE,
     ERROR_CAP_REL_MSE,
     PHYS_EDGE_TOL,
+    aggregate_P_grid,
     aggregate_horizon_errors,
     aggregate_ttf,
     cap_mse,
@@ -17,6 +18,7 @@ from ml.metrics.rollout_metrics import (
     error_time_grid,
     is_physical_at_horizon,
     is_physical_series,
+    parse_x_from_run_id,
     segment_rel_deviations,
     time_to_failure,
 )
@@ -108,3 +110,37 @@ def test_ttf_good_rollout_never_fails():
     ttf_stats = aggregate_ttf(runs)
     assert math.isinf(ttf_stats["median"])
     assert ttf_stats["n_never_fail"] == 1
+
+
+def test_parse_x_from_run_id():
+    assert parse_x_from_run_id("N1_sw0.15_x+4_i0099") == 4
+    assert parse_x_from_run_id("N8_sw0.30_x-2_i0001") == -2
+    assert parse_x_from_run_id("N3_sw0.22_x+0_i0014") == 0
+
+
+def test_p_grid_groups_by_x_not_charge():
+    """Charge q ~ 1e-9 C rounds to 0 and must not pool distinct x values."""
+    runs = []
+    for x, n_surr_rise in ((4, 2), (-4, 0)):
+        for i in range(2):
+            runs.append({
+                "run_id": f"N1_sw0.15_x{x:+d}_i{i:04d}",
+                "x_grid": x,
+                "N": 1,
+                "q": 1e-9,
+                "sigma_w": 0.15,
+                "status": "rise" if i < n_surr_rise else "fall",
+                "outcome_sim": "rise" if i == 0 else "timeout",
+            })
+    rows = aggregate_P_grid(runs)
+    assert [r["x"] for r in rows] == [-4, 4]
+    by_x = {r["x"]: r for r in rows}
+    assert by_x[4]["n_runs"] == 2
+    assert by_x[4]["P_surr"] == pytest.approx(1.0)
+    assert by_x[4]["P_sim"] == pytest.approx(0.5)
+    assert by_x[-4]["P_surr"] == pytest.approx(0.0)
+    assert by_x[-4]["P_sim"] == pytest.approx(0.5)
+    assert "q" not in by_x[4]
+    bad = dict(runs[0], x_grid=0)
+    with pytest.raises(ValueError, match="disagrees"):
+        aggregate_P_grid([bad])

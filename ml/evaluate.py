@@ -997,6 +997,9 @@ def _load_or_run_full_rollout(
         pred = batched.get(rid)
         if pred is None:
             return None
+    pred = dict(pred)
+    pred["run_id"] = rid
+    pred["x_grid"] = int(rec["globals"]["x_grid"])
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
         json.dump(_compact_pred_for_disk(pred), f, indent=2)
@@ -1175,6 +1178,8 @@ def evaluate_checkpoint(
             run_row.setdefault("status_sim", gt_out)
             run_row.setdefault("N", int(rec["globals"]["N"]))
             run_row.setdefault("q", float(rec["globals"]["q"]))
+            run_row["run_id"] = rid
+            run_row["x_grid"] = int(rec["globals"]["x_grid"])
             run_row.setdefault("sigma_w", float(rec["globals"]["sigma_w"]))
             run_row.setdefault("ttf_s", float("nan"))
             per_run_acc.append(run_row)
@@ -1219,7 +1224,7 @@ def evaluate_checkpoint(
             takeoff_m.append(1 if pred["status"] == "rise" else 0)
             gkey = (
                 int(rec["globals"]["N"]),
-                round(float(rec["globals"]["q"]), 6),
+                int(rec["globals"]["x_grid"]),
                 round(float(rec["globals"]["sigma_w"]), 4),
             )
             delta_P_by_grid.setdefault(gkey, []).append(
