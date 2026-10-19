@@ -43,3 +43,16 @@ Tema 1/results/r1_old.log
 Tema 1/results/r1_new.log
 Tema 1/COMMIT
 wandb/
+
+# Local ML results, logs and caches
+Tema 1/results/.mplconfig/
+Tema 1/results/ml/_*/
+Tema 1/results/ml/*_88dc163f/
+Tema 1/results/ml/final_*/
+Tema 1/results/ml/gns_*_s42_*/
+Tema 1/results/ml/diagnostics/
+Tema 1/results/ml/paper_report_pull/final_v2/per_run/
+Tema 1/results/_step0_inspect/*.log
+Tema 1/results/clamp_check/*.log
+Tema 1/results/ml/*.log
+
