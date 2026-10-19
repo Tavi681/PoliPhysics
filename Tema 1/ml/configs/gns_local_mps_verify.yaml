@@ -1,0 +1,60 @@
+# Short local MPS verify after noise/norm fix (few thousand steps).
+model:
+  name: gns_local
+  latent: 128
+  n_mp_steps: 10
+  mlp_depth: 2
+  aggregation: sum
+  node_type_embed_dim: 16
+  edge_sets: [material]
+
+data:
+  data_dir: results/ml/processed/local_subset
+  splits: results/ml/splits/splits.json
+  C: 5
+  node_features: [v_hist, u, charge]
+  globals_fields: [qE, m, N]
+  edge_sets: [material]
+  radius: 0.05
+  noise_k: 1.0
+  noise_mode: per_type
+  normalize_features: true
+  rotate_augment: false
+  sample_weight: per_run
+  cache_shards: 4
+  mmap: true
+  shard_aware: true
+
+train:
+  seed: 42
+  seeds: [42]
+  optimizer: adam
+  batch_size: 2
+  lr: 1.0e-4
+  weight_decay: 0.0
+  max_steps: 3000
+  grad_clip: 1.0
+  log_every: 50
+  lr_schedule:
+    type: exponential
+    lr_end: 1.0e-6
+  val_every: 500
+  val_one_step_frames: 256
+  val_rollout_runs: 8
+  rollout_K: 20
+  early_stopping:
+    metric: val_one_step_mse
+    patience: 20
+  num_workers: 0
+  prefetch_factor: 2
+  checkpoint_dir: results/ml/runs
+
+wandb:
+  project: poliphysics-ballooning-ml
+  mode: offline
+  entity: null
+
+eval:
+  rollout_K: 20
+  t_end: 5.0
+  max_full_runs: 3

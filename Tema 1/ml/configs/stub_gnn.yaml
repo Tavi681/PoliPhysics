@@ -1,0 +1,43 @@
+model:
+  name: stub_gnn
+  hidden: 64
+
+data:
+  data_dir: results/ml/processed/local_subset
+  splits: results/ml/splits/splits.json
+  C: 5
+  history_u: false
+  node_features: [v_hist, u, charge, node_type]
+  edge_sets: [material]
+  radius: 0.15
+  noise_std: 0.0
+  sample_weight: per_run  # or per_frame
+
+train:
+  seed: 42
+  seeds: [42]  # multi-seed: list
+  batch_size: 2
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  max_steps: 300
+  grad_clip: 1.0
+  lr_schedule:
+    type: cosine
+    warmup_steps: 30
+  val_every: 50
+  rollout_K: 20
+  early_stopping:
+    metric: val_rollout_mse
+    patience: 20
+  num_workers: 0
+  checkpoint_dir: results/ml/runs
+
+wandb:
+  project: poliphysics-ballooning-ml
+  mode: offline  # online | offline | disabled
+  entity: null
+
+eval:
+  rollout_K: 20
+  t_end: 5.0  # smoke; paper eval uses 60.0
+  max_full_runs: 3  # smoke; omit for full eval

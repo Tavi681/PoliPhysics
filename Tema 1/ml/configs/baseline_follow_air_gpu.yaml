@@ -1,0 +1,34 @@
+model:
+  name: follow_air
+
+data:
+  data_dir: /data/processed/5c60fa669a719404
+  splits: /data/processed/5c60fa669a719404/splits/splits.json
+  C: 5
+  node_features: [v_hist, u, charge]
+  globals_fields: [qE, m, N]
+  edge_sets: [material]
+  sample_weight: per_run
+
+train:
+  seed: 42
+  seeds: [42]
+  batch_size: 2
+  max_steps: 0
+  checkpoint_dir: results/ml/runs
+
+wandb:
+  project: poliphysics-ballooning-ml
+  mode: disabled
+
+eval:
+  seed: 42
+  one_step_n_frames: 100000
+  one_step_batch: 16
+  rollout_K: 100
+  t_end: 60.0
+  max_full_runs: null
+  horizon_errors_s: [0.2, 1.0, 5.0, 10.0]
+  stream_full_rollouts: true
+  error_vs_time_grid_s: [0.2, 0.5, 1.0, 2.0, 5.0, 10.0]
+  full_rollout_batch_runs: 1

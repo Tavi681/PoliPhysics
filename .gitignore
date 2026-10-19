@@ -55,4 +55,7 @@ Tema 1/results/ml/paper_report_pull/final_v2/per_run/
 Tema 1/results/_step0_inspect/*.log
 Tema 1/results/clamp_check/*.log
 Tema 1/results/ml/*.log
+Tema 1/ml/.venv/
+Tema 1/ml/CODE_DIRTY
+Tema 1/ml/COMMIT
 

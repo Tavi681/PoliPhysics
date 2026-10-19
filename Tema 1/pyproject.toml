@@ -26,6 +26,7 @@ ballooning = "ballooning.cli:main"
 include = ["ballooning*"]
 
 [tool.pytest.ini_options]
+pythonpath = ["."]
 testpaths = ["tests"]
 markers = [
     "slow: integration tests that run the time stepper (deselect with '-m \"not slow\"')",
