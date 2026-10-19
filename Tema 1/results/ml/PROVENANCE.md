@@ -21,3 +21,5 @@ Code commit is the git commit recorded in `metrics.json` (`git.commit`) or in `r
 | `summary.md` | `.../final_v2/summary.md` | not in bucket | unknown | none | `5c60fa669a719404` | 2026-10-19 | valid as the session note. Writer is untracked |
 
 Pooled `final_v2/P/tab_P_grid_*.csv` files without `_by_x` are superseded (they group on charge `q`, which rounds to 0).
+
+From commit 4497fdb759103bd280e176130f4573cc82da24a6, the ML code lives in Tema 1/ml; earlier commits have it in ml/ at the repo root.
