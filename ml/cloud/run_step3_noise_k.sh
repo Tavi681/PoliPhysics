@@ -132,9 +132,16 @@ PY
 }
 
 for K in 0.1 0.3 3; do
+  if [[ -f "${LOGDIR}/ckpt_select_k${K}.json" && -f "${LOGDIR}/run_dir_k${K}.txt" ]]; then
+    echo "SKIP train k=${K} (ckpt_select_k${K}.json exists)"
+    continue
+  fi
   retry_once "train_select_k${K}" train_one_k "${K}"
 done
 
+if [[ -f "${LOGDIR}/ckpt_select_k1.json" ]]; then
+  echo "SKIP select k=1 (ckpt_select_k1.json exists)"
+else
 echo "--- SELECT k=1 (epochs 00-10; post-hoc early stop not reached) ---"
 K1_CKPTS=()
 shopt -s nullglob
@@ -146,6 +153,7 @@ python3 -m ml.scripts.select_checkpoint_horizon \
   --checkpoints "${K1_CKPTS[@]}" \
   --device cuda --n-runs 32 --t-end 60 \
   --out "${LOGDIR}/ckpt_select_k1.json"
+fi
 
 python3 - <<'PY'
 import json
@@ -168,7 +176,11 @@ rows.append({
   "best_epoch": ph.get("best_epoch"),
 })
 for k in (0.1, 0.3, 3.0):
-  d=json.load(open(LOG/f"ckpt_select_k{k}.json"))
+  # bash writes k=3 as ckpt_select_k3.json; f"{3.0}" is ckpt_select_k3.0.json
+  p=LOG/f"ckpt_select_k{k:g}.json"
+  if not p.exists():
+    p=LOG/f"ckpt_select_k{k}.json"
+  d=json.load(open(p))
   sel=d["selected"]; row=d["checkpoints"][sel]
   run_dir=Path(row["path"]).parent
   meta={}
@@ -197,7 +209,7 @@ for r in rows:
     best=r
 out={"rows":rows,"winner":best}
 (LOG/"noise_k_selection_table.json").write_text(json.dumps(out, indent=2))
-(LOG/"winner_k.txt").write_text(str(best["k"]))
+(LOG/"winner_k.txt").write_text(f"{best['k']:g}")
 (LOG/"winner_ckpt.txt").write_text(best["path"] or "")
 print(json.dumps(out, indent=2))
 PY
@@ -217,6 +229,12 @@ fi
 
 echo "STEP3_WALL_S=$(( $(date +%s)-T0_ALL ))"
 upload "${LOGDIR}" "${BUCKET}/logs/table1b_final/"
+
+if [[ "${SKIP_STEP4:-0}" == "1" ]]; then
+  echo "SKIP_STEP4 (step3 remainder only)"
+  echo "=== STEP3 DONE $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+  exit 0
+fi
 
 echo "=== STEP4 assemble ==="
 python3 -m ml.scripts.assemble_table1b_v2_final \
