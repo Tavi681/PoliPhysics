@@ -273,6 +273,7 @@ def full_rollout_surrogate(
     t_series: list[float] = []
     R_over_L_series: list[float] = []
     max_edge_rel_series: list[float] = []
+    z_0_series: list[float] = []
     ttf_s = float("inf")
     fail_node_i: int | None = None
     fail_node_j: int | None = None
@@ -440,6 +441,7 @@ def full_rollout_surrogate(
             t_series.append(t_rel)
             R_over_L_series.append(r_ol)
             max_edge_rel_series.append(mer if np.isfinite(mer) else float("inf"))
+            z_0_series.append(float(spider[2]))
             if not failed:
                 if (not finite_step) or mer >= PHYS_EDGE_TOL:
                     ttf_s = t_rel
@@ -540,6 +542,7 @@ def full_rollout_surrogate(
         "t_series": t_series,
         "R_over_L_series": R_over_L_series,
         "max_edge_rel_series": max_edge_rel_series,
+        "z_0_series": z_0_series,
         "N": int(g["N"]),
         "q": float(g["q"]),
         "sigma_w": float(g["sigma_w"]),
@@ -922,18 +925,20 @@ def _append_horizon_errors(
 
 
 def _compact_pred_for_disk(pred: dict) -> dict:
-    """Drop full trajectories; keep compact schema-v2 series (t / R/L / max_edge)."""
+    """Drop full trajectories; keep compact schema-v3 series (t / R/L / max_edge / z0)."""
     drop = {"x", "v", "t"}
     return _json_safe({k: v for k, v in pred.items() if k not in drop})
 
 
 def _per_run_schema_ok(pred: dict | None) -> bool:
-    """Resume only schema_version >= 2 with ttf_s and R_over_L_series."""
+    """Resume only schema_version >= 3 with ttf_s, R_over_L_series, and z_0_series."""
     if not isinstance(pred, dict):
         return False
     if int(pred.get("schema_version", 0) or 0) < SCHEMA_VERSION:
         return False
     if "ttf_s" not in pred or "R_over_L_series" not in pred:
+        return False
+    if "z_0_series" not in pred:
         return False
     return True
 

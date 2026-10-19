@@ -21,9 +21,10 @@ state is non-finite. Never-failing rollouts have ``ttf_s = +inf``.
 
 Per-run JSON schema
 -------------------
-Writers should set ``schema_version = 2`` and include ``ttf_s`` plus the
-compact series fields documented in :mod:`ml.evaluate`. Resume skips files
-with ``schema_version < 2``.
+Writers should set ``schema_version = 3`` and include ``ttf_s``, the
+compact series fields documented in :mod:`ml.evaluate`, and ``z_0_series``
+(spider absolute height on the same time grid as ``t_series``). Resume skips
+files with ``schema_version < 3``.
 """
 from __future__ import annotations
 
@@ -38,7 +39,7 @@ from ml.metrics.physics import wilson_interval
 PHYS_EDGE_TOL = 0.10  # |Δℓ|/ℓ0 < 10% to remain physical
 ERROR_CAP_REL_MSE = 100.0  # m²; spider-relative position MSE cap
 ERROR_CAP_ABS_MSE = 100.0  # m²; spider absolute position MSE cap
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 __all__ = [
     "PHYS_EDGE_TOL",

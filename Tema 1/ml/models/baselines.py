@@ -35,10 +35,14 @@ class ConstantVelocity(SurrogateModel):
 
 @register_model("follow_air")
 class FollowAir(SurrogateModel):
-    """v_{t+1} = u at the node; spider vertical component settles at -w_s.
+    """Massless tracers: every node (spider included) takes the local air velocity.
 
-    w_s is passed via batch.w_s (per-graph) or computed from globals if present.
-    Emits normalized a_t = (v_{t+1} - v_t) / dt.
+    Paper definition: for each node k, ``v_k = u(x_k, t)`` in all three components,
+    where ``u`` is evaluated at the current absolute positions and current time
+    (``u(x^t, t)``; see ``full_rollout_surrogate``). No settling speed, no
+    electrostatic drift, no special case for the spider.
+
+    Emits normalized ``a_t = (v_{t+1} - v_t) / dt`` with ``v_{t+1} = u_t``.
     """
 
     def __init__(self, a_mean=None, a_std=None, dt: float = 0.01, **kwargs):
@@ -57,17 +61,6 @@ class FollowAir(SurrogateModel):
     def forward(self, batch: Data | Batch) -> torch.Tensor:
         v_t = batch.v_t
         u = batch.u_t
-        v_next = u.clone()
-        # spider nodes: node_type == 0
-        spider = batch.node_type == 0
-        if hasattr(batch, "w_s"):
-            # w_s may be per-graph; map to nodes via batch.batch
-            if hasattr(batch, "batch") and batch.w_s.numel() > 1:
-                ws = batch.w_s[batch.batch]
-            else:
-                ws = batch.w_s.reshape(-1)[0].expand(v_next.size(0))
-            v_next[spider, 2] = -ws[spider] if ws.shape[0] == v_next.shape[0] else -float(batch.w_s.reshape(-1)[0])
-        else:
-            v_next[spider, 2] = 0.0
+        v_next = u
         a = (v_next - v_t) / self.dt
         return (a - self.a_mean) / self.a_std
