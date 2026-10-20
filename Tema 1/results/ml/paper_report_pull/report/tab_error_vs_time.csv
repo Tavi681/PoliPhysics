@@ -1,0 +1,33 @@
+Model,Split,SplitKey,t_s,rel_mse_mean,spider_abs_mse_mean,note
+gns_local,interpolation,test_interp,0.2,4.781531247598001e-05,3.9331988765560103e-05,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,interpolation,test_interp,1.0,0.004863676975772131,0.04580050329716053,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,interpolation,test_interp,5.0,2.499506533861463,8.379192120253174,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,interpolation,test_interp,10.0,2.837075189771504,12.134865938774691,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,unseen N interpolation (N=3),test_unseenN_interp,0.2,6.298095502625526e-05,5.476206783991938e-05,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,unseen N interpolation (N=3),test_unseenN_interp,1.0,0.008002078270211028,0.049686790771415815,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,unseen N interpolation (N=3),test_unseenN_interp,5.0,2.3996223008764974,6.417921674810185,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,unseen N interpolation (N=3),test_unseenN_interp,10.0,2.410580737323284,10.667103033007058,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,"unseen N extrapolation (N=6,8)",test_unseenN,0.2,0.0007735549715955929,0.00408927587166598,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,"unseen N extrapolation (N=6,8)",test_unseenN,1.0,0.21816448819924056,1.4731900317171824,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,"unseen N extrapolation (N=6,8)",test_unseenN,5.0,1.1695912516079472,2.4562210440157637,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,"unseen N extrapolation (N=6,8)",test_unseenN,10.0,1.1689583892999813,5.158400502786385,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,unseen sigma_w=0.22,test_unseenSigma,0.2,2.6589815482574882e-05,3.369716859731257e-05,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,unseen sigma_w=0.22,test_unseenSigma,1.0,0.0038856101258320603,0.03011051940381649,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,unseen sigma_w=0.22,test_unseenSigma,5.0,2.6183407114736057,8.280225209185692,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_local,unseen sigma_w=0.22,test_unseenSigma,10.0,2.678604427772248,12.66243280131853,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,interpolation,test_interp,0.2,2.6473091423623214e-05,6.99760396752048e-05,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,interpolation,test_interp,1.0,0.0010839705688910279,0.038790011681015715,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,interpolation,test_interp,5.0,0.10912729188685026,2.442967510274464,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,interpolation,test_interp,10.0,1.8937558455634258,10.319708331878598,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,unseen N interpolation (N=3),test_unseenN_interp,0.2,4.486101760745645e-05,9.307117536834583e-05,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,unseen N interpolation (N=3),test_unseenN_interp,1.0,0.0016730834467770005,0.06077181270274858,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,unseen N interpolation (N=3),test_unseenN_interp,5.0,0.11706014203164519,3.6497061544908744,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,unseen N interpolation (N=3),test_unseenN_interp,10.0,1.0065248353880922,11.348653967571444,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,"unseen N extrapolation (N=6,8)",test_unseenN,0.2,0.0008403592204265487,0.005183665880194045,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,"unseen N extrapolation (N=6,8)",test_unseenN,1.0,0.07697008654026966,1.342306482281064,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,"unseen N extrapolation (N=6,8)",test_unseenN,5.0,0.7300486791099522,8.666726510440244,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,"unseen N extrapolation (N=6,8)",test_unseenN,10.0,0.9375558437831031,20.002891309611915,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,unseen sigma_w=0.22,test_unseenSigma,0.2,2.1596674070785637e-05,6.418968246709932e-05,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,unseen sigma_w=0.22,test_unseenSigma,1.0,0.0012935886941923532,0.045311355701220024,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,unseen sigma_w=0.22,test_unseenSigma,5.0,0.07134002554117912,2.9198287572384856,from horizon_errors; continuous grid not persisted for GNS paper eval
+gns_baseline,unseen sigma_w=0.22,test_unseenSigma,10.0,0.8969139329846265,11.982204312633387,from horizon_errors; continuous grid not persisted for GNS paper eval

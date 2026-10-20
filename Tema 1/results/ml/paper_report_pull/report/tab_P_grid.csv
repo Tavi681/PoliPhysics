@@ -1,0 +1,9 @@
+Model,Split,SplitKey,N,q,sigma_w,n_runs,n_grid_points,P_sim,P_surr,P_sim_wilson_lo,P_sim_wilson_hi,note
+gns_local,interpolation,test_interp,ALL_IN_SPLIT,ALL_IN_SPLIT,ALL_IN_SPLIT,590,6,0.43559322033898307,0.08305084745762711,0.39612819919083153,0.47589151436886523,per-grid P not persisted in GNS metrics; split-pooled only
+gns_local,unseen N interpolation (N=3),test_unseenN_interp,ALL_IN_SPLIT,ALL_IN_SPLIT,ALL_IN_SPLIT,150,1,0.38,0.02666666666666667,0.3062372724644591,0.45975558618387935,per-grid P not persisted in GNS metrics; split-pooled only
+gns_local,"unseen N extrapolation (N=6,8)",test_unseenN,ALL_IN_SPLIT,ALL_IN_SPLIT,ALL_IN_SPLIT,1850,3,0.48324324324324325,0.0,0.46053022473559374,0.5060257071619263,per-grid P not persisted in GNS metrics; split-pooled only
+gns_local,unseen sigma_w=0.22,test_unseenSigma,ALL_IN_SPLIT,ALL_IN_SPLIT,ALL_IN_SPLIT,300,2,0.3933333333333333,0.04,0.3397391051458938,0.44962472871534254,per-grid P not persisted in GNS metrics; split-pooled only
+gns_baseline,interpolation,test_interp,ALL_IN_SPLIT,ALL_IN_SPLIT,ALL_IN_SPLIT,590,6,0.43559322033898307,0.18305084745762712,0.39612819919083153,0.47589151436886523,per-grid P not persisted in GNS metrics; split-pooled only
+gns_baseline,unseen N interpolation (N=3),test_unseenN_interp,ALL_IN_SPLIT,ALL_IN_SPLIT,ALL_IN_SPLIT,150,1,0.38,0.06666666666666667,0.3062372724644591,0.45975558618387935,per-grid P not persisted in GNS metrics; split-pooled only
+gns_baseline,"unseen N extrapolation (N=6,8)",test_unseenN,ALL_IN_SPLIT,ALL_IN_SPLIT,ALL_IN_SPLIT,1850,3,0.48324324324324325,0.006486486486486486,0.46053022473559374,0.5060257071619263,per-grid P not persisted in GNS metrics; split-pooled only
+gns_baseline,unseen sigma_w=0.22,test_unseenSigma,ALL_IN_SPLIT,ALL_IN_SPLIT,ALL_IN_SPLIT,300,2,0.3933333333333333,0.08666666666666667,0.3397391051458938,0.44962472871534254,per-grid P not persisted in GNS metrics; split-pooled only

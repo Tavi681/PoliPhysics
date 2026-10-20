@@ -1,0 +1,386 @@
+=== agent_long_watch start 2026-10-13T06:13:28Z poll=900s ===
+--- POLL 2026-10-13T06:13:28Z ---
+Connection reset by 34.66.149.103 port 22
+
+Recommendation: To check for possible causes of SSH connectivity issues and get
+recommendations, rerun the ssh command with the --troubleshoot option.
+
+gcloud compute ssh poliphysics-tema1-ml-train --project=authorship-verification --zone=us-central1-b --troubleshoot
+
+Or, to investigate an IAP tunneling issue:
+
+gcloud compute ssh poliphysics-tema1-ml-train --project=authorship-verification --zone=us-central1-b --troubleshoot --tunnel-through-iap
+
+ERROR: (gcloud.compute.ssh) [/usr/bin/ssh] exited with return code [255].
+=== agent_long_watch start 2026-10-13T06:45:46Z poll=900s ===
+--- POLL 2026-10-13T06:45:46Z ---
+STEP STEP 286730 epoch=4 loss=9.5395e-02 data_wait_s=0.0219 elapsed_s=45246.2 session_cost_usd=10.75
+EPOCH_PT 4
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-13T10:54:35Z ---
+Connection reset by 34.66.149.103 port 22
+
+Recommendation: To check for possible causes of SSH connectivity issues and get
+recommendations, rerun the ssh command with the --troubleshoot option.
+
+gcloud compute ssh poliphysics-tema1-ml-train --project=authorship-verification --zone=us-central1-b --troubleshoot
+
+Or, to investigate an IAP tunneling issue:
+
+gcloud compute ssh poliphysics-tema1-ml-train --project=authorship-verification --zone=us-central1-b --troubleshoot --tunnel-through-iap
+
+ERROR: (gcloud.compute.ssh) [/usr/bin/ssh] exited with return code [255].
+=== agent_long_watch start 2026-10-13T11:40:19Z poll=900s ===
+--- POLL 2026-10-13T11:40:19Z ---
+STEP STEP 400420 epoch=6 loss=8.4517e-02 data_wait_s=0.0223 elapsed_s=62920.6 session_cost_usd=14.94
+EPOCH_PT 6
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+=== agent_long_watch start 2026-10-13T11:40:57Z poll=900s ===
+--- POLL 2026-10-13T11:40:57Z ---
+STEP STEP 400890 epoch=6 loss=7.7140e-02 data_wait_s=0.0240 elapsed_s=62957.7 session_cost_usd=14.95
+EPOCH_PT 6
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+=== agent_long_watch start 2026-10-13T12:08:48Z poll=900s ===
+--- POLL 2026-10-13T12:08:48Z ---
+STEP STEP 412330 epoch=6 loss=8.6277e-02 data_wait_s=0.0334 elapsed_s=64629.8 session_cost_usd=15.34
+EPOCH_PT 6
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+=== agent_long_watch start 2026-10-13T12:12:12Z poll=900s ===
+--- POLL 2026-10-13T12:12:12Z ---
+STEP STEP 413510 epoch=6 loss=9.0771e-02 data_wait_s=0.0222 elapsed_s=64831.3 session_cost_usd=15.39
+EPOCH_PT 6
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+=== agent_long_watch start 2026-10-13T12:19:36Z poll=900s ===
+--- POLL 2026-10-13T12:19:36Z ---
+STEP STEP 414960 epoch=6 loss=9.1543e-02 data_wait_s=0.0224 elapsed_s=65275.9 session_cost_usd=15.50
+EPOCH_PT 6
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+=== agent_long_watch start 2026-10-13T12:21:56Z poll=1800s ===
+--- POLL 2026-10-13T12:21:56Z ---
+STEP STEP 415330 epoch=6 loss=8.7928e-02 data_wait_s=0.0220 elapsed_s=65415.1 session_cost_usd=15.53
+EPOCH_PT 6
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-13T14:32:39Z ---
+STEP STEP 465540 epoch=7 loss=8.8141e-02 data_wait_s=0.0238 elapsed_s=73261.9 session_cost_usd=17.39
+EPOCH_PT 7
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+/Users/octav/Projects/PoliPhysics/PoliPhysics/Tema 1/results/ml/logs/agent_long_watch.sh: line 81: by: unbound variable
+--- POLL 2026-10-13T16:19:02Z ---
+STEP STEP 504160 epoch=7 loss=2.8435e-01 data_wait_s=0.0215 elapsed_s=79641.9 session_cost_usd=18.90
+EPOCH_PT 7
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-13T17:45:37Z ---
+STEP STEP 539850 epoch=8 loss=7.7838e-02 data_wait_s=0.0213 elapsed_s=84837.8 session_cost_usd=20.13
+EPOCH_PT 8
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-13T18:15:51Z ---
+STEP STEP 549130 epoch=8 loss=8.5334e-02 data_wait_s=0.0218 elapsed_s=86650.7 session_cost_usd=20.56
+EPOCH_PT 8
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-13T18:46:04Z ---
+STEP STEP 560390 epoch=8 loss=7.0437e-02 data_wait_s=0.0218 elapsed_s=88464.8 session_cost_usd=20.99
+EPOCH_PT 8
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-13T19:16:17Z ---
+STEP STEP 573510 epoch=8 loss=7.2691e-02 data_wait_s=0.1063 elapsed_s=90277.7 session_cost_usd=21.42
+EPOCH_PT 8
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-13T19:46:29Z ---
+STEP STEP 584670 epoch=8 loss=2.6311e-01 data_wait_s=0.0217 elapsed_s=92090.8 session_cost_usd=21.85
+EPOCH_PT 8
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-13T20:16:47Z ---
+STEP STEP 599590 epoch=9 loss=2.5492e-01 data_wait_s=0.0217 elapsed_s=93906.4 session_cost_usd=22.28
+EPOCH_PT 9
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_08.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-13T20:47:00Z ---
+STEP STEP 611640 epoch=9 loss=8.6346e-02 data_wait_s=0.0225 elapsed_s=95722.0 session_cost_usd=22.72
+EPOCH_PT 9
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_08.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-13T21:17:13Z ---
+STEP STEP 622010 epoch=9 loss=8.4939e-02 data_wait_s=0.0216 elapsed_s=97532.1 session_cost_usd=23.14
+EPOCH_PT 9
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_08.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-13T21:47:26Z ---
+STEP STEP 632430 epoch=9 loss=2.6620e-01 data_wait_s=0.0216 elapsed_s=99343.6 session_cost_usd=23.57
+EPOCH_PT 9
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_08.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-13T22:33:56Z ---
+STEP STEP 648400 epoch=9 loss=2.6666e-01 data_wait_s=0.0223 elapsed_s=102136.9 session_cost_usd=24.24
+EPOCH_PT 9
+TRAIN_CNT 7
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_08.pt
+waiter start 2026-10-12T19:05:12Z pid=10753
+--- POLL 2026-10-14T04:36:31Z ---
+STEP STEP 700350 epoch=10 loss=1.7056e-01 data_wait_s=0.0226 elapsed_s=109574.7 session_cost_usd=26.00
+EPOCH_PT 11
+TRAIN_CNT 2
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 125367 bash ml/cloud/post_baseline_pipeline.sh
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_08.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_09.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_10.pt
+stop marker found (TRAIN_DONE|EARLY_STOP:|EPOCH STOP:|COST_CAP STOP|stop_reason=); starting post pipeline 2026-10-14T00:38:18Z
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+--- POLL 2026-10-14T05:11:05Z ---
+STEP STEP 700350 epoch=10 loss=1.7056e-01 data_wait_s=0.0226 elapsed_s=109574.7 session_cost_usd=26.00
+EPOCH_PT 11
+TRAIN_CNT 2
+WAITER 10753 bash ml/cloud/wait_then_post.sh
+POST 125367 bash ml/cloud/post_baseline_pipeline.sh
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_08.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_09.pt
+/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_10.pt
+stop marker found (TRAIN_DONE|EARLY_STOP:|EPOCH STOP:|COST_CAP STOP|stop_reason=); starting post pipeline 2026-10-14T00:38:18Z
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+--- POLL 2026-10-14T11:52:23Z ---
+External IP address was not found; defaulting to using IAP tunneling.
+WARNING: 
+
+To increase the performance of the tunnel, consider installing NumPy. For instructions,
+please see https://cloud.google.com/iap/docs/using-tcp-forwarding#increasing_the_tcp_upload_bandwidth
+
+ERROR: [0] Error during local connection to [stdin]: Error while connecting [4003: 'failed to connect to backend']. (Failed to connect to port 22)
+Traceback (most recent call last):
+  File "/opt/homebrew/Caskroom/gcloud-cli/574.0.0/google-cloud-sdk/lib/googlecloudsdk/command_lib/compute/iap_tunnel.py", line 805, in RunReceiveLocalData
+    websocket_conn = self._InitiateConnection(
+        conn,
+    ...<4 lines>...
+        conn_id=conn_id,
+    )
+  File "/opt/homebrew/Caskroom/gcloud-cli/574.0.0/google-cloud-sdk/lib/googlecloudsdk/command_lib/compute/iap_tunnel.py", line 771, in _InitiateConnection
+    new_websocket.InitiateConnection()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Caskroom/gcloud-cli/574.0.0/google-cloud-sdk/lib/googlecloudsdk/api_lib/compute/iap_tunnel_websocket.py", line 149, in InitiateConnection
+    self._WaitForOpenOrRaiseError()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Caskroom/gcloud-cli/574.0.0/google-cloud-sdk/lib/googlecloudsdk/api_lib/compute/iap_tunnel_websocket.py", line 441, in _WaitForOpenOrRaiseError
+    raise ConnectionCreationError(error_msg)
+googlecloudsdk.api_lib.compute.iap_tunnel_websocket.ConnectionCreationError: Error while connecting [4003: 'failed to connect to backend']. (Failed to connect to port 22)
+Connection closed by UNKNOWN port 65535
+
+Recommendation: To check for possible causes of SSH connectivity issues and get
+recommendations, rerun the ssh command with the --troubleshoot option.
+
+gcloud compute ssh poliphysics-tema1-ml-train --project=authorship-verification --zone=us-central1-b --troubleshoot
+
+Or, to investigate an IAP tunneling issue:
+
+gcloud compute ssh poliphysics-tema1-ml-train --project=authorship-verification --zone=us-central1-b --troubleshoot --tunnel-through-iap
+
+ERROR: (gcloud.compute.ssh) [/usr/bin/ssh] exited with return code [255].
+SSH_POLL_FAILED 2026-10-14T11:52:56Z
+Tema 1/results/ml/logs/agent_long_watch.sh: line 81: [[: External IP address was not found; defaulting to using IAP tunneling.: syntax error: invalid arithmetic operator (error token is "; defaulting to using IAP tunneling.")
+VM TERMINATED 2026-10-14T11:55:12Z

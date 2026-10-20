@@ -1,0 +1,53 @@
+{
+  "hdf5_turb_dtypes": [
+    {
+      "key": "k_n",
+      "hdf5_dtype": "float32",
+      "shape": [
+        200,
+        3
+      ]
+    },
+    {
+      "key": "a_n",
+      "hdf5_dtype": "float32",
+      "shape": [
+        200,
+        3
+      ]
+    },
+    {
+      "key": "b_n",
+      "hdf5_dtype": "float32",
+      "shape": [
+        200,
+        3
+      ]
+    },
+    {
+      "key": "omega_n",
+      "hdf5_dtype": "float32",
+      "shape": [
+        200
+      ]
+    }
+  ],
+  "simulator_KinematicSimulation_dtypes": {
+    "k": "float64",
+    "a": "float64",
+    "b": "float64",
+    "omega": "float64"
+  },
+  "n_checks": 300,
+  "from_hdf5_modes": {
+    "max_abs_diff": 1.735141015477004e-05,
+    "max_rel_diff": 0.03140765888629696,
+    "max_rel_diff_|u|>0.01": 0.0004519539581918489,
+    "|u|_at_max_rel_point": 0.0002645750510324174
+  },
+  "from_make_ks_float64_modes": {
+    "max_abs_diff": 5.955413673319754e-08,
+    "max_rel_diff": 5.888356697786342e-08
+  },
+  "conclusion": "HDF5 /turb stores modes as float32 (write_ml_hdf5 fdtype); KinematicSimulation holds float64. Remaining error after full f64 eval is from float32 mode quantization on disk."
+}

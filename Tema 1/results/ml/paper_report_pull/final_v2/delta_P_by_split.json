@@ -1,0 +1,112 @@
+{
+  "old_CV": {
+    "test_interp": {
+      "mean": 0.13902439024390242,
+      "max": 0.45,
+      "n_points": 41
+    },
+    "test_unseenN": {
+      "mean": 0.2585714285714285,
+      "max": 0.625,
+      "n_points": 14
+    },
+    "test_unseenN_interp": {
+      "mean": 0.20666666666666667,
+      "max": 0.32,
+      "n_points": 3
+    },
+    "test_unseenSigma": {
+      "mean": 0.16666666666666666,
+      "max": 0.28,
+      "n_points": 6
+    }
+  },
+  "new_CV": {
+    "test_interp": {
+      "mean": 0.13902439024390245,
+      "max": 0.45,
+      "n_points": 41
+    },
+    "test_unseenN": {
+      "mean": 0.25857142857142856,
+      "max": 0.625,
+      "n_points": 14
+    },
+    "test_unseenN_interp": {
+      "mean": 0.20666666666666667,
+      "max": 0.32,
+      "n_points": 3
+    },
+    "test_unseenSigma": {
+      "mean": 0.16666666666666666,
+      "max": 0.28,
+      "n_points": 6
+    }
+  },
+  "new_FA": {
+    "test_interp": {
+      "mean": 0.4304878048780487,
+      "max": 0.9,
+      "n_points": 41
+    },
+    "test_unseenN": {
+      "mean": 0.37642857142857145,
+      "max": 0.7,
+      "n_points": 14
+    },
+    "test_unseenN_interp": {
+      "mean": 0.24,
+      "max": 0.45999999999999996,
+      "n_points": 3
+    },
+    "test_unseenSigma": {
+      "mean": 0.25,
+      "max": 0.42,
+      "n_points": 6
+    }
+  },
+  "gns_local": {
+    "test_interp": {
+      "mean": 0.46463414634146344,
+      "max": 1.0,
+      "n_points": 41
+    },
+    "test_unseenN": {
+      "mean": 0.5160714285714285,
+      "max": 1.0,
+      "n_points": 14
+    },
+    "test_unseenN_interp": {
+      "mean": 0.35999999999999993,
+      "max": 0.7999999999999999,
+      "n_points": 3
+    },
+    "test_unseenSigma": {
+      "mean": 0.36000000000000004,
+      "max": 0.82,
+      "n_points": 6
+    }
+  },
+  "gns_baseline": {
+    "test_interp": {
+      "mean": 0.45487804878048776,
+      "max": 1.0,
+      "n_points": 41
+    },
+    "test_unseenN": {
+      "mean": 0.3360714285714285,
+      "max": 0.56,
+      "n_points": 14
+    },
+    "test_unseenN_interp": {
+      "mean": 0.36666666666666664,
+      "max": 0.7999999999999999,
+      "n_points": 3
+    },
+    "test_unseenSigma": {
+      "mean": 0.3833333333333333,
+      "max": 0.84,
+      "n_points": 6
+    }
+  }
+}

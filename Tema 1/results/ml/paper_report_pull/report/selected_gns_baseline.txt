@@ -1,0 +1,2 @@
+gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt
+5s_rel_mse=0.00012072117577366091

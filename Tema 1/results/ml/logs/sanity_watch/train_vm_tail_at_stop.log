@@ -1,0 +1,60 @@
+STEP 700110 epoch=10 loss=1.6968e-01 data_wait_s=0.0223 elapsed_s=109555.6 session_cost_usd=26.00
+STEP 700120 epoch=10 loss=2.1703e-01 data_wait_s=0.0219 elapsed_s=109556.4 session_cost_usd=26.00
+STEP 700130 epoch=10 loss=1.5102e-01 data_wait_s=0.0229 elapsed_s=109557.2 session_cost_usd=26.00
+STEP 700140 epoch=10 loss=2.0821e-01 data_wait_s=0.0227 elapsed_s=109558.0 session_cost_usd=26.00
+MEM step_700141 host_used_gb=5.31/33.65 avail_gb=28.34 swap_used_gb=0.00 main_rss_gb=2.228 workers=6 worker_rss_gb=[0.064, 1.395, 1.391, 1.391, 1.391, 0.026]
+STEP 700150 epoch=10 loss=1.5501e-01 data_wait_s=0.0224 elapsed_s=109558.8 session_cost_usd=26.00
+STEP 700160 epoch=10 loss=1.6931e-01 data_wait_s=0.0223 elapsed_s=109559.6 session_cost_usd=26.00
+STEP 700170 epoch=10 loss=1.6525e-01 data_wait_s=0.0218 elapsed_s=109560.4 session_cost_usd=26.00
+STEP 700180 epoch=10 loss=1.8181e-01 data_wait_s=0.0223 elapsed_s=109561.1 session_cost_usd=26.00
+STEP 700190 epoch=10 loss=1.7244e-01 data_wait_s=0.0219 elapsed_s=109562.0 session_cost_usd=26.00
+STEP 700200 epoch=10 loss=1.6866e-01 data_wait_s=0.0220 elapsed_s=109562.8 session_cost_usd=26.00
+STEP 700210 epoch=10 loss=1.7763e-01 data_wait_s=0.0216 elapsed_s=109563.5 session_cost_usd=26.00
+STEP 700220 epoch=10 loss=1.7269e-01 data_wait_s=0.0221 elapsed_s=109564.3 session_cost_usd=26.00
+STEP 700230 epoch=10 loss=2.3666e-01 data_wait_s=0.0220 elapsed_s=109565.0 session_cost_usd=26.00
+STEP 700240 epoch=10 loss=1.9752e-01 data_wait_s=0.0225 elapsed_s=109565.8 session_cost_usd=26.00
+STEP 700250 epoch=10 loss=1.6419e-01 data_wait_s=0.0223 elapsed_s=109566.6 session_cost_usd=26.00
+STEP 700260 epoch=10 loss=1.6925e-01 data_wait_s=0.0218 elapsed_s=109567.5 session_cost_usd=26.00
+MEM step_700269 host_used_gb=5.35/33.65 avail_gb=28.30 swap_used_gb=0.00 main_rss_gb=2.228 workers=6 worker_rss_gb=[0.064, 1.415, 1.414, 1.413, 1.414, 0.026]
+STEP 700270 epoch=10 loss=1.7397e-01 data_wait_s=0.0234 elapsed_s=109568.3 session_cost_usd=26.00
+STEP 700280 epoch=10 loss=1.6159e-01 data_wait_s=0.0224 elapsed_s=109569.1 session_cost_usd=26.00
+STEP 700290 epoch=10 loss=1.6089e-01 data_wait_s=0.0305 elapsed_s=109569.9 session_cost_usd=26.00
+STEP 700300 epoch=10 loss=1.8228e-01 data_wait_s=0.0217 elapsed_s=109570.7 session_cost_usd=26.00
+STEP 700310 epoch=10 loss=1.8183e-01 data_wait_s=0.0237 elapsed_s=109571.5 session_cost_usd=26.00
+STEP 700320 epoch=10 loss=1.8275e-01 data_wait_s=0.0355 elapsed_s=109572.3 session_cost_usd=26.00
+STEP 700330 epoch=10 loss=1.8118e-01 data_wait_s=0.0225 elapsed_s=109573.1 session_cost_usd=26.00
+STEP 700340 epoch=10 loss=1.8628e-01 data_wait_s=0.0222 elapsed_s=109573.9 session_cost_usd=26.00
+STEP 700350 epoch=10 loss=1.7056e-01 data_wait_s=0.0226 elapsed_s=109574.7 session_cost_usd=26.00
+COST_CAP STOP: cost_cap ($26.00 > $26.00)
+wandb: uploading output.log
+wandb: 
+wandb: Run history:
+wandb: ref/constant_velocity_rollout_mse ▁
+wandb:        ref/follow_air_rollout_mse ▁
+wandb:                              step ▁▁▁▁▂▂▂▂▂▂▂▃▃▃▃▃▄▄▄▄▄▅▅▅▅▆▆▆▆▆▇▇▇▇▇▇▇▇██
+wandb:                  train/batch_size ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+wandb:                 train/data_wait_s ▃▃▃▂▂▂▂▂▁▁▂▆█▁▂▂▂▁▁▁▂▁▁▂▂▂▁▃▃▁▂▂▁▂▂▂▂▁▂▁
+wandb:                       train/epoch ▁▁▁▂▂▃▃▃▃▄▄▄▄▅▅▅▅▅▅▅▅▅▅▆▆▆▇▇▇▇▇▇▇▇▇▇▇███
+wandb:                train/gpu_mem_frac ▃▆█▃▁▃▇▁▃▁▇▇▃▇▃▇▃▁▆▁█▇▁▆▁▁▁▃▁▆▇▃█▁▁▁▇▇▇▃
+wandb:                    train/gpu_util ███▆██▂██▂█▆▇█▅▇▂▂▂▁▂▁▂▂▁▇▂▂▂█▆▂█▇▁▃▂▁██
+wandb:                        train/loss ▄▂█▂▂▂▄▂▂▂▂▁▁▁▁▂▁▂▁▁▁▁▃▁▁▁▁▁▂▂▁▁▂▁▃▂▁▂▃▁
+wandb:                   train/loss_step ▂▇▆▆▂▅█▁▄▂▂▂▁▅▁▃▁▁▃▁▄▁▁▁▁▃▁▁▁▁▁▁▁▁▁▁▁▁▂▃
+wandb:                                +7 ...
+wandb: 
+wandb: Run summary:
+wandb: ref/constant_velocity_rollout_mse 0.00102
+wandb:        ref/follow_air_rollout_mse 0.00085
+wandb:    ref/gns_local_best_rollout_mse 3e-05
+wandb:             ref/rollout_horizon_s 0.2
+wandb:         ref/rollout_horizon_steps 20
+wandb:                              step 700350
+wandb:                  train/batch_size 64
+wandb:                 train/data_wait_s 0.02256
+wandb:                       train/epoch 10
+wandb:                train/gpu_mem_frac 0.0027
+wandb:                               +10 ...
+wandb: 
+wandb: 🚀 View run devout-night-5 at: https://wandb.ai/octavian-radu-upb/poliphysics-ballooning-ml/runs/w7ghs67l
+wandb: ⭐️ View project at: https://wandb.ai/octavian-radu-upb/poliphysics-ballooning-ml
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: ./wandb/run-20261012_181141-w7ghs67l/logs

@@ -1,0 +1,178 @@
+{
+  "loss_definition": {
+    "formula": "mean_i,c (pred_{i,c} - y_{i,c})^2",
+    "aggregation": "torch mean over all nodes and 3 acceleration components in the batch",
+    "per_type_weighting": false,
+    "target": "a_t = (v_{t+1}-v_t)/dt, then normalize: (a - a_mean)/a_std from TRAIN norm_stats",
+    "a_mean": [
+      0.026412174105644226,
+      -0.00011975432425970212,
+      0.006611871067434549
+    ],
+    "a_std": [
+      0.5979325771331787,
+      0.5192943811416626,
+      0.33959484100341797
+    ],
+    "noise": "RW over C velocities; noise_mode=per_type \u2192 sigma[type,c]=k*a_std_type[c]*dt; global \u2192 k*a_std[c]*dt; increments /sqrt(C); target a=(v_{t+1}^gt - v_t^noisy)/dt; target norm stays global",
+    "noise_k": 1.0,
+    "noise_mode": "per_type",
+    "noise_std_by_type_comp": [
+      [
+        0.005522608757019043,
+        0.0022747183684259653,
+        0.0025125613901764154
+      ],
+      [
+        0.0036383133847266436,
+        0.003011225489899516,
+        0.002564216498285532
+      ],
+      [
+        0.00426114909350872,
+        0.004010565113276243,
+        0.002629523165524006
+      ]
+    ],
+    "noise_std_components": null,
+    "a_by_type": {
+      "spider": {
+        "std": [
+          0.5522608757019043,
+          0.22747182846069336,
+          0.25125613808631897
+        ],
+        "count": 19272
+      },
+      "interior": {
+        "std": [
+          0.3638313412666321,
+          0.3011225461959839,
+          0.25642165541648865
+        ],
+        "count": 2415749
+      },
+      "tip": {
+        "std": [
+          0.42611491680145264,
+          0.4010564982891083,
+          0.2629523277282715
+        ],
+        "count": 49301
+      }
+    },
+    "zero_acc_note": "physical a=0 \u2192 normalized pred = -a_mean/a_std"
+  },
+  "n_batches": 50,
+  "batch_size": 2,
+  "losses": {
+    "zero_acc_noisy": 2.35109452188015,
+    "zero_acc_clean": 1.9283134124055505,
+    "zero_acc_train_fixed256": 0.2666515248827299,
+    "zero_acc_val_fixed256": 0.13802656877683986,
+    "zero_acc_train_by_type": {
+      "overall": 0.2666515248827299,
+      "spider": 0.33430278642845224,
+      "interior": 0.2639643908181089,
+      "tip": 0.37200072443567067
+    },
+    "zero_acc_val_by_type": {
+      "overall": 0.13802656877683986,
+      "spider": 0.45472438213073474,
+      "interior": 0.13705090712518336,
+      "tip": 0.10665953620991786
+    },
+    "best_ckpt_noisy": 1.3389136469364167,
+    "best_ckpt_clean": 0.914515327885747,
+    "train_one_step_clean_fixed256": 0.24321805125863952,
+    "val_one_step_clean": 0.12781225135132893,
+    "ckpt_train_by_type": {
+      "overall": 0.24321805125863952,
+      "spider": 0.22124089325188834,
+      "interior": 0.2407479137126776,
+      "tip": 0.3728049773019441
+    },
+    "ckpt_val_by_type": {
+      "overall": 0.12781225135132893,
+      "spider": 0.30298180520821916,
+      "interior": 0.12714027633358324,
+      "tip": 0.11694650395656936
+    }
+  },
+  "sanity_below_zero_acc": {
+    "train_overall": true,
+    "val_overall": true,
+    "train_by_type": {
+      "spider": true,
+      "interior": true,
+      "tip": false
+    },
+    "val_by_type": {
+      "spider": true,
+      "interior": true,
+      "tip": false
+    }
+  },
+  "frame_sets": {
+    "n_fixed": 256,
+    "train_indices_head": [
+      140,
+      375,
+      435,
+      590,
+      664,
+      712,
+      801,
+      835
+    ],
+    "val_indices_head": [
+      2,
+      10,
+      13,
+      14,
+      15,
+      20,
+      22,
+      25
+    ],
+    "same_norm": true,
+    "same_window_ok_filter": true,
+    "same_u_source": "stored rec['u'] / u_next_frame (not ks_torch)",
+    "graph": "built per sample from absolute positions at t"
+  },
+  "irreducible_noise": {
+    "zero_noisy_minus_clean": 0.42278110947459946,
+    "ckpt_noisy_minus_clean": 0.4243983190506697,
+    "interpretation": "zero_noisy - zero_clean \u2248 training-loss floor from RW noise at k (targets shift when latest v is noised). ckpt_noisy - ckpt_clean is the same gap for the fitted model."
+  },
+  "rollout_refs": {
+    "metric": "val_rollout_mse",
+    "units": "m^2_rel_pos",
+    "horizon_steps": 20,
+    "horizon_seconds": 0.2,
+    "n_runs": 1,
+    "run_ids": [
+      "N4_sw0.15_x-1_i0191"
+    ],
+    "seed": 42,
+    "constant_velocity": 0.0009606133749358037,
+    "follow_air": 0.0004328888502641348,
+    "gns_local_best_reported": 2.79e-05,
+    "timing_cv": {
+      "air_time_s": 0.015119291609153152,
+      "model_time_s": 0.003879835596308112,
+      "graph_time_s": 0.037290416890755296,
+      "n_steps": 20,
+      "n_runs": 1
+    },
+    "timing_fa": {
+      "air_time_s": 0.014668997609987855,
+      "model_time_s": 0.008839082904160023,
+      "graph_time_s": 0.03682329412549734,
+      "n_steps": 20,
+      "n_runs": 1
+    }
+  },
+  "checkpoint": "/Users/octav/Projects/PoliPhysics/PoliPhysics/Tema 1/results/ml/runs/gns_local_s42_5cc1dc36_1791759696/best.pt",
+  "created_unix": 1791759798.621176
+}

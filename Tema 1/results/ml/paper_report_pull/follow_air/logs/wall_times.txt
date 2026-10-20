@@ -1,0 +1,2 @@
+EVAL_WALL_S_constant_velocity=11464
+EVAL_WALL_S_follow_air=32662

@@ -1,0 +1,163 @@
+{
+  "run_ids": [
+    "N1_sw0.15_x+4_i0099",
+    "N1_sw0.30_x+1_i0114",
+    "N2_sw0.15_x-1_i0114",
+    "N2_sw0.30_x+1_i0047",
+    "N4_sw0.15_x+1_i0029",
+    "N4_sw0.30_x+1_i0196",
+    "N1_sw0.15_x+1_i0035",
+    "N1_sw0.30_x+1_i0032",
+    "N2_sw0.15_x-1_i0057",
+    "N2_sw0.30_x+0_i0037",
+    "N4_sw0.15_x+0_i0188",
+    "N4_sw0.30_x+1_i0030",
+    "N1_sw0.15_x+4_i0075",
+    "N1_sw0.30_x+2_i0058",
+    "N2_sw0.15_x-1_i0007",
+    "N2_sw0.30_x+2_i0097",
+    "N4_sw0.15_x+0_i0075",
+    "N4_sw0.30_x+1_i0076",
+    "N1_sw0.15_x+0_i0190",
+    "N1_sw0.30_x+2_i0086",
+    "N2_sw0.15_x-4_i0011",
+    "N2_sw0.30_x+2_i0034",
+    "N4_sw0.15_x+1_i0118",
+    "N4_sw0.30_x+0_i0072",
+    "N1_sw0.15_x+1_i0123",
+    "N1_sw0.30_x+1_i0148",
+    "N2_sw0.15_x-4_i0005",
+    "N2_sw0.30_x+1_i0087",
+    "N4_sw0.15_x-1_i0010",
+    "N4_sw0.30_x+0_i0131",
+    "N1_sw0.15_x+2_i0013",
+    "N1_sw0.30_x+0_i0098"
+  ],
+  "horizons_s": [
+    0.2,
+    1.0,
+    5.0,
+    10.0
+  ],
+  "physical_edge_tol": 0.1,
+  "selection_metric": "5s_rel_mse",
+  "selected": "gns_local_s42_88dc163f_1791760366/last.pt",
+  "selected_5s_rel_mse": 0.0009924989696299613,
+  "checkpoints": {
+    "gns_local_s42_88dc163f_1791760366/best.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.03125,
+      "wall_s": 48.60189381199598,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": 5.95766434456226e-05,
+          "spider_abs_mse_mean": 7.089816552213052e-06,
+          "n_physical": 1
+        },
+        "1s": {
+          "rel_mse_mean": 0.00012095699028671119,
+          "spider_abs_mse_mean": 0.009077407031667503,
+          "n_physical": 1
+        },
+        "5s": {
+          "rel_mse_mean": 0.002081944465322275,
+          "spider_abs_mse_mean": 4.258125348080267,
+          "n_physical": 1
+        },
+        "10s": {
+          "rel_mse_mean": 0.0011459420706400251,
+          "spider_abs_mse_mean": 28.513943608380732,
+          "n_physical": 1
+        }
+      },
+      "select_5s_rel_mse": 0.002081944465322275,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_local_s42_88dc163f_1791760366/best.pt"
+    },
+    "gns_local_s42_88dc163f_1791760366/last.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.09375,
+      "wall_s": 26.69749570499698,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": 1.115764229752427e-05,
+          "spider_abs_mse_mean": 2.2363852199411156e-05,
+          "n_physical": 3
+        },
+        "1s": {
+          "rel_mse_mean": 0.000484957324418746,
+          "spider_abs_mse_mean": 0.015215984922532873,
+          "n_physical": 3
+        },
+        "5s": {
+          "rel_mse_mean": 0.0009924989696299613,
+          "spider_abs_mse_mean": 1.4838723668919727,
+          "n_physical": 3
+        },
+        "10s": {
+          "rel_mse_mean": 0.0010978418420295518,
+          "spider_abs_mse_mean": 7.580468481174003,
+          "n_physical": 3
+        }
+      },
+      "select_5s_rel_mse": 0.0009924989696299613,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_local_s42_88dc163f_1791760366/last.pt"
+    },
+    "constant_velocity": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 202.9653497410036,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN
+    },
+    "follow_air": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 376.1023859719862,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN
+    }
+  },
+  "created_unix": 1791938961.1700156
+}

@@ -1,0 +1,45 @@
+{
+  "run_id": "gns_baseline_s42_5716ee5b_1791828699",
+  "model": "gns_baseline",
+  "param_count": 2617267,
+  "data_version": "5c60fa669a719404",
+  "splits_hash": "bb87ca02c1e1794f",
+  "git_commit": "5716ee5b39173543860325129466641b84479698",
+  "git_dirty": false,
+  "device": "cuda",
+  "seed": 42,
+  "batch_size": 64,
+  "lr": 0.0001,
+  "noise_k": 1.0,
+  "noise_mode": "per_type",
+  "noise_std": 0.0053645823520308365,
+  "noise_std_by_type_comp": [
+    [
+      0.007463656831532717,
+      0.0035355123691260815,
+      0.002950228750705719
+    ],
+    [
+      0.005941335111856461,
+      0.005165842827409506,
+      0.003396653803065419
+    ],
+    [
+      0.007013442926108837,
+      0.006847761105746031,
+      0.0035349621903151274
+    ]
+  ],
+  "noise_std_components": null,
+  "cache_shards": 2,
+  "num_workers": 4,
+  "max_epochs": 15,
+  "steps_per_epoch": 65768,
+  "max_steps": 986520,
+  "n_train_frames": 4209102,
+  "vm_usd_per_hour": 0.853624312,
+  "cost_cap_usd": 26.0,
+  "val_rollout_every": 1000,
+  "stop_reason": "cost_cap ($26.00 > $26.00)",
+  "session_cost_usd": 26.000003678738285
+}

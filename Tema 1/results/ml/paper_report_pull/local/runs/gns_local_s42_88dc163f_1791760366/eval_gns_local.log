@@ -1,0 +1,149 @@
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+{
+  "git": {
+    "commit": "88dc163fe0a8fe18bf5b01f4150f973075678ae7",
+    "dirty": false
+  },
+  "run_id": "gns_local_s42_88dc163f_1791760366",
+  "model": "gns_local",
+  "splits": {
+    "test_interp": {
+      "n_runs": 3,
+      "one_step_mse": 0.07692109156687982,
+      "rollout_mse": 0.09652908794908299,
+      "rollout_mse_units": "m^2_rel_pos",
+      "rollout_K": 100,
+      "outcome_accuracy": 0.6666666666666666,
+      "exit_time_mae": 10.300000000953672,
+      "delta_V_over_V": 5.9314250272375055,
+      "delta_R_over_L": 80.33569172924814,
+      "P_sim": 0.3333333333333333,
+      "P_surr": 0.0,
+      "P_sim_wilson": [
+        0.06149194472039615,
+        0.7923403991979523
+      ],
+      "P_surr_wilson": [
+        0.0,
+        0.5614970317550455
+      ],
+      "abs_delta_P": 0.3333333333333333,
+      "time_per_run_s": 1.5949832889999698,
+      "time_per_run_full_s": 11.489745379048562,
+      "air_time_per_run_s": 0.22244125499988363,
+      "model_time_per_run_s": 1.1039246053334182,
+      "integ_time_per_run_s": 0.011851221333320913,
+      "time_sim_mean_s": 328.7731481,
+      "sim_hardware": "c2-standard-30",
+      "surr_hardware": "cuda",
+      "n_speedup_runs": 3,
+      "speedup": 28.92906973519386
+    },
+    "test_unseenN_interp": {
+      "n_runs": 3,
+      "one_step_mse": 0.226264294828679,
+      "rollout_mse": 0.11748184179730992,
+      "rollout_mse_units": "m^2_rel_pos",
+      "rollout_K": 100,
+      "outcome_accuracy": 1.0,
+      "exit_time_mae": 6.196666667620339,
+      "delta_V_over_V": 6.578347017113999,
+      "delta_R_over_L": 8.20100040439003,
+      "P_sim": 0.0,
+      "P_surr": 0.0,
+      "P_sim_wilson": [
+        0.0,
+        0.5614970317550455
+      ],
+      "P_surr_wilson": [
+        0.0,
+        0.5614970317550455
+      ],
+      "abs_delta_P": 0.0,
+      "time_per_run_s": 0.8028733456666259,
+      "time_per_run_full_s": 6.0006792951170445,
+      "air_time_per_run_s": 0.06989825599983608,
+      "model_time_per_run_s": 0.6307519566664345,
+      "integ_time_per_run_s": 0.007150795666537609,
+      "time_sim_mean_s": 802.8962238666667,
+      "sim_hardware": "c2-standard-30",
+      "surr_hardware": "cuda",
+      "n_speedup_runs": 3,
+      "speedup": 137.38363642950563
+    },
+    "test_unseenN": {
+      "n_runs": 3,
+      "one_step_mse": 18.380642978570606,
+      "rollout_mse": 0.15498231248040326,
+      "rollout_mse_units": "m^2_rel_pos",
+      "rollout_K": 100,
+      "outcome_accuracy": 1.0,
+      "exit_time_mae": 0.9200000003178898,
+      "delta_V_over_V": 0.4741165078220399,
+      "delta_R_over_L": 15.881489238466665,
+      "P_sim": 0.0,
+      "P_surr": 0.0,
+      "P_sim_wilson": [
+        0.0,
+        0.5614970317550455
+      ],
+      "P_surr_wilson": [
+        0.0,
+        0.5614970317550455
+      ],
+      "abs_delta_P": 0.0,
+      "time_per_run_s": 1.7297469303333248,
+      "time_per_run_full_s": 2.2925569571844036,
+      "air_time_per_run_s": 0.15872042366709138,
+      "model_time_per_run_s": 1.3282996509997247,
+      "integ_time_per_run_s": 0.01963152099877637,
+      "time_sim_mean_s": 752.4664167000001,
+      "sim_hardware": "c2-standard-30",
+      "surr_hardware": "cuda",
+      "n_speedup_runs": 3,
+      "speedup": 327.67544451616226
+    },
+    "test_unseenSigma": {
+      "n_runs": 3,
+      "one_step_mse": 0.071502869478961,
+      "rollout_mse": 0.10676843363033413,
+      "rollout_mse_units": "m^2_rel_pos",
+      "rollout_K": 100,
+      "outcome_accuracy": 0.6666666666666666,
+      "exit_time_mae": 10.646666667620341,
+      "delta_V_over_V": 5.124419799636208,
+      "delta_R_over_L": 13.060611534078205,
+      "P_sim": 0.3333333333333333,
+      "P_surr": 0.0,
+      "P_sim_wilson": [
+        0.06149194472039615,
+        0.7923403991979523
+      ],
+      "P_surr_wilson": [
+        0.0,
+        0.5614970317550455
+      ],
+      "abs_delta_P": 0.3333333333333333,
+      "time_per_run_s": 1.0458390616665838,
+      "time_per_run_full_s": 10.146983445174085,
+      "air_time_per_run_s": 0.0879008490007891,
+      "model_time_per_run_s": 0.8296215496668538,
+      "integ_time_per_run_s": 0.008391517666950676,
+      "time_sim_mean_s": 754.0654541333333,
+      "sim_hardware": "c2-standard-30",
+      "surr_hardware": "cuda",
+      "n_speedup_runs": 3,
+      "speedup": 72.71114977018793
+    }
+  },
+  "C_data": 2815125.8798054946,
+  "C_train": 41599.67732858658,
+  "t_sim_per_run": 659.5503107,
+  "t_surr_per_run": 7.482491269131023,
+  "Q_star": 4381.0252124195595,
+  "sim_hardware": "c2-standard-30",
+  "surr_hardware": "cuda",
+  "speedup_definition": "(sim wall/sim-s) / (surr wall/sim-s); surr includes model + KinematicSimulation u-eval + integration; sim walls only when wall_time_s finite"
+}

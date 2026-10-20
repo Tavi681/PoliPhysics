@@ -1,0 +1,482 @@
+{
+  "run_ids": [
+    "N1_sw0.15_x+4_i0099",
+    "N1_sw0.30_x+1_i0114",
+    "N2_sw0.15_x-1_i0114",
+    "N2_sw0.30_x+1_i0047",
+    "N4_sw0.15_x+1_i0029",
+    "N4_sw0.30_x+1_i0196",
+    "N1_sw0.15_x+1_i0035",
+    "N1_sw0.30_x+1_i0032",
+    "N2_sw0.15_x-1_i0057",
+    "N2_sw0.30_x+0_i0037",
+    "N4_sw0.15_x+0_i0188",
+    "N4_sw0.30_x+1_i0030",
+    "N1_sw0.15_x+4_i0075",
+    "N1_sw0.30_x+2_i0058",
+    "N2_sw0.15_x-1_i0007",
+    "N2_sw0.30_x+2_i0097",
+    "N4_sw0.15_x+0_i0075",
+    "N4_sw0.30_x+1_i0076",
+    "N1_sw0.15_x+0_i0190",
+    "N1_sw0.30_x+2_i0086",
+    "N2_sw0.15_x-4_i0011",
+    "N2_sw0.30_x+2_i0034",
+    "N4_sw0.15_x+1_i0118",
+    "N4_sw0.30_x+0_i0072",
+    "N1_sw0.15_x+1_i0123",
+    "N1_sw0.30_x+1_i0148",
+    "N2_sw0.15_x-4_i0005",
+    "N2_sw0.30_x+1_i0087",
+    "N4_sw0.15_x-1_i0010",
+    "N4_sw0.30_x+0_i0131",
+    "N1_sw0.15_x+2_i0013",
+    "N1_sw0.30_x+0_i0098"
+  ],
+  "horizons_s": [
+    0.2,
+    1.0,
+    5.0,
+    10.0
+  ],
+  "physical_edge_tol": 0.1,
+  "selection_metric": "5s_rel_mse",
+  "selected": "gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt",
+  "selected_5s_rel_mse": 0.00012072117577366091,
+  "checkpoints": {
+    "gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 96.25027658199542,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_00.pt"
+    },
+    "gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 45.65303446499456,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_01.pt"
+    },
+    "gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 118.88132504900568,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_02.pt"
+    },
+    "gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 198.46868817300128,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_03.pt"
+    },
+    "gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.03125,
+      "wall_s": 132.3794155450014,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": 6.715902125067459e-06,
+          "spider_abs_mse_mean": 1.1103565102874914e-05,
+          "n_physical": 1
+        },
+        "1s": {
+          "rel_mse_mean": 4.404434825752624e-05,
+          "spider_abs_mse_mean": 0.0025218183519089845,
+          "n_physical": 1
+        },
+        "5s": {
+          "rel_mse_mean": 0.00012072117577366091,
+          "spider_abs_mse_mean": 0.002399360956405128,
+          "n_physical": 1
+        },
+        "10s": {
+          "rel_mse_mean": 0.00012072117577366091,
+          "spider_abs_mse_mean": 0.002399360956405128,
+          "n_physical": 1
+        }
+      },
+      "select_5s_rel_mse": 0.00012072117577366091,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt"
+    },
+    "gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.03125,
+      "wall_s": 68.84324335500423,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": 4.749231720348601e-06,
+          "spider_abs_mse_mean": 1.2095724695182497e-05,
+          "n_physical": 1
+        },
+        "1s": {
+          "rel_mse_mean": 8.377107912616843e-05,
+          "spider_abs_mse_mean": 0.002183482627001494,
+          "n_physical": 1
+        },
+        "5s": {
+          "rel_mse_mean": 0.00018982806523082087,
+          "spider_abs_mse_mean": 0.02811207587532215,
+          "n_physical": 1
+        },
+        "10s": {
+          "rel_mse_mean": 0.00018982806523082087,
+          "spider_abs_mse_mean": 0.02811207587532215,
+          "n_physical": 1
+        }
+      },
+      "select_5s_rel_mse": 0.00018982806523082087,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_05.pt"
+    },
+    "gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 157.65451291498903,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_06.pt"
+    },
+    "gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 138.65038080899103,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_07.pt"
+    },
+    "gns_baseline_s42_5716ee5b_1791828699/epoch_08.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 98.17969142000948,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_08.pt"
+    },
+    "gns_baseline_s42_5716ee5b_1791828699/epoch_09.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 103.08769244801078,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_09.pt"
+    },
+    "gns_baseline_s42_5716ee5b_1791828699/epoch_10.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 81.60470486099075,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/epoch_10.pt"
+    },
+    "gns_baseline_s42_5716ee5b_1791828699/best.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 159.62213815699215,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/best.pt"
+    },
+    "gns_baseline_s42_5716ee5b_1791828699/last.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 81.83773397799814,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN,
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_baseline_s42_5716ee5b_1791828699/last.pt"
+    },
+    "constant_velocity": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 308.2828211869928,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN
+    },
+    "follow_air": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "wall_s": 580.8884880599944,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "1s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "5s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        },
+        "10s": {
+          "rel_mse_mean": NaN,
+          "spider_abs_mse_mean": NaN,
+          "n_physical": 0
+        }
+      },
+      "select_5s_rel_mse": NaN
+    }
+  },
+  "created_unix": 1791941337.2220693
+}

@@ -1,0 +1,4 @@
+Split,N,q (nC),sigma_w (m/s),Runs,Frames
+test_unseenN_interp,3,0.3544652421,0.3,50,25737
+test_unseenN_interp,3,0.4412955466,0.3,50,43897
+test_unseenN_interp,3,0.528125851,0.3,50,39588

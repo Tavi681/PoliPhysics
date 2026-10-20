@@ -1,0 +1,276 @@
+{
+  "run_ids": [
+    "N1_sw0.15_x+4_i0099",
+    "N1_sw0.30_x+1_i0114",
+    "N2_sw0.15_x-1_i0114",
+    "N2_sw0.30_x+1_i0047",
+    "N4_sw0.15_x+1_i0029",
+    "N4_sw0.30_x+1_i0196",
+    "N1_sw0.15_x+1_i0035",
+    "N1_sw0.30_x+1_i0032",
+    "N2_sw0.15_x-1_i0057",
+    "N2_sw0.30_x+0_i0037",
+    "N4_sw0.15_x+0_i0188",
+    "N4_sw0.30_x+1_i0030",
+    "N1_sw0.15_x+4_i0075",
+    "N1_sw0.30_x+2_i0058",
+    "N2_sw0.15_x-1_i0007",
+    "N2_sw0.30_x+2_i0097",
+    "N4_sw0.15_x+0_i0075",
+    "N4_sw0.30_x+1_i0076",
+    "N1_sw0.15_x+0_i0190",
+    "N1_sw0.30_x+2_i0086",
+    "N2_sw0.15_x-4_i0011",
+    "N2_sw0.30_x+2_i0034",
+    "N4_sw0.15_x+1_i0118",
+    "N4_sw0.30_x+0_i0072",
+    "N1_sw0.15_x+1_i0123",
+    "N1_sw0.30_x+1_i0148",
+    "N2_sw0.15_x-4_i0005",
+    "N2_sw0.30_x+1_i0087",
+    "N4_sw0.15_x-1_i0010",
+    "N4_sw0.30_x+0_i0131",
+    "N1_sw0.15_x+2_i0013",
+    "N1_sw0.30_x+0_i0098"
+  ],
+  "horizons_s": [
+    0.2,
+    1.0,
+    5.0,
+    10.0
+  ],
+  "physical_edge_tol": 0.1,
+  "error_cap_rel_mse": 100.0,
+  "selection_metric": "mean_capped_5s_rel_mse_all_runs",
+  "selected": "gns_local_s42_88dc163f_1791760366/best.pt",
+  "selected_5s_rel_mse": 1.59379258292473,
+  "checkpoints": {
+    "gns_local_s42_88dc163f_1791760366/best.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.03125,
+      "physical_fraction_at_times": {
+        "1s": 0.5625,
+        "5s": 0.03125,
+        "10s": 0.03125
+      },
+      "ttf": {
+        "median": 1.0799992084503174,
+        "q25": 0.6749995946884155,
+        "q75": 1.362498939037323,
+        "n_runs": 32,
+        "n_failed": 31,
+        "n_never_fail": 1
+      },
+      "wall_s": 133.88337343699823,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": 2.947018129098609e-05,
+          "spider_abs_mse_mean": 2.2670772187243375e-05,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.96875,
+          "n_runs": 32
+        },
+        "1s": {
+          "rel_mse_mean": 0.0013946903109877961,
+          "spider_abs_mse_mean": 0.009441655091936611,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.5625,
+          "n_runs": 32
+        },
+        "5s": {
+          "rel_mse_mean": 1.59379258292473,
+          "spider_abs_mse_mean": 5.576305269165437,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.03125,
+          "n_runs": 32
+        },
+        "10s": {
+          "rel_mse_mean": 2.8639195132029243,
+          "spider_abs_mse_mean": 8.92266393763854,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.03125,
+          "n_runs": 32
+        }
+      },
+      "error_cap_rel_mse": 100.0,
+      "physical_edge_tol": 0.1,
+      "select_5s_rel_mse": 1.59379258292473,
+      "selection_metric": "mean_capped_5s_rel_mse_all_runs",
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_local_s42_88dc163f_1791760366/best.pt"
+    },
+    "gns_local_s42_88dc163f_1791760366/last.pt": {
+      "n_runs": 32,
+      "physical_fraction": 0.09375,
+      "physical_fraction_at_times": {
+        "1s": 0.46875,
+        "5s": 0.09375,
+        "10s": 0.09375
+      },
+      "ttf": {
+        "median": 0.8449994325637817,
+        "q25": 0.5674996972084045,
+        "q75": 1.3074989914894104,
+        "n_runs": 32,
+        "n_failed": 29,
+        "n_never_fail": 3
+      },
+      "wall_s": 186.24808212000062,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": 6.737996997564457e-05,
+          "spider_abs_mse_mean": 4.462358136952344e-05,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 1.0,
+          "n_runs": 32
+        },
+        "1s": {
+          "rel_mse_mean": 0.002581593479606108,
+          "spider_abs_mse_mean": 0.05674581131219475,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.46875,
+          "n_runs": 32
+        },
+        "5s": {
+          "rel_mse_mean": 2.1341934754584875,
+          "spider_abs_mse_mean": 6.891812432613194,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.09375,
+          "n_runs": 32
+        },
+        "10s": {
+          "rel_mse_mean": 2.14268605226525,
+          "spider_abs_mse_mean": 11.661170145993559,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.09375,
+          "n_runs": 32
+        }
+      },
+      "error_cap_rel_mse": 100.0,
+      "physical_edge_tol": 0.1,
+      "select_5s_rel_mse": 2.1341934754584875,
+      "selection_metric": "mean_capped_5s_rel_mse_all_runs",
+      "path": "/home/octav/poliphysics/Tema 1/results/ml/runs/gns_local_s42_88dc163f_1791760366/last.pt"
+    },
+    "constant_velocity": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "physical_fraction_at_times": {
+        "1s": 0.0,
+        "5s": 0.0,
+        "10s": 0.0
+      },
+      "ttf": {
+        "median": 0.1250000074505806,
+        "q25": 0.09999999403953552,
+        "q75": 0.1625000275671482,
+        "n_runs": 32,
+        "n_failed": 32,
+        "n_never_fail": 0
+      },
+      "wall_s": 387.47825575000024,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": 0.003953451116147681,
+          "spider_abs_mse_mean": 0.003225824494768453,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.09375,
+          "n_runs": 32
+        },
+        "1s": {
+          "rel_mse_mean": 0.15822499735126686,
+          "spider_abs_mse_mean": 0.23948004519486615,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.0,
+          "n_runs": 32
+        },
+        "5s": {
+          "rel_mse_mean": 3.3559951895120808,
+          "spider_abs_mse_mean": 5.157709428362813,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.0,
+          "n_runs": 32
+        },
+        "10s": {
+          "rel_mse_mean": 11.917901190770099,
+          "spider_abs_mse_mean": 13.523309851313591,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.0,
+          "n_runs": 32
+        }
+      },
+      "error_cap_rel_mse": 100.0,
+      "physical_edge_tol": 0.1,
+      "select_5s_rel_mse": 3.3559951895120808,
+      "selection_metric": "mean_capped_5s_rel_mse_all_runs"
+    },
+    "follow_air": {
+      "n_runs": 32,
+      "physical_fraction": 0.0,
+      "physical_fraction_at_times": {
+        "1s": 0.0,
+        "5s": 0.0,
+        "10s": 0.0
+      },
+      "ttf": {
+        "median": 0.009999997913837433,
+        "q25": 0.009999997913837433,
+        "q75": 0.009999997913837433,
+        "n_runs": 32,
+        "n_failed": 32,
+        "n_never_fail": 0
+      },
+      "wall_s": 773.9434077559999,
+      "horizons": {
+        "0.2s": {
+          "rel_mse_mean": 0.0019234110666380454,
+          "spider_abs_mse_mean": 0.0030086343251972195,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.0,
+          "n_runs": 32
+        },
+        "1s": {
+          "rel_mse_mean": 0.03951377977169181,
+          "spider_abs_mse_mean": 0.03760689951653256,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.0,
+          "n_runs": 32
+        },
+        "5s": {
+          "rel_mse_mean": 0.5677036214480495,
+          "spider_abs_mse_mean": 1.1585748427448292,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.0,
+          "n_runs": 32
+        },
+        "10s": {
+          "rel_mse_mean": 1.5138531938525395,
+          "spider_abs_mse_mean": 8.137882463831406,
+          "n_capped_rel": 0,
+          "n_capped_abs": 0,
+          "physical_fraction": 0.0,
+          "n_runs": 32
+        }
+      },
+      "error_cap_rel_mse": 100.0,
+      "physical_edge_tol": 0.1,
+      "select_5s_rel_mse": 0.5677036214480495,
+      "selection_metric": "mean_capped_5s_rel_mse_all_runs"
+    }
+  },
+  "created_unix": 1792004313.3449419
+}

@@ -1,0 +1,2 @@
+Method,Hardware,Time per run,Time per P (M),C_data,C_train,Q*,|Delta P|,model_time_per_run,air_time_per_run,integ_time_per_run,t_sim_per_run,t_surr_per_run
+gns_baseline,surr=cuda; sim=c2-standard-30,6.6541584027996965,,2815125.8798054946,0.0,2501.2380555412124,0.3293402777777778,1.257224953421801,0.22449413023753906,0.2499619096700325,1133.014060395362,7.521077602741059

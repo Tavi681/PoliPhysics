@@ -1,0 +1,8 @@
+{
+  "peak_rss_bytes": 485883904,
+  "peak_rss_mb": 463.375,
+  "checkpoint": "Tema 1/results/ml/runs/_eval_stream_mac_smoke/best.pt",
+  "config": "ml/configs/baseline_const.yaml",
+  "device": "cpu",
+  "run_id": "_eval_stream_mac_smoke"
+}

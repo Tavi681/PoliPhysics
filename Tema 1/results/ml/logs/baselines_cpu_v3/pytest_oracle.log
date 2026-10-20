@@ -1,0 +1,10 @@
+ss                                                                       [100%]
+=============================== warnings summary ===============================
+ml/.venv/lib/python3.11/site-packages/torch/jit/_script.py:1491
+  /home/octav/poliphysics/Tema 1/ml/.venv/lib/python3.11/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [2] ml/tests/test_oracle_rollout.py:58: missing data dir results/ml/processed/5c60fa669a719404
+2 skipped, 1 warning in 2.61s

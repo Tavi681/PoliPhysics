@@ -1,0 +1,100 @@
+{
+  "loss_definition": {
+    "formula": "mean_i,c (pred_{i,c} - y_{i,c})^2",
+    "aggregation": "torch mean over all nodes and 3 acceleration components in the batch",
+    "per_type_weighting": false,
+    "target": "a_t = (v_{t+1}-v_t)/dt, then normalize: (a - a_mean)/a_std from TRAIN norm_stats",
+    "a_mean": [
+      0.026412174105644226,
+      -0.00011975432425970212,
+      0.006611871067434549
+    ],
+    "a_std": [
+      0.5979325771331787,
+      0.5192943811416626,
+      0.33959484100341797
+    ],
+    "noise": "RW over C velocities; std at latest v = k*a_std*dt per component (falls back to k*noise_stats RMS only if a_std missing); increments /sqrt(C); target a=(v_{t+1}^gt - v_t^noisy)/dt",
+    "noise_k": 1.0,
+    "noise_std_components": [
+      0.005979325622320175,
+      0.005192943848669529,
+      0.003395948326215148
+    ],
+    "zero_acc_note": "physical a=0 \u2192 normalized pred = -a_mean/a_std"
+  },
+  "n_batches": 50,
+  "batch_size": 2,
+  "losses": {
+    "zero_acc_noisy": 2.91772531747818,
+    "zero_acc_clean": 1.9283133787289262,
+    "zero_acc_train_fixed256": 0.3383758631480305,
+    "zero_acc_val_fixed256": 0.13802656963889604,
+    "best_ckpt_noisy": 3.563240747451782,
+    "best_ckpt_clean": 2.6574483174085617,
+    "train_one_step_clean_fixed256": 1.1681213331175968,
+    "val_one_step_clean": 0.8510419933591038
+  },
+  "frame_sets": {
+    "n_fixed": 256,
+    "train_indices_head": [
+      140,
+      375,
+      435,
+      590,
+      664,
+      712,
+      801,
+      835
+    ],
+    "val_indices_head": [
+      2,
+      10,
+      13,
+      14,
+      15,
+      20,
+      22,
+      25
+    ],
+    "same_norm": true,
+    "same_window_ok_filter": true,
+    "same_u_source": "stored rec['u'] / u_next_frame (not ks_torch)",
+    "graph": "built per sample from absolute positions at t"
+  },
+  "irreducible_noise": {
+    "zero_noisy_minus_clean": 0.9894119387492539,
+    "ckpt_noisy_minus_clean": 0.9057924300432205,
+    "interpretation": "zero_noisy - zero_clean \u2248 training-loss floor from RW noise at k (targets shift when latest v is noised). ckpt_noisy - ckpt_clean is the same gap for the fitted model."
+  },
+  "rollout_refs": {
+    "metric": "val_rollout_mse",
+    "units": "m^2_rel_pos",
+    "horizon_steps": 20,
+    "horizon_seconds": 0.2,
+    "n_runs": 1,
+    "run_ids": [
+      "N4_sw0.15_x-1_i0191"
+    ],
+    "seed": 42,
+    "constant_velocity": 0.0009606133545858597,
+    "follow_air": 0.00015384326118237369,
+    "gns_local_best_reported": 2.79e-05,
+    "timing_cv": {
+      "air_time_s": 0.006693626055493951,
+      "model_time_s": 0.0002293745055794716,
+      "graph_time_s": 0.00645303656347096,
+      "n_steps": 20,
+      "n_runs": 1
+    },
+    "timing_fa": {
+      "air_time_s": 0.004215209046378732,
+      "model_time_s": 0.0014792054425925016,
+      "graph_time_s": 0.005958582274615765,
+      "n_steps": 20,
+      "n_runs": 1
+    }
+  },
+  "checkpoint": "/Users/octav/Projects/PoliPhysics/PoliPhysics/Tema 1/results/ml/runs/gns_local_s42_6d45c4ac_1791740038/best.pt",
+  "created_unix": 1791758886.399434
+}

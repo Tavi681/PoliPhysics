@@ -1,0 +1,123 @@
+/Users/octav/Projects/PoliPhysics/PoliPhysics/.venv/lib/python3.14/site-packages/torch/jit/_script.py:1485: FutureWarning: `torch.jit.script` is not supported in Python 3.14+ and may break. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+select on 32 val runs: ['N1_sw0.15_x+4_i0099', 'N1_sw0.30_x+1_i0114', 'N2_sw0.15_x-1_i0114', 'N2_sw0.30_x+1_i0047', 'N4_sw0.15_x+1_i0029', 'N4_sw0.30_x+1_i0196', 'N1_sw0.15_x+1_i0035', 'N1_sw0.30_x+1_i0032', 'N2_sw0.15_x-1_i0057', 'N2_sw0.30_x+0_i0037', 'N4_sw0.15_x+0_i0188', 'N4_sw0.30_x+1_i0030', 'N1_sw0.15_x+4_i0075', 'N1_sw0.30_x+2_i0058', 'N2_sw0.15_x-1_i0007', 'N2_sw0.30_x+2_i0097', 'N4_sw0.15_x+0_i0075', 'N4_sw0.30_x+1_i0076', 'N1_sw0.15_x+0_i0190', 'N1_sw0.30_x+2_i0086', 'N2_sw0.15_x-4_i0011', 'N2_sw0.30_x+2_i0034', 'N4_sw0.15_x+1_i0118', 'N4_sw0.30_x+0_i0072', 'N1_sw0.15_x+1_i0123', 'N1_sw0.30_x+1_i0148', 'N2_sw0.15_x-4_i0005', 'N2_sw0.30_x+1_i0087', 'N4_sw0.15_x-1_i0010', 'N4_sw0.30_x+0_i0131', 'N1_sw0.15_x+2_i0013', 'N1_sw0.30_x+0_i0098']
+=== gns_local_s42_88dc163f_1791760366/best.pt ===
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+KinematicSimulation: turb_renormalize factor=1.018722 (resolved/target was 0.963583, N_k=200)
+{
+  "n_runs": 32,
+  "physical_fraction": 0.03125,
+  "physical_fraction_at_times": {
+    "1s": 0.5625,
+    "5s": 0.03125,
+    "10s": 0.03125
+  },
+  "ttf": {
+    "median": 1.0799992084503174,
+    "q25": 0.6749995946884155,
+    "q75": 1.362498939037323,
+    "n_runs": 32,
+    "n_failed": 31,
+    "n_never_fail": 1
+  },
+  "wall_s": 72.33854250004515,
+  "horizons": {
+    "0.2s": {
+      "rel_mse_mean": 2.9470215736132816e-05,
+      "spider_abs_mse_mean": 2.2670642617479207e-05,
+      "n_capped_rel": 0,
+      "n_capped_abs": 0,
+      "physical_fraction": 0.96875,
+      "n_runs": 32
+    },
+    "1s": {
+      "rel_mse_mean": 0.0013946675750578133,
+      "spider_abs_mse_mean": 0.009441772371019005,
+      "n_capped_rel": 0,
+      "n_capped_abs": 0,
+      "physical_fraction": 0.5625,
+      "n_runs": 32
+    },
+    "5s": {
+      "rel_mse_mean": 1.5940332625463673,
+      "spider_abs_mse_mean": 5.576427047268708,
+      "n_capped_rel": 0,
+      "n_capped_abs": 0,
+      "physical_fraction": 0.03125,
+      "n_runs": 32
+    },
+    "10s": {
+      "rel_mse_mean": 2.8627579968255428,
+      "spider_abs_mse_mean": 8.9144430296425,
+      "n_capped_rel": 0,
+      "n_capped_abs": 0,
+      "physical_fraction": 0.03125,
+      "n_runs": 32
+    }
+  },
+  "error_cap_rel_mse": 100.0,
+  "physical_edge_tol": 0.1,
+  "select_5s_rel_mse": 1.5940332625463673,
+  "selection_metric": "mean_capped_5s_rel_mse_all_runs",
+  "path": "/Users/octav/Projects/PoliPhysics/PoliPhysics/Tema 1/results/ml/runs/gns_local_s42_88dc163f_1791760366/best.pt"
+}
+=== gns_local_s42_88dc163f_1791760366/last.pt ===
+{
+  "n_runs": 32,
+  "physical_fraction": 0.09375,
+  "physical_fraction_at_times": {
+    "1s": 0.46875,
+    "5s": 0.09375,
+    "10s": 0.09375
+  },
+  "ttf": {
+    "median": 0.8449994325637817,
+    "q25": 0.5674996972084045,
+    "q75": 1.3074989914894104,
+    "n_runs": 32,
+    "n_failed": 29,
+    "n_never_fail": 3
+  },
+  "wall_s": 41.28318391693756,
+  "horizons": {
+    "0.2s": {
+      "rel_mse_mean": 6.738084168772624e-05,
+      "spider_abs_mse_mean": 4.462410921848281e-05,
+      "n_capped_rel": 0,
+      "n_capped_abs": 0,
+      "physical_fraction": 1.0,
+      "n_runs": 32
+    },
+    "1s": {
+      "rel_mse_mean": 0.00258182804592628,
+      "spider_abs_mse_mean": 0.056748313353699835,
+      "n_capped_rel": 0,
+      "n_capped_abs": 0,
+      "physical_fraction": 0.46875,
+      "n_runs": 32
+    },
+    "5s": {
+      "rel_mse_mean": 2.1381284907094003,
+      "spider_abs_mse_mean": 6.901844867164754,
+      "n_capped_rel": 0,
+      "n_capped_abs": 0,
+      "physical_fraction": 0.09375,
+      "n_runs": 32
+    },
+    "10s": {
+      "rel_mse_mean": 2.1466235023046987,
+      "spider_abs_mse_mean": 11.670629524000596,
+      "n_capped_rel": 0,
+      "n_capped_abs": 0,
+      "physical_fraction": 0.09375,
+      "n_runs": 32
+    }
+  },
+  "error_cap_rel_mse": 100.0,
+  "physical_edge_tol": 0.1,
+  "select_5s_rel_mse": 2.1381284907094003,
+  "selection_metric": "mean_capped_5s_rel_mse_all_runs",
+  "path": "/Users/octav/Projects/PoliPhysics/PoliPhysics/Tema 1/results/ml/runs/gns_local_s42_88dc163f_1791760366/last.pt"
+}
+SELECTED gns_local_s42_88dc163f_1791760366/best.pt 5s_rel=1.594033e+00
+wrote /Users/octav/Projects/PoliPhysics/PoliPhysics/Tema 1/results/ml/logs/ckpt_select_v2_gns_local_after_fix.json

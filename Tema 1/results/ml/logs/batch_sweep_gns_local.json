@@ -1,0 +1,54 @@
+[
+  {
+    "model": "gns_local",
+    "batch_size": 16,
+    "steps": 2442,
+    "graphs": 39072,
+    "elapsed_s": 120.00186886299991,
+    "steps_per_s": 20.349683076918648,
+    "graphs_per_s": 325.59492923069837,
+    "peak_gpu_mib": 116.48876953125,
+    "peak_gpu_frac": 0.0051627941400515225,
+    "train_frames": 4209102,
+    "epoch_hours": 3.5909496587140453
+  },
+  {
+    "model": "gns_local",
+    "batch_size": 64,
+    "steps": 2305,
+    "graphs": 147520,
+    "elapsed_s": 120.10818919799999,
+    "steps_per_s": 19.19103114776109,
+    "graphs_per_s": 1228.2259934567098,
+    "peak_gpu_mib": 1332.1875,
+    "peak_gpu_frac": 0.059042685798177334,
+    "train_frames": 4209102,
+    "epoch_hours": 0.9519380034527901
+  },
+  {
+    "model": "gns_local",
+    "batch_size": 128,
+    "steps": 1506,
+    "graphs": 192768,
+    "elapsed_s": 120.19019295300006,
+    "steps_per_s": 12.530140463198322,
+    "graphs_per_s": 1603.8579792893852,
+    "peak_gpu_mib": 2665.4638671875,
+    "peak_gpu_frac": 0.11813363030109969,
+    "train_frames": 4209102,
+    "epoch_hours": 0.7289891094459813
+  },
+  {
+    "model": "gns_local",
+    "batch_size": 256,
+    "steps": 768,
+    "graphs": 196608,
+    "elapsed_s": 120.43213970199986,
+    "steps_per_s": 6.377035249065219,
+    "graphs_per_s": 1632.5210237606962,
+    "peak_gpu_mib": 5227.47021484375,
+    "peak_gpu_frac": 0.2316820127905044,
+    "train_frames": 4209102,
+    "epoch_hours": 0.7161898578841133
+  }
+]

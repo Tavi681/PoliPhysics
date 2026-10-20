@@ -1,0 +1,11 @@
+{
+  "gns_local_selected": "gns_local_s42_88dc163f_1791760366/last.pt\n5s_rel_mse=0.0009924989696299613",
+  "gns_baseline_selected": "gns_baseline_s42_5716ee5b_1791828699/epoch_04.pt\n5s_rel_mse=0.00012072117577366091",
+  "EVAL_WALL_S_gns_baseline": 11784,
+  "EVAL_COST_USD_gns_baseline": 2.794,
+  "EVAL_WALL_S_gns_local": "not in available logs; prior estimate ~5230s (~1.45h) from earlier post pipeline monitor",
+  "EVAL_COST_USD_gns_local_est": 1.24,
+  "metrics_git_stamp": "5716ee5 (likely stale VM provenance; full n_runs confirm paper-scale eval)",
+  "code_synced_for_eval": "a856228 + df8babd + 5df09d2 (batched rollouts scp'd to VM)",
+  "stream_oom_fix_commit": "e4b560f"
+}

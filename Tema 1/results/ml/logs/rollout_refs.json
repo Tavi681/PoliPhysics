@@ -1,0 +1,28 @@
+{
+  "metric": "val_rollout_mse",
+  "units": "m^2_rel_pos",
+  "horizon_steps": 20,
+  "horizon_seconds": 0.2,
+  "n_runs": 1,
+  "run_ids": [
+    "N4_sw0.15_x-1_i0191"
+  ],
+  "seed": 42,
+  "constant_velocity": 0.0009606133749358037,
+  "follow_air": 0.0004328888502641348,
+  "gns_local_best_reported": 2.79e-05,
+  "timing_cv": {
+    "air_time_s": 0.015119291609153152,
+    "model_time_s": 0.003879835596308112,
+    "graph_time_s": 0.037290416890755296,
+    "n_steps": 20,
+    "n_runs": 1
+  },
+  "timing_fa": {
+    "air_time_s": 0.014668997609987855,
+    "model_time_s": 0.008839082904160023,
+    "graph_time_s": 0.03682329412549734,
+    "n_steps": 20,
+    "n_runs": 1
+  }
+}

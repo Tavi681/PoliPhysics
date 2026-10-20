@@ -1,0 +1,318 @@
+{
+  "tag": "FA",
+  "n": 20,
+  "status_counts": {
+    "fall": 17,
+    "rise": 3
+  },
+  "outcome_sim_counts": {
+    "rise": 12,
+    "fall": 8
+  },
+  "ttf_median": 0.015000000000000003,
+  "n_timeout": 0,
+  "first_fail_edges": [
+    {
+      "run_id": "N1_sw0.15_x+4_i0099",
+      "i": 4,
+      "j": 5,
+      "ttf_s": 0.020000000000000004
+    },
+    {
+      "run_id": "N1_sw0.30_x+1_i0114",
+      "i": 7,
+      "j": 8,
+      "ttf_s": 0.010000000000000002
+    },
+    {
+      "run_id": "N2_sw0.15_x-1_i0114",
+      "i": 81,
+      "j": 82,
+      "ttf_s": 0.020000000000000004
+    },
+    {
+      "run_id": "N2_sw0.30_x+1_i0047",
+      "i": 55,
+      "j": 56,
+      "ttf_s": 0.010000000000000002
+    },
+    {
+      "run_id": "N4_sw0.15_x+1_i0029",
+      "i": 95,
+      "j": 96,
+      "ttf_s": 0.020000000000000004
+    },
+    {
+      "run_id": "N4_sw0.30_x+1_i0196",
+      "i": 175,
+      "j": 176,
+      "ttf_s": 0.010000000000000002
+    },
+    {
+      "run_id": "N1_sw0.15_x+1_i0035",
+      "i": 28,
+      "j": 29,
+      "ttf_s": 0.03
+    },
+    {
+      "run_id": "N1_sw0.30_x+1_i0032",
+      "i": 41,
+      "j": 42,
+      "ttf_s": 0.010000000000000002
+    },
+    {
+      "run_id": "N2_sw0.15_x-1_i0057",
+      "i": 6,
+      "j": 7,
+      "ttf_s": 0.020000000000000004
+    },
+    {
+      "run_id": "N2_sw0.30_x+0_i0037",
+      "i": 96,
+      "j": 97,
+      "ttf_s": 0.010000000000000002
+    },
+    {
+      "run_id": "N4_sw0.15_x+0_i0188",
+      "i": 137,
+      "j": 138,
+      "ttf_s": 0.020000000000000004
+    },
+    {
+      "run_id": "N4_sw0.30_x+1_i0030",
+      "i": 35,
+      "j": 36,
+      "ttf_s": 0.010000000000000002
+    },
+    {
+      "run_id": "N1_sw0.15_x+4_i0075",
+      "i": 14,
+      "j": 15,
+      "ttf_s": 0.020000000000000004
+    },
+    {
+      "run_id": "N1_sw0.30_x+2_i0058",
+      "i": 20,
+      "j": 21,
+      "ttf_s": 0.010000000000000002
+    },
+    {
+      "run_id": "N2_sw0.15_x-1_i0007",
+      "i": 94,
+      "j": 95,
+      "ttf_s": 0.020000000000000004
+    },
+    {
+      "run_id": "N2_sw0.30_x+2_i0097",
+      "i": 4,
+      "j": 5,
+      "ttf_s": 0.010000000000000002
+    },
+    {
+      "run_id": "N4_sw0.15_x+0_i0075",
+      "i": 133,
+      "j": 134,
+      "ttf_s": 0.020000000000000004
+    },
+    {
+      "run_id": "N4_sw0.30_x+1_i0076",
+      "i": 122,
+      "j": 123,
+      "ttf_s": 0.010000000000000002
+    },
+    {
+      "run_id": "N1_sw0.15_x+0_i0190",
+      "i": 39,
+      "j": 40,
+      "ttf_s": 0.03
+    },
+    {
+      "run_id": "N1_sw0.30_x+2_i0086",
+      "i": 5,
+      "j": 6,
+      "ttf_s": 0.010000000000000002
+    }
+  ],
+  "rows": [
+    {
+      "run_id": "N1_sw0.15_x+4_i0099",
+      "outcome_sim": "rise",
+      "status": "fall",
+      "ttf_s": 0.020000000000000004,
+      "fail_node_i": 4,
+      "fail_node_j": 5,
+      "exit_time": 14.15099999904607
+    },
+    {
+      "run_id": "N1_sw0.30_x+1_i0114",
+      "outcome_sim": "rise",
+      "status": "fall",
+      "ttf_s": 0.010000000000000002,
+      "fail_node_i": 7,
+      "fail_node_j": 8,
+      "exit_time": 3.2109999990463014
+    },
+    {
+      "run_id": "N2_sw0.15_x-1_i0114",
+      "outcome_sim": "fall",
+      "status": "fall",
+      "ttf_s": 0.020000000000000004,
+      "fail_node_i": 81,
+      "fail_node_j": 82,
+      "exit_time": 12.650999999046102
+    },
+    {
+      "run_id": "N2_sw0.30_x+1_i0047",
+      "outcome_sim": "fall",
+      "status": "fall",
+      "ttf_s": 0.010000000000000002,
+      "fail_node_i": 55,
+      "fail_node_j": 56,
+      "exit_time": 1.0609999990463264
+    },
+    {
+      "run_id": "N4_sw0.15_x+1_i0029",
+      "outcome_sim": "fall",
+      "status": "fall",
+      "ttf_s": 0.020000000000000004,
+      "fail_node_i": 95,
+      "fail_node_j": 96,
+      "exit_time": 15.930999999046032
+    },
+    {
+      "run_id": "N4_sw0.30_x+1_i0196",
+      "outcome_sim": "rise",
+      "status": "fall",
+      "ttf_s": 0.010000000000000002,
+      "fail_node_i": 175,
+      "fail_node_j": 176,
+      "exit_time": 1.2709999990463265
+    },
+    {
+      "run_id": "N1_sw0.15_x+1_i0035",
+      "outcome_sim": "rise",
+      "status": "fall",
+      "ttf_s": 0.03,
+      "fail_node_i": 28,
+      "fail_node_j": 29,
+      "exit_time": 29.390999999048123
+    },
+    {
+      "run_id": "N1_sw0.30_x+1_i0032",
+      "outcome_sim": "rise",
+      "status": "fall",
+      "ttf_s": 0.010000000000000002,
+      "fail_node_i": 41,
+      "fail_node_j": 42,
+      "exit_time": 3.420999999046297
+    },
+    {
+      "run_id": "N2_sw0.15_x-1_i0057",
+      "outcome_sim": "fall",
+      "status": "rise",
+      "ttf_s": 0.020000000000000004,
+      "fail_node_i": 6,
+      "fail_node_j": 7,
+      "exit_time": 23.93099999904727
+    },
+    {
+      "run_id": "N2_sw0.30_x+0_i0037",
+      "outcome_sim": "fall",
+      "status": "fall",
+      "ttf_s": 0.010000000000000002,
+      "fail_node_i": 96,
+      "fail_node_j": 97,
+      "exit_time": 34.08099999904812
+    },
+    {
+      "run_id": "N4_sw0.15_x+0_i0188",
+      "outcome_sim": "fall",
+      "status": "fall",
+      "ttf_s": 0.020000000000000004,
+      "fail_node_i": 137,
+      "fail_node_j": 138,
+      "exit_time": 7.150999999046218
+    },
+    {
+      "run_id": "N4_sw0.30_x+1_i0030",
+      "outcome_sim": "fall",
+      "status": "fall",
+      "ttf_s": 0.010000000000000002,
+      "fail_node_i": 35,
+      "fail_node_j": 36,
+      "exit_time": 1.3309999990463266
+    },
+    {
+      "run_id": "N1_sw0.15_x+4_i0075",
+      "outcome_sim": "rise",
+      "status": "rise",
+      "ttf_s": 0.020000000000000004,
+      "fail_node_i": 14,
+      "fail_node_j": 15,
+      "exit_time": 17.98099999904634
+    },
+    {
+      "run_id": "N1_sw0.30_x+2_i0058",
+      "outcome_sim": "rise",
+      "status": "fall",
+      "ttf_s": 0.010000000000000002,
+      "fail_node_i": 20,
+      "fail_node_j": 21,
+      "exit_time": 4.23099999904628
+    },
+    {
+      "run_id": "N2_sw0.15_x-1_i0007",
+      "outcome_sim": "fall",
+      "status": "fall",
+      "ttf_s": 0.020000000000000004,
+      "fail_node_i": 94,
+      "fail_node_j": 95,
+      "exit_time": 3.000999999046306
+    },
+    {
+      "run_id": "N2_sw0.30_x+2_i0097",
+      "outcome_sim": "rise",
+      "status": "rise",
+      "ttf_s": 0.010000000000000002,
+      "fail_node_i": 4,
+      "fail_node_j": 5,
+      "exit_time": 10.640999999046144
+    },
+    {
+      "run_id": "N4_sw0.15_x+0_i0075",
+      "outcome_sim": "rise",
+      "status": "fall",
+      "ttf_s": 0.020000000000000004,
+      "fail_node_i": 133,
+      "fail_node_j": 134,
+      "exit_time": 24.550999999047367
+    },
+    {
+      "run_id": "N4_sw0.30_x+1_i0076",
+      "outcome_sim": "rise",
+      "status": "fall",
+      "ttf_s": 0.010000000000000002,
+      "fail_node_i": 122,
+      "fail_node_j": 123,
+      "exit_time": 22.300999999047015
+    },
+    {
+      "run_id": "N1_sw0.15_x+0_i0190",
+      "outcome_sim": "rise",
+      "status": "fall",
+      "ttf_s": 0.03,
+      "fail_node_i": 39,
+      "fail_node_j": 40,
+      "exit_time": 22.050999999046976
+    },
+    {
+      "run_id": "N1_sw0.30_x+2_i0086",
+      "outcome_sim": "rise",
+      "status": "fall",
+      "ttf_s": 0.010000000000000002,
+      "fail_node_i": 5,
+      "fail_node_j": 6,
+      "exit_time": 3.3509999990462984
+    }
+  ]
+}

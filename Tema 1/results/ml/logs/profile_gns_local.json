@@ -1,0 +1,29 @@
+{
+  "warmup": 20,
+  "steps": 100,
+  "wall_s": 5.398463928999263,
+  "steps_per_s": 18.523787750590277,
+  "graphs_per_s": 296.3806040094444,
+  "mean": {
+    "data_wait_s": 0.020405008679899764,
+    "h2d_s": 0.0016265156800000114,
+    "forward_s": 0.0102309325299575,
+    "backward_s": 0.017143518239990954,
+    "optim_s": 0.0036230121901098754,
+    "step_s": 0.053618419810009074
+  },
+  "p50": {
+    "data_wait_s": 0.0008540745002392214,
+    "h2d_s": 0.001513245500063931,
+    "forward_s": 0.009339142499811715,
+    "backward_s": 0.015745166499982588,
+    "optim_s": 0.003595612500248535,
+    "step_s": 0.038402192499233934
+  },
+  "device": "cuda",
+  "batch_size": 16,
+  "num_workers": 6,
+  "cache_shards": 16,
+  "shard_aware": true,
+  "note": "data_wait_s includes worker fetch+assemble+graph+collate (not separable once num_workers>0); h2d/forward/backward/optim are on-device."
+}
