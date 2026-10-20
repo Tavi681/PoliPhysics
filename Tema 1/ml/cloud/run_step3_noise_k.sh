@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Step3: train gns_baseline for noise_k in {0.1, 0.3, 3}, select (max TTF then min 5s),
-# re-select k=1 under post-hoc epoch window, eval winner if !=1, assemble table, stop VM.
+# re-select k=1 under post-hoc epoch window, eval winner if !=1, stop VM.
+# Table 1b is assembled locally: python3 -m ml.scripts.assemble_table1b --splits <splits.json>
 set -euo pipefail
 cd "${REMOTE_DIR:-/home/octav/poliphysics}/Tema 1"
 export PYTHONPATH=.
@@ -230,18 +231,7 @@ fi
 echo "STEP3_WALL_S=$(( $(date +%s)-T0_ALL ))"
 upload "${LOGDIR}" "${BUCKET}/logs/table1b_final/"
 
-if [[ "${SKIP_STEP4:-0}" == "1" ]]; then
-  echo "SKIP_STEP4 (step3 remainder only)"
-  echo "=== STEP3 DONE $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
-  exit 0
-fi
-
-echo "=== STEP4 assemble ==="
-python3 -m ml.scripts.assemble_table1b_v2_final \
-  --out-dir "results/ml/paper_report_pull/report" \
-  --pipeline-wall-s "$(( $(date +%s)-T0_ALL ))"
-upload "results/ml/paper_report_pull/report" "${BUCKET}/paper_report_pull/report/"
-
-echo "=== STEP3+4 DONE $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+echo "=== STEP3 DONE $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
+echo "Table 1b: python3 -m ml.scripts.assemble_table1b --splits <processed splits.json>"
 gcloud compute instances stop "${INSTANCE}" --zone="${ZONE}" || true
 echo VM_STOPPED

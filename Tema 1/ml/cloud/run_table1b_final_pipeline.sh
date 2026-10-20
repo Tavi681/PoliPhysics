@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Durable GPU pipeline: Step1 sanity → Step2 full eval (local+baseline k=1) →
-# Step3 noise_k ∈ {0.1,0.3,3} train+select → optional winner eval → table1b → stop VM.
+# Step3 noise_k ∈ {0.1,0.3,3} train+select → optional winner eval → stop VM.
+# Table 1b is assembled locally with ml.scripts.assemble_table1b.
 # Upload to GCS after each major step. One infra retry allowed per step.
 set -euo pipefail
 cd "${REMOTE_DIR:-/home/octav/poliphysics}/Tema 1"
@@ -275,24 +276,7 @@ echo "STEP3_WALL_S=$(( $(date +%s) - T0 ))"
 echo "STEP3_DONE"
 upload_path "results/ml/logs/table1b_final" "${BUCKET}/logs/table1b_final/"
 
-# ---------- Step 4: assemble table1b (CV/FA from existing v2 + GNS) ----------
-echo "=== STEP4 assemble table @ $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
-python3 -m ml.scripts.assemble_table1b_v2_final \
-  --out-dir "results/ml/paper_report_pull/report" \
-  --pipeline-wall-s "$(( $(date +%s) - T_PIPELINE0 ))" \
-  || python3 - <<'PY'
-# Fallback assembler if script missing
-print("assemble script missing — write stub summary")
-from pathlib import Path
-import json, time
-out=Path("results/ml/paper_report_pull/report")
-out.mkdir(parents=True, exist_ok=True)
-(out/"summary.md").write_text(
-  "# Table 1b v2 final — partial\n\nAssembler not present; see logs/table1b_final/.\n"
-)
-PY
-upload_path "results/ml/paper_report_pull/report" "${BUCKET}/paper_report_pull/report/"
-upload_path "results/ml/logs/table1b_final" "${BUCKET}/logs/table1b_final/"
+echo "Table 1b: python3 -m ml.scripts.assemble_table1b --splits <processed splits.json>"
 
 echo "=== PIPELINE DONE wall_s=$(( $(date +%s) - T_PIPELINE0 )) @ $(date -u +%Y-%m-%dT%H:%M:%SZ) ==="
 gcloud compute instances stop "${INSTANCE}" --zone="${ZONE}" || true
